@@ -4609,3 +4609,12 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 - **Counted now with `audit.tests_route_coverage.write_routes()`: 164.**
 - The 2 new routes are H-34's `('user-lock', 'post')` and `('user-unlock', 'post')`, from the staging merge db1f716e5. **B1b-8 adds no route** (`kept_until` is a field).
 - The route-coverage guard (`audit.tests_route_coverage`, in guards67) passed in N8, so H-34's routes are covered on their side.
+
+### §8.14 SM review: B1b-8 ACCEPTED at f5af3cc42 (grade-automator-plus-16, 2026-11-11); the drift-email line asked for §8.13 (a report, no change)
+
+- **ACCEPTED.** The SM verified: tree clean; 0 trailers in the last 40; the switches are True; the `users/*` diff is the H-34 merge only; the `write_routes` correction to 164 is accepted. The owner items stay with the SM: (a), (c), the text-3 student variant, the PDF stylesheet, #19's placement, D8-a, and (b) (not reachable).
+- **The line for §8.13 (switch-on review):** with B1b-8, **the drift email (#17) goes to every active super admin** (`is_active`, `is_superuser`, `user_type=SUPER_ADMIN`; one email, all in `recipient_list`; `billing/estimates.py:_send_drift_email`) **whenever `drift_check` finds a reason**: overall coverage under 85%, or a cell of at least 30 batches under 80% (`drift_reasons`, `:600`).
+  - **It is on every environment's beat schedule.** `check-credit-estimate-drift-monthly` (`AutoGrader/settings.py:964-967`, monthly, day 1, 06:00) sits in the one `CELERY_BEAT_SCHEDULE` (`:933`), which no `ENVIRONMENT` check guards. The scheduler is `django_celery_beat`'s `DatabaseScheduler` (`:1148`). So **staging's beat runs it too**, and the email goes to **staging's** active super admins. If the owner has a super-admin account on staging, they may get it from staging.
+  - **It does not depend on `BILLING_HOLDS_ENABLED`.** `drift_check` (`billing/estimates.py:646`) and its task (`billing/tasks.py:1808`) never read the flag. The history comes from `AICallRecord` (`_paper_queryset`, `:144`), which every AI call writes whatever the flag. So it can run, and email, with holds off.
+  - **With no batches** in the 90-day window, coverage is None and no cell reaches 30, so there is no reason and no email.
+  - Reported only; nothing changed.
