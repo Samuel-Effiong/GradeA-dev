@@ -4116,3 +4116,17 @@ Each plant is one edit to the product at e0fc5ffb7 (`billing/low_balance.py`, `b
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | N3 (near) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `billing users` + `guards67.txt` | **Ran 4718, OK (skipped=16)**, 0 FAIL, 0 ERROR |
+
+**N3 result (at 6832fad94):** **Ran 4718, OK (skipped=16)**, 0 FAIL, 0 ERROR, exit 0. **As declared.** Log: `step7/N3_near_6832fad94.log.gz`.
+
+### §7.22 B1b-7 at the end checkpoint
+
+- **D7-a..d:** product e0fc5ffb7, with a test-only fix at 7c76045b6. R2b green; plants PB7-1, PB7-2, PB7-3, PB7-other, PB7-5 and PB7-6 all killed as declared.
+- **D7-e:** product 198abed6e. R3 red and R4 green, both as declared; plants PB7-e1 and PB7-e2 killed as declared.
+- **Near N3:** as declared.
+- `write_routes()` = 162. No migration. `LOW_BALANCE_EMAIL_APPROVED = False` until B1b-8.
+- **Open, for the SM / owner:**
+  - (a) AIJob cancel has no building step (§7.5).
+  - (b) The `metered_unit` wrap around assignments `create`/`partial_update` extraction (§7.19 (3)).
+  - (c) For the B1b-8 review: a teacher on a spent license budget gets no low-balance email (allocation 0).
+  - (d) D7-e changed `students`, `assignments` and `dashboard` views, but those app suites are not in the ruled near. Should I run them as an extra declared run?
