@@ -4539,3 +4539,16 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | G8b | all four unset; under flock with `--noinput`; serial; at this commit | the 6 modules of BR8 (181) | **Ran 181, FAILED (failures=1)**: only the known `students.tests_data_export…test_every_field_is_decided_exactly_once` subTest `label='users.CustomUser'`, `'admin_locked_at' : users.CustomUser` |
+
+**§8.10 results: G8b and P8-1..P8-5, all AS DECLARED.** Every plant was applied by file edit and restored, and its sha256 MATCHES 806122ffe.
+
+| Run | Got | Log |
+|---|---|---|
+| G8b at 806122ffe | Ran 181, FAILED (failures=1): only the known H-34 guard subTest (`'admin_locked_at' : users.CustomUser`) | `step8/G8b_green_806122ffe.log` |
+| P8-1 (D8-a) at 6611cf4a4 | Ran 24, FAILED (errors=1): only `test_a_cycle_bucket_with_no_expiry_sends_no_warning`, `AttributeError: 'NoneType' object has no attribute 'date'`; `low_balance.py` sha256 `2b22bc02…3edc` | `step8/P8-1_6611cf4a4.log` |
+| P8-2 (Q8-2 guard) | Ran 24, FAILED (failures=1): only `test_a_student_never_reads_it`, `'kept_until' unexpectedly found in {...}`; `users/views.py` `da4e3949…fa9d` | `step8/P8-2_6611cf4a4.log` |
+| P8-3 (Q8-6 (1)) | Ran 24, FAILED (failures=1): only `test_cancelling_every_waiting_paper…`, `'QUEUED_PENDING_CREDITS' != AIJobStatus.CANCELLED`; `task_tracking.py` `c1809d32…7393` | `step8/P8-3_6611cf4a4.log` |
+| P8-4 (Q8-6 (2)) | Ran 24, FAILED (failures=2): `test_no_warning_when_nothing_waits`, `test_no_expiry_email_when_nothing_waited`, `Expected 'delay' to not have been called. Called 1 times.`; `batch_queue.py` `8d3a0915…2954` | `step8/P8-4_6611cf4a4.log` |
+| P8-5 (Q8-3) | Ran 24, FAILED (failures=1): only `test_a_single_upload_is_logged…`, `no logs of level WARNING or higher triggered on billing.holds`; `holds.py` `bdd1d717…9fda` | `step8/P8-5_6611cf4a4.log` |
+
+(6611cf4a4 is the G8b-log commit; the product files there are identical to 806122ffe.)
