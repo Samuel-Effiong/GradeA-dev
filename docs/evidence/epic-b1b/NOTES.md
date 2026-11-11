@@ -4562,3 +4562,22 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
 | Run | ENV | Label | Declared |
 |---|---|---|---|
 | DX8 | all four unset; under flock with `--noinput`; serial; at this commit | `students.tests_data_export` | **Ran 47, OK** |
+
+**DX8 result (at 0879750e4):** Ran 47, OK. **As declared.** Log: `step8/DX8_0879750e4.log`. From here, no run declares the H-34 guard failure.
+
+### §8.12 The B1b-8 near run, declared (before it runs)
+
+- **Label (§8.2):** `billing students assignments dashboard users` + the 67 guards (`guards67.txt`).
+- **Count** (`bsk.py`, build_suite plus static skips) at this commit: **6958 tests, 26 static skips**.
+- **Runtime skips:**
+  - users' 4 (as in N3b and N4b);
+  - +2 `--parallel` fork skips (§6.7.3);
+  - `students` and `dashboard` have no `skipTest`;
+  - `assignments/tests_load.py`'s two and `billing/tests/test_batch_gate6.py:56` sit inside classes skipped statically (`skipUnless(LOAD_TESTS_ENABLED)`), so they are inside the 26.
+- **Skipped = 26 + 4 + 2 = 32.**
+- `billing.tests.test_batch_gate6` counts 3, inside the 6958.
+- No migration in B1b-8 (`makemigrations --check` clean after both merges).
+
+| Run | ENV | Label | Declared |
+|---|---|---|---|
+| N8 (near) | BILLING_HOLDS_ENABLED, RUN_LOAD_TESTS, CI_REQUIRE_REDIS and CI_REQUIRE_NETWORK unset; `--parallel 4`; under flock with `--noinput`; at this commit | `billing students assignments dashboard users` + `guards67.txt` | **Ran 6958, OK (skipped=32)**, 0 FAIL, 0 ERROR |
