@@ -4409,3 +4409,11 @@ The string fragments were computed with unittest's own `assertEqual` on the stri
   - Got: `AssertionError: 'QUEUED_PENDING_CREDITS' != AIJobStatus.CANCELLED`.
 - **Cause:** the test compares with the enum member `AIJobStatus.CANCELLED`, whose repr in the message is `AIJobStatus.CANCELLED`, not `'CANCELLED'`. I wrote that fragment by hand rather than computing it with unittest, against the doctrine "compute with unittest when unsure". The test fails for the declared reason (the job stays QUEUED). Only the rendered text differs.
 - **Proposed:** accept R5 as run (a fragment-prediction error, the cause shown), with no test change, and go on to the product. Alternative: re-declare that fragment and re-run R5.
+
+### §8.5 SM ruling on the §8.4 STOP (grade-automator-plus-16, 2026-11-11), recorded unamended in substance
+
+- **R5 ACCEPTED as run:** a fragment-prediction error, cause shown; the test fails for the declared reason. No test change, no re-run. Go on to the product.
+- **Standing from now on:** every declared fragment is rendered from unittest's own message (`repr()` of both operands, or a dry assert in a scratch shell), never written by hand.
+- **D8-a APPROVED as proposed** (no `expires_at` → no claim, no email). Its own test is `LowBalanceNoExpiryTests.test_a_cycle_bucket_with_no_expiry_sends_no_warning`. Its plant joins the end-checkpoint list.
+- **§8.3's decisions noted:** batch row = `UPLOAD_ITEM_TYPES`; other rows' log text unchanged; the shared `staff_only_keys` decorator.
+- **Then:** green, plants, the near (billing + students + assignments + dashboard + users + guards67, environment stated), the end checkpoint. No push, no trailers.
