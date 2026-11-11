@@ -141,3 +141,45 @@ the row is a list, not a dict (the nesting).
 R1d result (R1d_red.log): Ran 1, FAILED (failures=1), AssertionError: the row is a list (the nesting), as declared. Red is now right for all 103 tests: 40 fail, each for its declared reason (after the R1 corrections above).
 
 Correction to the line above: after the R1 test fixes the 2 LeadQueryCountTests pass on the base (R1b), so red stands at **38 fail and 65 pass**, the originally declared sets. R1's 40 is the uncorrected run.
+
+## Build (product)
+
+- New billing/intent_signals.py: flag_q, expressions, annotate_signals,
+  ordering_terms, filter_signals, SignalFilterSet, clock and request_now.
+- billing/views.py: the distribution, summary, intent_signals and
+  intent_signal_detail read it, and every hand-written copy of the rules is
+  gone. intent-signals gets the optional ordering and the filters (a bad
+  value raises translate_validation, a 400). OpenAPI: the ordering (enum and
+  ORDERING_DOC) and the 5 filters are documented; the example is one row
+  per example with all 4 flags.
+- users/user_list.py: ensure_signals (beta_profile__, teachers only), the
+   key in apply_ordering and ordering_values, list_queryset(now).
+- users/filters.py: the 5 filters behind the super admin gate.
+- users/list_serializers.py: 5 read-only keys.
+- users/views.py: ordering_fields, list_queryset(now=request_now), and
+  ORDERING_DOC in the list's ordering description.
+
+### R2 green (declared)
+
+Labels: billing.tests.test_intent_signals users.tests_user_list_signals billing.tests.test_intent_signals_pins users.tests_user_list_sorting users.tests_user_list_payload_pin billing.tests.test_conversion_probability_task billing.tests.test_custom_ai_prompt_beta classrooms.tests_teacher_access_sweep assignments.tests_schema_extension.
+Count from build_suite: 138. Expected: Ran 138, OK.
+
+(Shell quoting note: in the Build list above, "the  key in apply_ordering"
+should read "the `signals` key in apply_ordering". The backticks were run by
+the shell when the heredoc was written.)
+
+R2 result (R2_green.log): Ran 138, FAILED (failures=2). **Prediction wrong.**
+Both are test_a_bad_value_is_a_400 (LeadFilterTests, SignalFilterTests), on
+the flag subtest ({"is_power_grader" / "at_80_percent": "sometimes"}): 200,
+not 400. **Product defect**: django-filter's BooleanFilter treats an unknown
+value as "not given" and ignores it, but the approved design says a bad value
+is a 400. Fix (product): the 4 flag filters on both endpoints are
+ChoiceFilters accepting only "true" and "false" (billing.intent_signals.flag_filter;
+OpenAPI enum ["true", "false"]). The brief 2 has_plan filter keeps its old
+lenient BooleanFilter, unchanged.
+
+### R2b green (declared)
+
+The same 9 labels, Ran 138. Expected: OK.
+
+R2b result (R2b_green.log): Ran 138, OK, as predicted.

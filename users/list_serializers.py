@@ -199,6 +199,12 @@ class UserListSerializer(CustomUserSerializer):
     papers_graded = serializers.IntegerField(read_only=True)
     credits_left = serializers.IntegerField(read_only=True, allow_null=True)
     credits_used = serializers.IntegerField(read_only=True)
+    # Brief 4: the signals (billing.intent_signals), teachers only.
+    signal_count = serializers.IntegerField(read_only=True)
+    at_80_percent = serializers.BooleanField(read_only=True)
+    frequent_user = serializers.BooleanField(read_only=True)
+    active_last_week = serializers.BooleanField(read_only=True)
+    is_power_grader = serializers.BooleanField(read_only=True)
 
     class Meta(CustomUserSerializer.Meta):
         fields = [
@@ -212,4 +218,9 @@ class UserListSerializer(CustomUserSerializer):
             "papers_graded",
             "credits_left",
             "credits_used",
+            "signal_count",
+            "at_80_percent",
+            "frequent_user",
+            "active_last_week",
+            "is_power_grader",
         ]
