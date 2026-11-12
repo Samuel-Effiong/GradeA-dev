@@ -707,7 +707,10 @@ BILLING_HOLDS_DRAINING = env.bool("BILLING_HOLDS_DRAINING", default=False)
 # Epic B1c (plan 08 §3.8, §5): the credit-request API and its Beat sweep.
 # The purchase hooks (GRANTED, SUPERSEDED refusal, close on loss of access)
 # act only on rows the API made, so they run whatever this says.
-CREDIT_REQUESTS_ENABLED = env.bool("CREDIT_REQUESTS_ENABLED", default=False)
+# Owner 2026-11-12: comes on with BILLING_HOLDS_ENABLED unless set on its own.
+CREDIT_REQUESTS_ENABLED = env.bool(
+    "CREDIT_REQUESTS_ENABLED", default=BILLING_HOLDS_ENABLED
+)
 
 # H-256: how long one request to the AI provider may wait for each read before
 # it is given up (the connect wait is fixed at 10 s in ai_processor/services.py).

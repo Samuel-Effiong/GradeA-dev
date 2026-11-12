@@ -45,6 +45,7 @@ CUSTOMER = "billing.stripe_service.StripeCustomerService.get_or_create_license_c
 REFUND_TASK = "billing.tasks.refund_departed_teacher_share"
 BASE = "/api/v1/billing/credit-requests"
 ON = override_settings(CREDIT_REQUESTS_ENABLED=True)
+OFF = override_settings(CREDIT_REQUESTS_ENABLED=False)
 # Named, not attribute access: none of these exists before the change.
 CREATE_ACTION = "CREDIT_REQUEST_CREATE"
 DECIDE_ACTION = "CREDIT_REQUEST_DECIDE"
@@ -783,6 +784,7 @@ class ApiTests(Fixture):
         self.api.force_authenticate(user)
         return self.api
 
+    @OFF
     def test_the_api_is_dark_while_the_flag_is_off(self):
         response = self.as_user(self.teacher).post(BASE, {"requested_blocks": 1})
         self.assertEqual(response.status_code, 404)
