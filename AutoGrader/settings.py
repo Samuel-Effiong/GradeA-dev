@@ -1032,6 +1032,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "billing.tasks.reconcile_stripe_prices",
         "schedule": crontab(minute=30, hour=2),
     },
+    # R2: the beta tallies back to the wallet charges (billing/beta_tallies.py).
+    # 00:10, so the 00:30 scoring below reads corrected tallies; clear of
+    # process-license-renewals at 00:00. Analytics only.
+    "reconcile-beta-tallies": {
+        "task": "billing.tasks.reconcile_beta_tallies",
+        "schedule": crontab(minute=10, hour=0),
+    },
     # The BetaProfile scoring engine. Its docstring has always said "Called
     # by midnight"; until now nothing called it, so the sales-lead endpoints
     # ranked every teacher at a permanent 0.0. Runs at 00:30 rather than

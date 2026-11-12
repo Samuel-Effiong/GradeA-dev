@@ -337,8 +337,10 @@ FILTER_HELP = {
     ),
     "at_80_percent": (
         "true: keeps teachers who have been marked as reaching 80% of their "
-        "beta credits. Once marked, it stays marked. false: keeps everyone "
-        f"else. {_TEACHERS_ONLY} {_EMPTY} {_SUPER_ADMIN_ONLY}"
+        "beta credits. It is worked out from the credits they have really "
+        "used, after refunds, so a refund that takes them below 80% removes "
+        "it. false: keeps everyone else. "
+        f"{_TEACHERS_ONLY} {_EMPTY} {_SUPER_ADMIN_ONLY}"
     ),
     "frequent_user": (
         "true: keeps teachers who have been active on 8 or more different "

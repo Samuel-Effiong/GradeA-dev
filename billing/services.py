@@ -1458,6 +1458,10 @@ class SubscriptionService:
 
         refund_note = reason or "failed task"
         analytics_reversals = defaultdict(int)  # (user_id, feature) -> amount
+        # R2: the beta tallies drop by what the ledger stops counting - the
+        # whole logged amount of every log flipped to is_refunded below, not
+        # the bucket-clamped amount - so they stay equal to charged_logs().
+        tally_reversals = defaultdict(int)  # (user_id, feature) -> amount
         users_by_id = {}
         total_refunded = 0
         refunded_log_ids = []
@@ -1500,6 +1504,9 @@ class SubscriptionService:
             ledger_rows = []
 
             for log in logs:
+                tally_user = log.wallet.user
+                users_by_id[tally_user.id] = tally_user
+                tally_reversals[(tally_user.id, log.feature)] += log.amount
                 bucket = buckets.get(log.bucket_id)
                 if bucket is None:
                     # Bucket vanished (CASCADE would normally have taken the
@@ -1569,7 +1576,7 @@ class SubscriptionService:
                 is_refunded=True
             )
 
-            for (user_id, feature), amount in analytics_reversals.items():
+            for (user_id, feature), amount in tally_reversals.items():
                 AnalyticsService.record_refund(
                     user=users_by_id[user_id], amount=amount, feature=feature
                 )
@@ -2431,22 +2438,19 @@ class AnalyticsService:
         # first AI action — after their credits had already been deducted,
         # since record_consumption runs inside the consumption flow.
         #
-        # These two flags mean "ever reached 80%/100% OF THEIR ALLOCATION".
+        # These two flags mean "uses 80%/100% OF THEIR ALLOCATION now", from
+        # the credits really used after refunds (R2, owner 2026-11-12: they
+        # always match real usage; a refund below 80% clears at_80_percent).
         # With no allocation there is no fraction to be a proportion of, so
         # the honest answer is to leave both untouched rather than invent a
         # ratio. The consumption totals above are still recorded either way,
         # and billing/views.py only ever counts/filters on these flags.
-        allocation = profile.initial_beta_credits or 0
-        if allocation > 0:
-            usage_ratio = profile.total_credits_used / allocation
-
-            # H-80: reaching 100% has also reached 80%. A single use that
-            # jumps from below 80% straight past 100% must set both, or the
-            # at_80_percent signal misses the most engaged teachers.
-            if usage_ratio >= 1.0:
-                profile.has_hit_cap = True
-            if usage_ratio >= 0.8:
-                profile.has_hit_80_percent = True
+        flags = AnalyticsService.usage_flags(
+            profile.total_credits_used, profile.initial_beta_credits
+        )
+        if flags is not None:
+            for name, value in flags.items():
+                setattr(profile, name, value)
         else:
             logger.warning(
                 "BetaProfile for %s has initial_beta_credits=%r, so the "
@@ -2472,13 +2476,15 @@ class AnalyticsService:
         Reverses record_consumption for credits that were refunded (e.g. an
         AI grading run that failed partway through — see
         SubscriptionService.refund_credits, which calls this once per
-        (user, feature) it refunds).
+        (user, feature) it refunds, with the whole logged amount of the logs
+        it marks is_refunded - R2, so the tallies stay equal to the charges).
 
-        Deliberately does NOT clear has_hit_cap / has_hit_80_percent: those
-        are "ever reached" signals used only by beta reporting (grep confirms
-        no read outside billing/serializers.py and billing/views.py) — not
-        access gates — so un-setting them would rewrite history for a teacher
-        who genuinely did burn through their allocation at some point.
+        R2 (owner, 2026-11-12): has_hit_80_percent / has_hit_cap always
+        match the credits really used after refunds, so they are recomputed
+        from the new total here, setting or clearing them, and the profile
+        is rescored (conversion_probability, usage_velocity) at once rather
+        than at the next nightly run. They are beta reporting signals, not
+        access gates. Allocation 0 leaves the flags untouched.
         """
         if amount <= 0 or not user.is_beta_eligible():
             return
@@ -2508,12 +2514,59 @@ class AnalyticsService:
 
         profile.save(update_fields=update_fields)
 
+        profile.refresh_from_db()
+        flags = AnalyticsService.usage_flags(
+            profile.total_credits_used, profile.initial_beta_credits
+        )
+        for name, value in (flags or {}).items():
+            setattr(profile, name, value)
+        score, velocity = AnalyticsService.conversion_score(profile)
+        profile.conversion_probability = score
+        profile.usage_velocity = velocity
+        profile.save(
+            update_fields=[
+                "has_hit_80_percent",
+                "has_hit_cap",
+                "conversion_probability",
+                "usage_velocity",
+            ]
+        )
+
+    @staticmethod
+    def usage_flags(total, allocation):
+        """
+        {"has_hit_80_percent", "has_hit_cap"} for `total` credits used out
+        of `allocation`, or None when the allocation is 0 or unset (nothing
+        to be a proportion of: leave the flags as they are). The one rule
+        for record_consumption, record_refund and billing.beta_tallies.
+
+        H-80: reaching 100% has also reached 80%.
+        """
+        allocation = allocation or 0
+        if allocation <= 0:
+            return None
+        ratio = total / allocation
+        return {"has_hit_80_percent": ratio >= 0.8, "has_hit_cap": ratio >= 1.0}
+
     @staticmethod
     def calculate_conversion_probability(profile):
         """
         The "Scoring Engine". Calculates probability from 0 - 100
         Called by midnight
         """
+        score, velocity = AnalyticsService.conversion_score(profile)
+        profile.usage_velocity = velocity
+        profile.conversion_probability = score
+        profile.save(update_fields=["conversion_probability", "usage_velocity"])
+
+    @staticmethod
+    def conversion_score(profile, now=None):
+        """
+        (conversion_probability, usage_velocity) for a profile, without
+        saving. R2: billing.beta_tallies.reconcile rescores a corrected
+        profile with this too, so there is one scoring rule.
+        """
+        now = now or timezone.now()
         score = 0
 
         # +30 points for high engagement (8+ distinct days)
@@ -2526,7 +2579,7 @@ class AnalyticsService:
 
         # +20 point for "Sticky" users (Active in the last 7 days)
         if profile.last_active_at:
-            days_since_active = (timezone.now() - profile.last_active_at).days
+            days_since_active = (now - profile.last_active_at).days
             if days_since_active <= 7:
                 score += 20
 
@@ -2541,11 +2594,8 @@ class AnalyticsService:
         # rather than returning 0.0 keeps the metric honest — a teacher who
         # burned 5,000 credits on their first day has a high velocity, not a
         # zero one — and it converges on the true rate from day two onward.
-        days_since_joined = max(1, (timezone.now() - profile.joined_beta_at).days)
-        profile.usage_velocity = profile.total_credits_used / days_since_joined
-
-        profile.conversion_probability = float(score)
-        profile.save(update_fields=["conversion_probability", "usage_velocity"])
+        days_since_joined = max(1, (now - profile.joined_beta_at).days)
+        return float(score), profile.total_credits_used / days_since_joined
 
     @staticmethod
     def track_analytics_view(user):
