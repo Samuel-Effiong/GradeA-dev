@@ -1286,7 +1286,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             submission.regraded_at = timezone.now()
 
             # A manual override IS the teacher's resolution of any pending
-            # grader-disagreement review — clear the queue flag and record
+            # review — clear the queue flag and record
             # how it was resolved (labeled data for the eval loop).
             if submission.needs_review:
                 submission.review_reasons = (submission.review_reasons or []) + [

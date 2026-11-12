@@ -74,6 +74,10 @@ MISMATCH = {
     "message": "This upload does not appear to be for this assignment.",
     "detail": ESSAY,
 }
+#: R1: a flag as it is sent carries its level; the stored one does not.
+OFF_TOPIC_SHOWN = dict(OFF_TOPIC_FLAG, level="question")
+NOT_FOUND_SHOWN = dict(NOT_FOUND_FLAG, level="question")
+MISMATCH_SHOWN = dict(MISMATCH, level="assignment")
 
 
 class TheRulesTest(SimpleTestCase):
@@ -85,7 +89,7 @@ class TheRulesTest(SimpleTestCase):
         shown = answers_with_flags(
             [dict(answer(1), question_number="q1"), answer(2), "odd"], flags
         )
-        self.assertEqual(shown[0]["review_flag"], OFF_TOPIC_FLAG)
+        self.assertEqual(shown[0]["review_flag"], OFF_TOPIC_SHOWN)
         self.assertIsNone(shown[1]["review_flag"])
         self.assertEqual(shown[2], "odd")
         # A paper read before H-242 has no flags: every answer says none.
@@ -146,7 +150,7 @@ class StoredWithTheAnswersTest(APITestCase):
         submission = self._upload(MISMATCHED)
         self.assertEqual(
             [entry["review_flag"] for entry in self.shown(submission)],
-            [OFF_TOPIC_FLAG, NOT_FOUND_FLAG],
+            [OFF_TOPIC_SHOWN, NOT_FOUND_SHOWN],
         )
         # The answer itself is untouched.
         self.assertEqual(submission.answers[0]["answer_html"], "<p>Macbeth...</p>")
@@ -169,7 +173,7 @@ class StoredWithTheAnswersTest(APITestCase):
         ):
             update_submission_from_raw_text(self.teacher, submission, "edited text")
         submission.refresh_from_db()
-        self.assertEqual(self.shown(submission)[1]["review_flag"], NOT_FOUND_FLAG)
+        self.assertEqual(self.shown(submission)[1]["review_flag"], NOT_FOUND_SHOWN)
 
     def test_the_review_queue_is_unchanged(self):
         submission = self._upload(MISMATCHED)
@@ -273,7 +277,7 @@ class ThePagesTest(APITestCase):
     def assert_page(
         self, page, mismatch_key="upload_mismatch", flagged_key="flagged_for_review"
     ):
-        self.assertEqual(page[mismatch_key], MISMATCH)
+        self.assertEqual(page[mismatch_key], MISMATCH_SHOWN)
         self.assertIs(page[flagged_key], True)
         self.assertNotIn("submission_flags", page)
         self.assertNotIn("student_submission_flags", page)
@@ -288,7 +292,7 @@ class ThePagesTest(APITestCase):
         page = self._detail(self.teacher)
         self.assertEqual(
             [entry["review_flag"] for entry in page["answers"]],
-            [OFF_TOPIC_FLAG, NOT_FOUND_FLAG],
+            [OFF_TOPIC_SHOWN, NOT_FOUND_SHOWN],
         )
 
     def test_the_student_reads_each_flag_under_its_answer_in_the_document(self):

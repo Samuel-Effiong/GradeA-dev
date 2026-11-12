@@ -21,15 +21,28 @@ from .feedback_projection import (
 )
 from .flag_serializers import UPLOAD_MISMATCH_HELP, ReviewFlagSerializer
 from .models import GradingState, StudentSubmission
-from .second_opinion_serializers import (
-    QuestionEvaluationSerializer,
-    SecondOpinionSerializer,
-)
+from .review_state import teacher_review_reasons
+from .second_opinion_serializers import QuestionEvaluationSerializer
 from .services import (
     answer_document_for_student,
     get_grade_details,
     remaining_student_attempts,
 )
+
+
+@extend_schema_field(OpenApiTypes.ANY)
+class TeacherReviewReasonsField(serializers.Field):
+    """R1: `review_reasons` as a teacher is sent it - none of the second
+    AI's entries (still on rows graded before R1, kept for the record), and
+    each reason about the upload with its `level`
+    (students/review_state.py). Null when nothing is left."""
+
+    def __init__(self, **kwargs):
+        kwargs["read_only"] = True
+        super().__init__(**kwargs)
+
+    def to_representation(self, value):
+        return teacher_review_reasons(value)
 
 
 class SubmissionFlagsMixin(serializers.Serializer):
@@ -56,7 +69,19 @@ class SubmissionFlagsMixin(serializers.Serializer):
         return data
 
     def get_flagged_for_review(self, obj) -> bool:
-        return flagged_for_review(obj)
+        return flagged_for_review(obj, for_teacher=self._for_teacher())
+
+    def _for_teacher(self):
+        """R1: unreadable stored answers show "Needs review" to the teacher
+        only; a student is sent what they were sent before."""
+        audience = getattr(self, "audience", "student")
+        if audience == "staff":
+            return True
+        if audience == "both":
+            request = self.context.get("request")
+            user = getattr(request, "user", None)
+            return bool(user) and getattr(user, "user_type", None) != "STUDENT"
+        return False
 
 
 class StudentSerializer(serializers.ModelSerializer):
@@ -233,6 +258,7 @@ class StudentSubmissionListSerializer(
     max_points = serializers.SerializerMethodField()
 
     remaining_attempts = serializers.SerializerMethodField()
+    review_reasons = TeacherReviewReasonsField()
 
     class Meta:
         model = StudentSubmission
@@ -373,8 +399,8 @@ class StudentSubmissionDetailSerializer(
 
     grade_status = serializers.SerializerMethodField()
     remaining_attempts = serializers.SerializerMethodField()
-    second_opinion = serializers.SerializerMethodField()
     question_breakdown = serializers.SerializerMethodField()
+    review_reasons = TeacherReviewReasonsField()
 
     class Meta:
         model = StudentSubmission
@@ -404,7 +430,6 @@ class StudentSubmissionDetailSerializer(
             "review_reasons",
             "review_severity",
             "review_tier",
-            "second_opinion",
             "question_breakdown",
             "scheduled_grading_at",
             "grading_task_name",
@@ -430,7 +455,6 @@ class StudentSubmissionDetailSerializer(
             "review_reasons",
             "review_severity",
             "review_tier",
-            "second_opinion",
             "question_breakdown",
             "score",
             "max_points",
@@ -445,22 +469,12 @@ class StudentSubmissionDetailSerializer(
             "is_grading_scheduled",
         ]
 
-    @extend_schema_field(SecondOpinionSerializer)
-    def get_second_opinion(self, obj):
-        """The stored second-opinion block (model, triggers, agreements,
-        disagreements with both graders' rationales and evidence) — the
-        payload the review UI renders side by side. Scoped read of the
-        feedback JSON rather than exposing the whole blob."""
-        feedback = obj.feedback if isinstance(obj.feedback, dict) else {}
-        return feedback.get("second_opinion")
-
     @extend_schema_field(QuestionEvaluationSerializer(many=True))
     def get_question_breakdown(self, obj):
         """The full per-question grade (question text, student answer,
         rationale, evidence, score) for every question — always present,
-        not only when needs_review is set, so a disagreement in
-        second_opinion can be read in the context of the whole submission
-        rather than in isolation. Teacher-facing only: see
+        not only when needs_review is set, so a flagged answer can be read
+        in the context of the whole submission rather than in isolation. Teacher-facing only: see
         StudentSubmissionDetailStudentVersionSerializer's separately
         whitelisted student-safe subset of these same fields."""
         feedback = obj.feedback if isinstance(obj.feedback, dict) else {}
@@ -699,7 +713,6 @@ class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSeria
     review_reasons = SentAs(None)
     review_severity = SentAs(None)
     review_tier = SentAs(None)
-    second_opinion = SentAs(None)
     question_breakdown = SentAs([])
     scheduled_grading_at = SentAs(None)
     grading_task_name = SentAs(None)
@@ -737,7 +750,6 @@ class StudentUploadAnswerSerializer(SubmissionFlagsMixin, serializers.ModelSeria
             "review_reasons",
             "review_severity",
             "review_tier",
-            "second_opinion",
             "question_breakdown",
             "scheduled_grading_at",
             "grading_task_name",

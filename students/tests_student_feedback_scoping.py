@@ -159,15 +159,14 @@ class StudentFeedbackScopingTest(APITestCase):
             feedback["recommendations"]["for_student"], ["Review the missing detail."]
         )
 
-    def test_teacher_view_is_unaffected_and_still_sees_second_opinion(self):
+    def test_teacher_view_is_unaffected_but_no_longer_sees_second_opinion(self):
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(self.url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertIn("second_opinion", response.data)
-        self.assertTrue(response.data["second_opinion"]["ran"])
-        # The full per-question breakdown is teacher-only, same reasoning
-        # as second_opinion: it carries evaluation_rationale/graded_by/
+        # R1 (owner, 2026-11-12): teachers see nothing of the second AI.
+        self.assertNotIn("second_opinion", response.data)
+        # The full per-question breakdown is teacher-only: it carries evaluation_rationale/graded_by/
         # snapped_from, none of which are in the student-safe whitelist.
         [entry] = response.data["question_breakdown"]
         self.assertEqual(

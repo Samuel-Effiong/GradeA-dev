@@ -86,7 +86,7 @@ KEYS = [
     "review_reasons",
     "review_severity",
     "review_tier",
-    "second_opinion",
+    # R1 (owner, 2026-11-12): "second_opinion" left the teacher's page.
     "question_breakdown",
     "scheduled_grading_at",
     "grading_task_name",
@@ -115,7 +115,6 @@ CONSTANTS = {
     "review_reasons": None,
     "review_severity": None,
     "review_tier": None,
-    "second_opinion": None,
     "question_breakdown": [],
     "scheduled_grading_at": None,
     "grading_task_name": None,

@@ -724,8 +724,9 @@ AI_PROVIDER_TIMEOUT_SECONDS = env.float("AI_PROVIDER_TIMEOUT_SECONDS", default=3
 
 # Selective blind second opinion (ai_processor/second_opinion.py): a
 # DIFFERENT model re-grades triggered questions without seeing the first
-# grade; disagreement flags the submission needs_review for the teacher.
-# Grader A's score always stands — the second opinion can only flag.
+# grade; the result is stored with the grade for our own quality checks
+# (R1, 2026-11-12: it no longer flags the submission for the teacher).
+# Grader A's score always stands.
 GRADING_SECOND_OPINION_ENABLED = env.bool(
     "GRADING_SECOND_OPINION_ENABLED", default=True
 )
@@ -796,8 +797,8 @@ GRADING_SECOND_OPINION_SUBJECTIVE_TYPES = env.list(
 # Disagreement severity tiers (teacher triage — never suppression): a
 # disagreement whose point gap is >= critical_fraction of the question's
 # points (or >= 2 rubric levels apart) is "critical"; >= moderate_fraction
-# is "moderate"; smaller gaps are "borderline". Feeds review_severity
-# ordering and the grading_eval segmentation.
+# is "moderate"; smaller gaps are "borderline". Feeds the grading_eval
+# segmentation.
 GRADING_DISAGREEMENT_CRITICAL_FRACTION = env.float(
     "GRADING_DISAGREEMENT_CRITICAL_FRACTION", default=0.5
 )

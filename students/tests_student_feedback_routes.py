@@ -279,14 +279,13 @@ class StudentSubmissionListReviewFieldsTest(StudentFeedbackRoutesBase):
 
     REVIEW_STATE = {
         "needs_review": True,
+        # R1: a reason a teacher is still sent (the second AI's are not).
         "review_reasons": [
             {
-                "type": "grader_disagreement",
-                "question_number": 1,
-                "a_score": 8,
-                "b_score": 10,
-                "tier": "critical",
-                "gap_fraction": 0.2,
+                "type": "ai_reply_corrected",
+                "repeated_questions": [1],
+                "repeated_dropped": 1,
+                "unmatched_dropped": 0,
             }
         ],
         "review_severity": 2.2,

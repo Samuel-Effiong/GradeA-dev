@@ -4415,8 +4415,9 @@ Do not include any explanatory text before or after the JSON
         the second pass reuses _grade_question_batch, whose prompt
         contains nothing but questions and answers, so grader B can never
         see grader A's scores. Agreement is recorded silently;
-        disagreement is attached to the result for the caller to surface
-        as needs_review. Grader A's scores are NEVER modified here.
+        disagreement is attached to the result and stored with the grade
+        (R1: it no longer flags the submission). Grader A's scores are
+        NEVER modified here.
 
         Non-fatal by design: the grade already exists when this runs, so
         any second-pass failure (model down, evidence rejection after
@@ -4579,9 +4580,10 @@ Do not include any explanatory text before or after the JSON
             # bury it in an error blob and hand back a normal-looking,
             # unflagged grade — so a teacher whose wallet emptied partway
             # through silently loses the second-opinion safety net on every
-            # subsequent submission with nothing to tell them. Flag it for
-            # review instead: grader A's grade still stands (as always),
-            # but it now surfaces in the queue as unverified.
+            # subsequent submission with nothing to tell them. Record it as
+            # unavailable: grader A's grade still stands (as always). R1
+            # (owner, 2026-11-12): this no longer puts the submission in
+            # the teacher's review queue; it is kept for our own checks.
             # The refusal's text names the teacher's balance. It goes to
             # the log; what is saved is a code (H-128).
             logger.warning(

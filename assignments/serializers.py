@@ -588,8 +588,11 @@ class AssignmentDetailSerializer(AssignmentTagsFieldMixin, serializers.ModelSeri
                     "has_pending_regrade": (
                         submission.pending_result is not None if submission else False
                     ),
+                    # R1: the teacher's page; an unreadable paper counts.
                     "flagged_for_review": (
-                        flagged_for_review(submission) if submission else False
+                        flagged_for_review(submission, for_teacher=True)
+                        if submission
+                        else False
                     ),
                     "upload_mismatch": (
                         upload_mismatch(submission) if submission else None

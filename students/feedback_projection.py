@@ -23,6 +23,8 @@ import ast
 
 from ai_processor.extraction_flags import mismatch_in
 
+from .review_state import answers_unreadable
+
 #: The fields of one question's evaluation that a student is shown.
 #: Everything else - flag_for_review, graded_by, snapped_from,
 #: evaluation_rationale (a note to the teacher on the level chosen),
@@ -269,13 +271,21 @@ def upload_flags(submission) -> list:
     return [flag for flag in flags if isinstance(flag, dict)]
 
 
-def flagged_for_review(submission) -> bool:
+def flagged_for_review(submission, *, for_teacher=False) -> bool:
     """H-242: the "Needs Review" a teacher and the student both see: the
     reader flagged the upload and no teacher has reviewed it since. Not
-    `needs_review` itself, which a student is never sent (H-127): that
-    also covers the two AI graders disagreeing."""
-    return bool(upload_flags(submission)) and bool(
-        getattr(submission, "needs_review", False)
+    `needs_review` itself, which a student is never sent (H-127).
+
+    R1 (owner, 2026-11-12): any one question's flag counts, as before; and
+    for the teacher only, so do stored answers that could not be read,
+    some or all of them (H-165). The student is sent what they were sent
+    before."""
+    if not getattr(submission, "needs_review", False):
+        return False
+    if upload_flags(submission):
+        return True
+    return for_teacher and answers_unreadable(
+        getattr(submission, "review_reasons", None)
     )
 
 

@@ -16,7 +16,6 @@ from django.utils import timezone
 
 from ai_processor.extraction_flags import REVIEW_FLAG
 from ai_processor.extraction_flags import REVIEW_REASON_TYPE as EXTRACTION_FLAG
-from ai_processor.extraction_flags import TIER_OF as EXTRACTION_FLAG_TIER
 from ai_processor.extraction_flags import answers_with_flags, flags_from_extraction
 from ai_processor.extraction_schemas import BLANK, ILLEGIBLE, NOT_FOUND_IN_DOCUMENT
 from ai_processor.grading_run import GradingRun
@@ -67,6 +66,7 @@ from .models import (
     StudentSubmission,
 )
 from .reading_label import READING_LABEL_FIELDS, apply_reading_label
+from .review_state import ALL_LEFT_OUT, ANSWERS_UNREADABLE, review_state
 from .signals import invalidate_submission_caches
 from .task_tracking import (
     cancellable_final_save,
@@ -89,8 +89,6 @@ MAX_STUDENT_SUBMISSION_ATTEMPTS = 3
 # from the row, and say nothing of grading: a student reads them too.
 ANSWERS_NOT_DISPLAYED = "This submission's answers could not be displayed."
 SOME_ANSWERS_NOT_DISPLAYED = "Some of this submission's answers could not be displayed."
-ANSWERS_UNREADABLE = "answers_unreadable"
-ALL_LEFT_OUT = "all"
 ANSWERS_UNREADABLE_FOR_TEACHER = (
     "This submission's answers could not be read. Upload the paper again "
     "or re-enter its answers, then grade it."
@@ -563,49 +561,8 @@ def refresh_student_summary(row, actor):
         )
 
 
-# Review-queue ordering. review_severity used to store the raw
-# gap_fraction, which silently mis-ordered the queue: _severity classifies
-# a disagreement "critical" when the two graders are >= 2 rubric levels
-# apart EVEN IF the point gap is small (see ai_processor/second_opinion.py).
-# So 20-vs-18 on a (20,19,18,0) ladder is critical at fraction 0.10, while
-# 10-vs-6 on a (10,6,3,0) ladder is merely moderate at fraction 0.40 —
-# and ordering by raw fraction buried the critical one below the moderate.
-#
-# The fix is a tier-weighted key: tier picks the band, gap_fraction only
-# orders WITHIN a band. Bands are a third of the 0-1 range each, so a
-# critical always outranks any moderate, which always outranks any
-# borderline, and the value still fits the existing FloatField (no
-# migration, no column type change).
-_TIER_BASE = {
-    "critical": 2 / 3,
-    "moderate": 1 / 3,
-    "borderline": 0.0,
-}
-# Worst-first, for denormalising the per-submission review_tier.
-_TIER_RANK = {"critical": 3, "moderate": 2, "borderline": 1}
-
-
-def _review_sort_key(tier, gap_fraction):
-    """Tier-weighted 0-1 sort key for the review queue (see _TIER_BASE)."""
-    # An unmeasurable gap (unknown points) is never treated as mild — it
-    # sorts mid-band rather than at the bottom of it.
-    fraction = 0.5 if gap_fraction is None else gap_fraction
-    try:
-        fraction = min(1.0, max(0.0, float(fraction)))
-    except (TypeError, ValueError):
-        fraction = 0.5
-    # An unrecognised/missing tier is treated as moderate, matching
-    # _severity's own "never downgrade what we can't measure" rule.
-    base = _TIER_BASE.get(tier, _TIER_BASE["moderate"])
-    return round(base + fraction / 3, 6)
-
-
-def _worst_tier(tiers):
-    """The most severe tier across a submission's disagreements."""
-    ranked = [(_TIER_RANK.get(tier, 0), tier) for tier in tiers if tier]
-    if not ranked:
-        return None
-    return max(ranked)[1]
+# Review-queue ordering and tiers: students/review_state.py (R1), shared
+# with the 0037 cleanup migration.
 
 
 def _whole_count(value):
@@ -638,11 +595,8 @@ EXTRACTION_REVIEW_FIELDS = (
 
 
 def _extraction_flag_reason(flag):
-    """One extraction flag as a review-queue reason, with its tier and
-    sort key."""
-    tier = EXTRACTION_FLAG_TIER.get(flag.get("kind"), "moderate")
-    reason = {"type": EXTRACTION_FLAG, **flag}
-    return reason, tier, _review_sort_key(tier, 1.0 if tier == "critical" else None)
+    """One extraction flag as a review-queue reason."""
+    return {"type": EXTRACTION_FLAG, **flag}
 
 
 def apply_extraction_flags(submission, extraction_result):
@@ -662,9 +616,8 @@ def apply_extraction_flags(submission, extraction_result):
     filed = [_extraction_flag_reason(flag) for flag in flags]
     if filed:
         submission.needs_review = True
-        submission.review_reasons = [reason for reason, _, _ in filed]
-        submission.review_severity = max(key for _, _, key in filed)
-        submission.review_tier = _worst_tier([tier for _, tier, _ in filed])
+        submission.review_reasons = filed
+        submission.review_severity, submission.review_tier = review_state(filed)
     else:
         submission.needs_review = False
         submission.review_reasons = None
@@ -771,10 +724,7 @@ def _refuse_unreadable_answers(submission):
     ]
     row.needs_review = True
     row.review_reasons = kept + [{"type": ANSWERS_UNREADABLE, "left_out": ALL_LEFT_OUT}]
-    row.review_severity = max(
-        row.review_severity or 0.0, _review_sort_key("critical", 1.0)
-    )
-    row.review_tier = _worst_tier([row.review_tier, "critical"])
+    row.review_severity, row.review_tier = review_state(row.review_reasons)
     row.save(
         update_fields=[
             "needs_review",
@@ -894,21 +844,17 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     # committed, so its text is never the one cleared here.
     submission.formatted_grade = None
 
-    # Review queue: when the blind second grader disagreed with grader A
-    # on any question, flag the submission for the teacher — with both
-    # sides' scores in review_reasons so the queue is self-describing.
-    # Explicitly RESET on every grading run: a re-grade whose graders now
-    # agree must clear a stale flag from an earlier run. (Second-opinion
-    # failures/skips deliberately do NOT flag — see
-    # AIProcessor._maybe_run_second_opinion.)
+    # Review queue: every source below that applies is filed, accumulated
+    # rather than chained (a paper can have a missing answer AND an upload
+    # flag). Explicitly RESET on every grading run: a re-grade whose
+    # reasons are gone must clear a stale flag from an earlier run.
     #
-    # There are now two INDEPENDENT sources of review, and they are
-    # accumulated rather than chained: a submission can perfectly well
-    # have both a missing answer and a grader disagreement, and an
-    # if/elif would have silently reported only one of them.
+    # R1 (owner, 2026-11-12): the blind second grader no longer files
+    # anything here. Its result - a disagreement, or "unavailable" when it
+    # was refused for credits - stays in feedback['second_opinion'] for our
+    # own checks (grading_eval, benchmark); a teacher is not shown it.
+    # Tier and severity come from the reasons (students/review_state.py).
     reasons: list = []
-    sort_keys: list = []
-    tiers: list = []
 
     # Source 1: we graded a question without having the student's answer.
     # ALWAYS critical, and always sorted to the very top of the queue.
@@ -919,8 +865,6 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     # correct — but that is a conclusion for a human to reach, not one
     # the system is entitled to reach silently.
     for missing in grading.get("answers_not_found") or []:
-        tiers.append("critical")
-        sort_keys.append(_review_sort_key("critical", 1.0))
         reasons.append(
             {
                 "type": "answer_not_found",
@@ -928,47 +872,6 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
                 "answer_status": missing.get("answer_status"),
                 "score_awarded": missing.get("score_awarded"),
                 "max_points": missing.get("max_points"),
-            }
-        )
-
-    # Source 2: the blind second grader disagreed with grader A.
-    second_opinion = grading.get("second_opinion") or {}
-    disagreements = second_opinion.get("disagreements") or []
-    if disagreements:
-        for d in disagreements:
-            severity = d.get("severity") or {}
-            # An unmeasurable gap (unknown points) is never treated as
-            # mild — it sorts mid-queue rather than last.
-            gap_fraction = severity.get("gap_fraction")
-            tier = severity.get("tier")
-            tiers.append(tier)
-            sort_keys.append(_review_sort_key(tier, gap_fraction))
-            reasons.append(
-                {
-                    "type": "grader_disagreement",
-                    "question_number": d.get("question_number"),
-                    "a_score": (d.get("a") or {}).get("score_awarded"),
-                    "b_score": (d.get("b") or {}).get("score_awarded"),
-                    "tier": tier,
-                    "gap_fraction": gap_fraction,
-                }
-            )
-    elif second_opinion.get("needs_review"):
-        # The second opinion couldn't run for a reason the teacher needs to
-        # know about — currently only "out of credits" (see
-        # AIProcessor._maybe_run_second_opinion). Grader A's grade stands,
-        # but it was never cross-checked, so it goes in the queue as
-        # unverified rather than passing as silently confirmed. Treated as
-        # moderate: unknowable, and _severity's own rule is to never
-        # downgrade what we can't measure.
-        tiers.append("moderate")
-        sort_keys.append(_review_sort_key("moderate", None))
-        reasons.append(
-            {
-                "type": second_opinion.get(
-                    "review_reason", "second_opinion_unavailable"
-                ),
-                "detail": second_opinion.get("skipped"),
             }
         )
 
@@ -985,8 +888,6 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
             for item in note.get("repeated_evaluations_dropped") or []
             if isinstance(item, dict)
         ]
-        tiers.append("moderate")
-        sort_keys.append(_review_sort_key("moderate", None))
         reasons.append(
             {
                 "type": "ai_reply_corrected",
@@ -1008,8 +909,6 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
     # found: the grade may not be about all of the student's work.
     left_out = printable_answers(submission.answers)[1]
     if left_out:
-        tiers.append("critical")
-        sort_keys.append(_review_sort_key("critical", 1.0))
         reasons.append({"type": ANSWERS_UNREADABLE, "left_out": left_out})
         logger.warning(*unreadable_answers_log_line(submission, left_out))
 
@@ -1045,16 +944,12 @@ def _populate_and_save_grade(submission, grading, processing_task_id, run=None):
         number = flag.get("question_number")
         if number is not None and key(number) in in_source_1:
             continue
-        reason, tier, sort_key = _extraction_flag_reason(flag)
-        tiers.append(tier)
-        sort_keys.append(sort_key)
-        reasons.append(reason)
+        reasons.append(_extraction_flag_reason(flag))
 
     if reasons:
         submission.needs_review = True
         submission.review_reasons = reasons
-        submission.review_severity = max(sort_keys)
-        submission.review_tier = _worst_tier(tiers)
+        submission.review_severity, submission.review_tier = review_state(reasons)
     else:
         submission.needs_review = False
         submission.review_reasons = None

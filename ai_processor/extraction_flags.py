@@ -52,6 +52,18 @@ TIER_OF = {
     TYPE_MISMATCH: "moderate",
 }
 
+#: R1 (owner, 2026-11-12): the level of each kind, for the frontend's
+#: colors. Added to a flag when it is sent, never stored.
+ASSIGNMENT_LEVEL = "assignment"
+QUESTION_LEVEL = "question"
+LEVEL_OF = {
+    SUBMISSION_MISMATCH: ASSIGNMENT_LEVEL,
+    OFF_TOPIC: QUESTION_LEVEL,
+    TYPE_MISMATCH: QUESTION_LEVEL,
+    READING_PROBLEM: QUESTION_LEVEL,
+    ANSWER_NOT_FOUND: QUESTION_LEVEL,
+}
+
 #: The headline of each kind. `{n}` is the question number.
 MESSAGES = {
     SUBMISSION_MISMATCH: "This upload does not appear to be for this assignment.",
@@ -171,6 +183,16 @@ def _without_number(flag):
     return {key: value for key, value in flag.items() if key != "question_number"}
 
 
+def _shown(flag):
+    """A stored flag as it is sent: without its question number, with its
+    level (R1)."""
+    shown = _without_number(flag)
+    level = LEVEL_OF.get(flag.get("kind"))
+    if level is not None:
+        shown["level"] = level
+    return shown
+
+
 def answer_review_flag(entry):
     """H-253: what one stored answer carries as its `review_flag`:
     {kind, message, detail}, or None when there is nothing to check."""
@@ -193,7 +215,7 @@ def mismatch_in(flags):
     """The paper-level flag in a stored list of flags, or None."""
     for flag in flags if isinstance(flags, list) else []:
         if isinstance(flag, dict) and flag.get("kind") == SUBMISSION_MISMATCH:
-            return _without_number(flag)
+            return _shown(flag)
     return None
 
 
@@ -214,9 +236,7 @@ def answers_with_flags(answers, flags):
     by_question = {}
     for flag in flags if isinstance(flags, list) else []:
         if isinstance(flag, dict) and flag.get("question_number") is not None:
-            by_question.setdefault(
-                _question_key(flag["question_number"]), _without_number(flag)
-            )
+            by_question.setdefault(_question_key(flag["question_number"]), _shown(flag))
     return [
         (
             dict(

@@ -11,10 +11,12 @@ results afterwards. Policy, per the design decisions:
   and previously discarded), high-point questions, and a small random QA
   sample of everything else.
 - Agreement finalizes silently. Disagreement between two independent
-  graders is the strongest error signal available — it escalates to the
-  teacher (needs_review), never to a third AI.
+  graders is the strongest error signal available. It is stored with the
+  grade (feedback['second_opinion']) for our own quality checks
+  (grading_eval, benchmark); R1 (owner, 2026-11-12): it no longer puts the
+  submission in the teacher's review queue, and teachers are not shown it.
 - Grader A's score always stands in the stored grade. A second opinion
-  can only flag; it never changes a number.
+  never changes a number.
 
 Pure functions, no Django imports; the rng is injected so selection is
 deterministic under test.
@@ -23,8 +25,8 @@ deterministic under test.
 import math
 import random as _random_module
 
-# Reason labels (stable strings — persisted into review_reasons and read
-# by the future eval loop; do not rename casually).
+# Reason labels (stable strings — persisted with the stored second opinion
+# and read by the eval loop; do not rename casually).
 REASON_LOW_CONFIDENCE = "low_confidence"
 REASON_HIGH_STAKES = "high_stakes"
 REASON_BORDERLINE_LEVEL = "borderline_level"
@@ -233,8 +235,9 @@ def _side(evaluation):
     }
 
 
-# Severity tier labels (stable strings — persisted into review_reasons
-# and segmented on by the grading_eval command).
+# Severity tier labels (stable strings — persisted with the stored second
+# opinion, and in review_reasons on rows graded before R1, and segmented on
+# by the grading_eval command).
 TIER_CRITICAL = "critical"
 TIER_MODERATE = "moderate"
 TIER_BORDERLINE = "borderline"
