@@ -26,7 +26,7 @@ from .test_intent_signals_pins import NOW
 from .test_intent_signals_usage_filters import UsageBase
 
 URL = "analytics-intent-signals"
-NEW = ("plan_tier", "plan_category", "plan_interval", "credits_used",
+NEW = ("plan_tier", "plan_category", "plan_interval",
        "credits_left", "papers_graded", "assignments_created",
        "activated_at")  # fmt: skip
 OLD = ("id", "name", "email", "score", "metrics", "flags")
@@ -59,7 +59,8 @@ class LeadUsageFieldsTests(UsageBase):
         self.assertEqual(row["plan_tier"], "PRO")
         self.assertEqual(row["plan_category"], "INDIVIDUAL")
         self.assertEqual(row["plan_interval"], "ANNUAL")
-        self.assertEqual(row["credits_used"], 3)  # whole credits, as the list
+        # One usage number, from the wallet, in whole credits (S10).
+        self.assertEqual(row["metrics"]["credit_usage"], 3)
         self.assertEqual(row["credits_left"], 7)
         self.assertEqual(row["papers_graded"], 2)
         self.assertEqual(row["assignments_created"], 3)
@@ -73,18 +74,66 @@ class LeadUsageFieldsTests(UsageBase):
         self.assertIsNone(row["plan_interval"])
         self.assertIsNone(row["credits_left"])
         self.assertIsNone(row["activated_at"])
-        self.assertEqual(row["credits_used"], 0)
+        self.assertEqual(row["metrics"]["credit_usage"], 0)
+        self.assertEqual(row["metrics"]["usage_percentage"], 0.0)
         self.assertEqual(row["papers_graded"], 0)
         self.assertEqual(row["assignments_created"], 0)
 
-    def test_credits_used_is_all_time_not_the_beta_counter(self):
+    def test_credit_usage_is_the_wallets_not_the_beta_tally(self):
         self.build()
         type(self.full.beta_profile).objects.filter(user=self.full).update(
-            total_credits_used=9_999
+            total_credits_used=9_999, initial_beta_credits=10_000
         )
         row = self.rows()[self.full.email]
-        self.assertEqual(row["credits_used"], 3)
-        self.assertEqual(row["metrics"]["credit_usage"], 9_999)
+        self.assertEqual(row["metrics"]["credit_usage"], 3)
+        # 3,500 raw used of 10,000: the percentage follows the wallet value.
+        self.assertEqual(row["metrics"]["usage_percentage"], 35.0)
+
+    def test_the_detail_shows_the_wallet_value_and_percentage(self):
+        self.build()
+        type(self.full.beta_profile).objects.filter(user=self.full).update(
+            total_credits_used=9_999, initial_beta_credits=10_000
+        )
+        response = self.client.get(
+            reverse("analytics-intent-signal-detail", kwargs={"user_id": self.full.pk})
+        )
+        self.assertEqual(response.status_code, 200, response.content[:300])
+        body = response.json()
+        lead = body.get("data", body)
+        self.assertEqual(lead["metrics"]["credit_usage"], 3)
+        self.assertEqual(lead["metrics"]["usage_percentage"], 35.0)
+
+    def test_the_ai_prompt_block_rows_show_the_wallet_value(self):
+        from billing.views import lead_rows, top_leads
+
+        self.build()
+        type(self.full.beta_profile).objects.filter(user=self.full).update(
+            total_credits_used=9_999, initial_beta_credits=10_000
+        )
+        rows = {r["email"]: r for r in lead_rows(top_leads(NOW, 10))}
+        self.assertEqual(rows[self.full.email]["metrics"]["credit_usage"], 3)
+        self.assertEqual(rows[self.full.email]["metrics"]["usage_percentage"], 35.0)
+        self.assertEqual(rows[self.bare.email]["metrics"]["credit_usage"], 0)
+
+    def test_there_is_no_top_level_credits_used(self):
+        self.build()
+        for row in self.rows().values():
+            self.assertNotIn("credits_used", row)
+
+    def test_the_old_names_are_not_accepted(self):
+        self.build()
+        everyone = set(self.rows())
+        # An unknown filter is ignored; an unknown sort key is dropped.
+        self.assertEqual(set(self.rows(credits_used_min=99)), everyone)
+        self.assertEqual(set(self.rows(credits_used_max=-1)), everyone)
+        self.assertEqual(
+            list(self.rows(ordering="credits_used")),
+            list(self.rows()),
+        )
+        self.assertEqual(
+            list(self.rows(ordering="-credits_used")),
+            list(self.rows()),
+        )
 
     def test_the_values_match_the_user_list(self):
         self.build()
@@ -94,6 +143,11 @@ class LeadUsageFieldsTests(UsageBase):
         by_email = {u["email"]: u for u in listed}
         rows = self.rows()
         for user in (self.full, self.bare):
+            self.assertEqual(
+                rows[user.email]["metrics"]["credit_usage"],
+                by_email[user.email]["credit_usage"],
+            )
+            self.assertNotIn("credits_used", by_email[user.email])
             for name in NEW:
                 with self.subTest(user=user.email, field=name):
                     self.assertIn(name, by_email[user.email])

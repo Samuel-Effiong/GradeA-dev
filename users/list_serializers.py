@@ -231,7 +231,8 @@ class UserListSerializer(CustomUserSerializer):
     assignments_created = serializers.IntegerField(read_only=True)
     papers_graded = serializers.IntegerField(read_only=True)
     credits_left = serializers.IntegerField(read_only=True, allow_null=True)
-    credits_used = serializers.IntegerField(read_only=True)
+    # Named credit_usage on the API (S10); the list's own value is credits_used.
+    credit_usage = serializers.IntegerField(source="credits_used", read_only=True)
     # Brief 4: the signals (billing.intent_signals), teachers only.
     signal_count = serializers.IntegerField(read_only=True)
     at_80_percent = serializers.BooleanField(read_only=True)
@@ -250,7 +251,7 @@ class UserListSerializer(CustomUserSerializer):
             "assignments_created",
             "papers_graded",
             "credits_left",
-            "credits_used",
+            "credit_usage",
             "signal_count",
             "at_80_percent",
             "frequent_user",

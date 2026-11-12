@@ -43,7 +43,7 @@ ORDERING_DOC = (
     "same number of signals are sorted by conversion probability, highest "
     "first, with empty ones last, then by their ID. Left empty, leads come in "
     "order of conversion probability, highest first. You can also sort by "
-    "`credits_used`, `credits_left`, `papers_graded`, `assignments_created` or "
+    "`credit_usage`, `credits_left`, `papers_graded`, `assignments_created` or "
     "`activated_at`. Add `-` in front for the largest or newest first. Empty "
     "values come last either way, and ties are broken by ID."
 )

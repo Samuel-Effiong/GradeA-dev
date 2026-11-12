@@ -262,11 +262,11 @@
     },
     "id": "<id:a.all4.sig@x.example>",
     "metrics": {
-      "credit_usage": 17000000,
+      "credit_usage": 0,
       "last_active": "2026-06-14",
       "login_days": 9,
       "primary_use_case": "Grading",
-      "usage_percentage": 85.0
+      "usage_percentage": 0.0
     },
     "name": "Ada Four",
     "score": 91.5
@@ -584,7 +584,6 @@
         "activated_at": null,
         "assignments_created": 0,
         "credits_left": 0,
-        "credits_used": 0,
         "email": "a.all4.sig@x.example",
         "flags": {
           "active_last_week": true,
@@ -594,11 +593,11 @@
         },
         "id": "<id:a.all4.sig@x.example>",
         "metrics": {
-          "credit_usage": 17000000,
+          "credit_usage": 0,
           "last_active": "2026-06-14",
           "login_days": 9,
           "primary_use_case": "Grading",
-          "usage_percentage": 85.0
+          "usage_percentage": 0.0
         },
         "name": "Ada Four",
         "papers_graded": 0,
@@ -611,7 +610,6 @@
         "activated_at": null,
         "assignments_created": 0,
         "credits_left": 0,
-        "credits_used": 0,
         "email": "b.three.sig@x.example",
         "flags": {
           "active_last_week": true,
@@ -621,11 +619,11 @@
         },
         "id": "<id:b.three.sig@x.example>",
         "metrics": {
-          "credit_usage": 16500000,
+          "credit_usage": 0,
           "last_active": "2026-06-08",
           "login_days": 8,
           "primary_use_case": "Creation",
-          "usage_percentage": 82.5
+          "usage_percentage": 0.0
         },
         "name": "Ben Three",
         "papers_graded": 0,
@@ -638,7 +636,6 @@
         "activated_at": null,
         "assignments_created": 0,
         "credits_left": 0,
-        "credits_used": 0,
         "email": "e.two.sig@x.example",
         "flags": {
           "active_last_week": false,
@@ -648,11 +645,11 @@
         },
         "id": "<id:e.two.sig@x.example>",
         "metrics": {
-          "credit_usage": 16000000,
+          "credit_usage": 0,
           "last_active": null,
           "login_days": 12,
           "primary_use_case": "Creation",
-          "usage_percentage": 80.0
+          "usage_percentage": 0.0
         },
         "name": "Ed Two",
         "papers_graded": 0,
@@ -665,7 +662,6 @@
         "activated_at": null,
         "assignments_created": 0,
         "credits_left": 0,
-        "credits_used": 0,
         "email": "c.one.sig@x.example",
         "flags": {
           "active_last_week": false,
@@ -675,7 +671,7 @@
         },
         "id": "<id:c.one.sig@x.example>",
         "metrics": {
-          "credit_usage": 500,
+          "credit_usage": 0,
           "last_active": "2026-06-08",
           "login_days": 7,
           "primary_use_case": "Grading",
@@ -692,7 +688,6 @@
         "activated_at": null,
         "assignments_created": 0,
         "credits_left": 0,
-        "credits_used": 0,
         "email": "d.none.sig@x.example",
         "flags": {
           "active_last_week": false,

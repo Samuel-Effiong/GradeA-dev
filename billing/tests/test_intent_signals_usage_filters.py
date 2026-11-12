@@ -2,7 +2,7 @@
 owner-approved 2026-11-12).
 
 GET analytics beta/intent-signals (super admin only) gains
-credits_used_min/max, credits_left_min/max, papers_graded_min/max,
+credit_usage_min/max, credits_left_min/max, papers_graded_min/max,
 assignments_created_min/max and activated_after/before, and `ordering` also
 takes credits_used, credits_left, papers_graded, assignments_created and
 activated_at, each with or without "-". The values are the user list's own
@@ -29,10 +29,10 @@ from . import test_intent_signals as base
 from .test_intent_signals_lead_filters import URL, LeadFilterBase
 from .test_intent_signals_pins import NOW
 
-SORTS = ("credits_used", "credits_left", "papers_graded", "assignments_created",
+SORTS = ("credit_usage", "credits_left", "papers_graded", "assignments_created",
          "activated_at")  # fmt: skip
 ORDERING_ADDITION = (
-    "You can also sort by `credits_used`, `credits_left`, `papers_graded`, "
+    "You can also sort by `credit_usage`, `credits_left`, `papers_graded`, "
     "`assignments_created` or `activated_at`. Add `-` in front for the "
     "largest or newest first. Empty values come last either way, and ties are "
     "broken by ID."
@@ -112,37 +112,37 @@ class CreditsUsedFilterTests(UsageBase):
 
     def test_min_and_max_are_inclusive_and_zero_counts(self):
         self.assertEqual(
-            self.kept(credits_used_min=2), {self.two.email, self.five.email}
+            self.kept(credit_usage_min=2), {self.two.email, self.five.email}
         )
         self.assertEqual(
-            self.kept(credits_used_max=0), {self.none.email, self.nowallet.email}
+            self.kept(credit_usage_max=0), {self.none.email, self.nowallet.email}
         )
         self.assertEqual(
-            self.kept(credits_used_max=2),
+            self.kept(credit_usage_max=2),
             {self.none.email, self.nowallet.email, self.one.email, self.two.email},
         )
 
     def test_it_compares_the_value_the_user_list_shows(self):
-        self.assertIn(self.one.email, self.kept(credits_used_min=1))
-        self.assertIn(self.one.email, self.kept(credits_used_max=1))
-        self.assertNotIn(self.one.email, self.kept(credits_used_min=2))
+        self.assertIn(self.one.email, self.kept(credit_usage_min=1))
+        self.assertIn(self.one.email, self.kept(credit_usage_max=1))
+        self.assertNotIn(self.one.email, self.kept(credit_usage_min=2))
 
     def test_refunds_do_not_count(self):
-        self.assertEqual(self.kept(credits_used_min=6), set())
+        self.assertEqual(self.kept(credit_usage_min=6), set())
 
     def test_it_uses_every_credit_ever_used_not_the_beta_counter(self):
         BetaProfile = type(self.two.beta_profile)
         BetaProfile.objects.filter(user=self.two).update(total_credits_used=50_000)
         BetaProfile.objects.filter(user=self.five).update(total_credits_used=0)
-        self.assertEqual(self.kept(credits_used_min=5), {self.five.email})
-        self.assertNotIn(self.two.email, self.kept(credits_used_min=3))
-        self.assertIn(self.two.email, self.kept(credits_used_max=2))
+        self.assertEqual(self.kept(credit_usage_min=5), {self.five.email})
+        self.assertNotIn(self.two.email, self.kept(credit_usage_min=3))
+        self.assertIn(self.two.email, self.kept(credit_usage_max=2))
 
-    def test_the_row_still_shows_the_beta_counter(self):
+    def test_the_row_shows_the_wallet_value_not_the_beta_counter(self):
         BetaProfile = type(self.two.beta_profile)
         BetaProfile.objects.filter(user=self.two).update(total_credits_used=777)
         rows = {r["email"]: r for r in self.leads()}
-        self.assertEqual(rows[self.two.email]["metrics"]["credit_usage"], 777)
+        self.assertEqual(rows[self.two.email]["metrics"]["credit_usage"], 2)
 
 
 class CreditsLeftFilterTests(UsageBase):
@@ -253,11 +253,11 @@ class SortTests(UsageBase):
         # descending: it is a value, not an empty one.
         n = self.nowallet.email
         self.assertEqual(
-            self.order("credits_used"),
+            self.order("credit_usage"),
             [n, self.b.email, self.c.email, self.a.email],
         )
         self.assertEqual(
-            self.order("-credits_used"),
+            self.order("-credit_usage"),
             [self.a.email, self.c.email, self.b.email, n],
         )
 
@@ -301,7 +301,7 @@ class SortTests(UsageBase):
     def test_ties_go_by_user_id_both_ways(self):
         twins = [self.lead(score=float(i), used=2_000, left=0) for i in range(4)]
         by_id = [u.email for u in sorted(twins, key=lambda u: u.pk)]
-        for ordering in ("credits_used", "-credits_used"):
+        for ordering in ("credit_usage", "-credit_usage"):
             with self.subTest(ordering):
                 self.assertEqual(self.order(ordering), by_id)
 
@@ -315,7 +315,7 @@ class SortTests(UsageBase):
     def test_a_sort_and_a_filter_combine(self):
         self.build()
         self.assertEqual(
-            self.emails(ordering="-credits_used", credits_left_min=0),
+            self.emails(ordering="-credit_usage", credits_left_min=0),
             [self.a.email, self.c.email, self.b.email],
         )
 
@@ -393,3 +393,18 @@ class SwaggerTests(UsageBase):
             ordering["description"].endswith(f" {ORDERING_ADDITION}"),
             ordering["description"],
         )
+
+
+class ChargesFollowTheBilledUserTests(UsageBase):
+    """A user's charges are the logs whose user_id is the user, or, for an old
+    log without one, whose wallet is theirs (SM ruling, S10). A log whose
+    wallet row is gone still counts."""
+
+    def test_a_log_whose_wallet_is_gone_still_counts_on_the_lead_list(self):
+        user = self.lead(used=4_500, left=0)
+        CreditWallet.objects.filter(user=user).delete()  # no constraint: log stays
+        self.assertTrue(CreditUsageLog.objects.filter(user_id=user.id).exists())
+        rows = {r["email"]: r for r in self.leads()}
+        self.assertEqual(rows[user.email]["metrics"]["credit_usage"], 4)
+        self.assertIn(user.email, self.kept(credit_usage_min=4))
+        self.assertNotIn(user.email, self.kept(credit_usage_max=3))

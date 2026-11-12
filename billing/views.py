@@ -144,10 +144,15 @@ def top_leads(now, limit=None):
     return leads[:limit] if limit is not None else leads
 
 
-def lead_rows(leads):
+def lead_rows(leads, usage=None):
     """One sales-lead row per profile, as the leads list shows it. `leads`
     must carry the signal annotations (annotate_signals). The custom AI
-    prompt's lead block uses the same rows (brief 5)."""
+    prompt's lead block uses the same rows (brief 5). The usage number is the
+    wallet's, the user list's credits_used (S10); `usage` is
+    lead_filters.row_values for these leads, fetched here when not given."""
+    leads = list(leads)
+    if usage is None:
+        usage = lead_filters.row_values(p.user_id for p in leads)
     rows = []
     for p in leads:
         rows.append(
@@ -157,14 +162,18 @@ def lead_rows(leads):
                 "email": p.user.email,
                 "score": round(p.conversion_probability, 1),
                 "metrics": {
-                    "credit_usage": p.total_credits_used,
+                    "credit_usage": usage[p.user_id]["credits_used"],
                     # `or 1` matches intent_signal_detail and beta_dashboard.
                     # This was the one site of the four that divided by the
                     # raw field: a BetaProfile seeded from a plan whose
                     # monthly_credits is still the 0 default made the whole
                     # sales-leads endpoint 500 — not just that row.
                     "usage_percentage": round(
-                        (p.total_credits_used / (p.initial_beta_credits or 1)) * 100,
+                        (
+                            usage[p.user_id]["credits_used_raw"]
+                            / (p.initial_beta_credits or 1)
+                        )
+                        * 100,
                         1,
                     ),
                     "login_days": p.distinct_login_days,
@@ -2429,18 +2438,18 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 description=lead_filters.help_text("activated_before"),
             ),
             OpenApiParameter(
-                name="credits_used_min",
+                name="credit_usage_min",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=lead_filters.help_text("credits_used_min"),
+                description=lead_filters.help_text("credit_usage_min"),
             ),
             OpenApiParameter(
-                name="credits_used_max",
+                name="credit_usage_max",
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 required=False,
-                description=lead_filters.help_text("credits_used_max"),
+                description=lead_filters.help_text("credit_usage_max"),
             ),
             OpenApiParameter(
                 name="credits_left_min",
@@ -2549,7 +2558,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             "email": "teacher1@school.edu",
                             "score": 87.5,
                             "metrics": {
-                                "credit_usage": 46150,
+                                "credit_usage": 46,
                                 "usage_percentage": 92.3,
                                 "login_days": 15,
                                 "last_active": "2026-11-10",
@@ -2564,7 +2573,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             "plan_tier": "PRO",
                             "plan_category": "INDIVIDUAL",
                             "plan_interval": "MONTHLY",
-                            "credits_used": 46,
                             "credits_left": 3,
                             "papers_graded": 214,
                             "assignments_created": 38,
@@ -2580,7 +2588,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             "email": "teacher2@school.edu",
                             "score": 72.1,
                             "metrics": {
-                                "credit_usage": 32900,
+                                "credit_usage": 32,
                                 "usage_percentage": 65.8,
                                 "login_days": 12,
                                 "last_active": "2026-11-09",
@@ -2595,7 +2603,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             "plan_tier": None,
                             "plan_category": None,
                             "plan_interval": None,
-                            "credits_used": 32,
                             "credits_left": 17,
                             "papers_graded": 40,
                             "assignments_created": 25,
@@ -2672,11 +2679,13 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         leads = page if page is not None else leads
 
         # 2. Structure the response for the Sales Team
-        data = lead_rows(leads)
+        leads = list(leads)
         usage = lead_filters.row_values(p.user_id for p in leads)
+        data = lead_rows(leads, usage)
         for row, p in zip(data, leads, strict=True):
-            row.update(usage[p.user_id])
-            del row["pk"]
+            row.update(
+                {name: usage[p.user_id][name] for name in lead_filters.ROW_FIELDS}
+            )
 
         serializer = ConversionLeadListSerializer(data, many=True)
         if page is not None:
@@ -2707,6 +2716,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         # 1. Lead Profile & Metrics
+        # The usage number is the wallet's, as on the list (S10). The
+        # feature mix below keeps its own beta counters and their total.
+        wallet = lead_filters.row_values([profile.user_id])[profile.user_id]
         total_used = profile.total_credits_used or 0
         initial = profile.initial_beta_credits or 1
 
@@ -2716,8 +2728,10 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "email": profile.user.email,
             "score": round(profile.conversion_probability, 1),
             "metrics": {
-                "credit_usage": profile.total_credits_used,
-                "usage_percentage": round((total_used / initial) * 100, 1),
+                "credit_usage": wallet["credits_used"],
+                "usage_percentage": round(
+                    (wallet["credits_used_raw"] / initial) * 100, 1
+                ),
                 "login_days": profile.distinct_login_days,
                 "last_active": (
                     profile.last_active_at.date() if profile.last_active_at else None

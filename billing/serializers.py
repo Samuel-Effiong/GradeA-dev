@@ -1839,7 +1839,6 @@ class ConversionLeadListSerializer(ConversionLeadSerializer):
     plan_tier = serializers.CharField(read_only=True, allow_null=True)
     plan_category = serializers.CharField(read_only=True, allow_null=True)
     plan_interval = serializers.CharField(read_only=True, allow_null=True)
-    credits_used = serializers.IntegerField(read_only=True)
     credits_left = serializers.IntegerField(read_only=True, allow_null=True)
     papers_graded = serializers.IntegerField(read_only=True)
     assignments_created = serializers.IntegerField(read_only=True)

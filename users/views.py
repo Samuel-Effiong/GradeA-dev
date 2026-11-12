@@ -260,7 +260,7 @@ Keys:
   thousands (1,000 credits show as 1), but sorting uses the exact amount, so
   two users who both show 5 can still be in a set order. Users with no credit
   wallet have an empty value.
-- `credits_used`: all the credits they have ever used, not counting
+- `credit_usage`: all the credits they have ever used, not counting
   refunds. Shown and sorted like `credits_left`.
 - `signals`: how many of the 4 signals they meet, from 0 to 4
   (at_80_percent, frequent_user, active_last_week, is_power_grader). Only

@@ -1,7 +1,7 @@
 """Usage filters on the user list (beta bug fix, owner-approved 2026-11-12).
 
 GET /api/v1/users/ (super admin only) takes eight range filters:
-credits_used_min/max, credits_left_min/max, papers_graded_min/max and
+credit_usage_min/max, credits_left_min/max, papers_graded_min/max and
 assignments_created_min/max. Each takes a whole number and both ends are
 inclusive. They compare the list's own values (users.user_list), in the
 credits users see: credits_used is the unrefunded usage divided by
@@ -20,11 +20,11 @@ from users.tests_user_list_docs import list_parameters, own_text
 from users.tests_user_list_sorting import Base
 
 APPROVED = {
-    "credits_used_min": (
+    "credit_usage_min": (
         "Keeps users who have used at least this many credits in total, after "
         "refunds. Users who have used none count as 0."
     ),
-    "credits_used_max": (
+    "credit_usage_max": (
         "Keeps users who have used at most this many credits in total, after "
         "refunds. Users who have used none count as 0."
     ),
@@ -96,33 +96,33 @@ class CreditsUsedTests(UsageBase):
         self.people = [self.none, self.one, self.two, self.five]
 
     def test_min_is_inclusive_and_zero_counts(self):
-        self.assertEqual(self.listed(self.people, credits_used_min=0), set(self.people))
+        self.assertEqual(self.listed(self.people, credit_usage_min=0), set(self.people))
         self.assertEqual(
-            self.listed(self.people, credits_used_min=2), {self.two, self.five}
+            self.listed(self.people, credit_usage_min=2), {self.two, self.five}
         )
 
     def test_max_is_inclusive_and_zero_counts(self):
-        self.assertEqual(self.listed(self.people, credits_used_max=0), {self.none})
+        self.assertEqual(self.listed(self.people, credit_usage_max=0), {self.none})
         self.assertEqual(
-            self.listed(self.people, credits_used_max=2),
+            self.listed(self.people, credit_usage_max=2),
             {self.none, self.one, self.two},
         )
 
     def test_it_compares_the_value_the_list_shows(self):
         """1500 raw is listed as 1 credit (the list divides in whole
         credits), so 1 keeps it on both ends and 2 does not."""
-        self.assertEqual(self.row(self.one)["credits_used"], 1)
-        self.assertIn(self.one, self.listed(self.people, credits_used_min=1))
-        self.assertIn(self.one, self.listed(self.people, credits_used_max=1))
-        self.assertNotIn(self.one, self.listed(self.people, credits_used_min=2))
+        self.assertEqual(self.row(self.one)["credit_usage"], 1)
+        self.assertIn(self.one, self.listed(self.people, credit_usage_min=1))
+        self.assertIn(self.one, self.listed(self.people, credit_usage_max=1))
+        self.assertNotIn(self.one, self.listed(self.people, credit_usage_min=2))
 
     def test_refunded_usage_does_not_count(self):
-        self.assertEqual(self.row(self.five)["credits_used"], 5)
-        self.assertEqual(self.listed(self.people, credits_used_min=6), set())
+        self.assertEqual(self.row(self.five)["credit_usage"], 5)
+        self.assertEqual(self.listed(self.people, credit_usage_min=6), set())
 
     def test_a_range(self):
         self.assertEqual(
-            self.listed(self.people, credits_used_min=1, credits_used_max=2),
+            self.listed(self.people, credit_usage_min=1, credit_usage_max=2),
             {self.one, self.two},
         )
 
@@ -249,3 +249,45 @@ class SwaggerTextTests(UsageBase):
                     f"{text} {SUPER_ADMIN_ONLY}",
                 )
                 self.assertEqual(params[name]["schema"]["type"], "integer")
+
+
+class OldNamesTests(UsageBase):
+    def test_the_old_filter_and_sort_names_are_not_accepted(self):
+        low, high = self.with_used(1_000), self.with_used(9_000)
+        people = [low, high]
+        self.assertEqual(self.listed(people, credits_used_min=5), set(people))
+        self.assertEqual(self.listed(people, credits_used_max=0), set(people))
+        default = self.order_of(people)
+        self.assertEqual(self.order_of(people, ordering="credits_used"), default)
+        self.assertEqual(self.order_of(people, ordering="-credits_used"), default)
+        self.assertEqual(self.order_of(people, ordering="-credit_usage"), [high, low])
+
+    def test_the_row_has_credit_usage_and_no_credits_used(self):
+        row = self.row(self.with_used(2_500))
+        self.assertEqual(row["credit_usage"], 2)
+        self.assertNotIn("credits_used", row)
+
+
+class ChargesFollowTheBilledUserTests(UsageBase):
+    def test_a_log_whose_wallet_is_gone_still_counts_on_the_users_list(self):
+        user = self.with_used(4_500)
+        CreditWallet.objects.filter(user=user).delete()  # no constraint: log stays
+        self.assertEqual(self.row(user)["credit_usage"], 4)
+        self.assertEqual(self.listed([user], credit_usage_min=4), {user})
+        self.assertEqual(self.listed([user], credit_usage_max=3), set())
+
+    def test_an_old_log_without_a_user_id_counts_through_its_wallet(self):
+        from billing.models import CreditUsageLog
+
+        user = self.person()
+        wallet = self.wallet(user)
+        bucket = self.bucket(wallet, 0, expires_in=-400)
+        CreditUsageLog.objects.create(
+            user_id=None,  # logs from before the column existed
+            user_email=user.email,
+            wallet=wallet,
+            bucket=bucket,
+            amount=2_500,
+            feature="Grading Assignment",
+        )
+        self.assertEqual(self.row(user)["credit_usage"], 2)
