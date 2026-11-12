@@ -152,3 +152,51 @@ class AiPromptBlockUnchangedTests(base.LeadsBase):
         from billing.serializers import ConversionLeadSerializer
 
         self.assertEqual(set(ConversionLeadSerializer().fields), set(OLD))
+
+
+class SwaggerExamplesShowEveryFieldTests(UsageBase):
+    """The examples on Swagger are a row of the real list: same keys, same
+    order (S9c, owner 2026-11-12), so they cannot drift from the serializer."""
+
+    def examples(self):
+        operation = base.LeadOpenApiTests.operation(self)  # type: ignore[arg-type]
+        found = operation["responses"]["200"]["content"]["application/json"]["examples"]
+        self.assertEqual(len(found), 2)
+        for example in found.values():
+            value = example["value"]
+            yield from value["results"] if isinstance(value, dict) else value
+
+    def test_every_example_row_has_exactly_the_serializer_fields_in_order(self):
+        from billing.serializers import (
+            ConversionLeadFlagsSerializer,
+            ConversionLeadListSerializer,
+            ConversionLeadMetricsSerializer,
+        )
+
+        fields = list(ConversionLeadListSerializer().fields)
+        for row in self.examples():
+            with self.subTest(email=row.get("email")):
+                self.assertEqual(list(row), fields)
+                self.assertEqual(
+                    list(row["metrics"]), list(ConversionLeadMetricsSerializer().fields)
+                )
+                self.assertEqual(
+                    list(row["flags"]), list(ConversionLeadFlagsSerializer().fields)
+                )
+
+    def test_the_values_are_real_choices_and_agree(self):
+        rows = list(self.examples())
+        for row in rows:
+            self.assertRegex(row["id"], r"^[0-9a-f]{8}(-[0-9a-f]{4}){3}-[0-9a-f]{12}$")
+            self.assertTrue(row["activated_at"].startswith("2026-"))
+            self.assertTrue(row["metrics"]["last_active"].startswith("2026-"))
+            if row["plan_tier"] is not None:
+                self.assertIn(row["plan_tier"], PlanTier.values)
+                self.assertIn(row["plan_category"], PlanCategory.values)
+                self.assertIn(row["plan_interval"], BillingInterval.values)
+        self.assertTrue(any(r["plan_tier"] is None for r in rows))
+        for row in rows:
+            self.assertEqual(
+                row["metrics"]["primary_use_case"],
+                "Grading" if row["flags"]["is_power_grader"] else "Creation",
+            )
