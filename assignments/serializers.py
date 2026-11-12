@@ -59,6 +59,13 @@ class StudentSubmissionStatusSerializer(serializers.Serializer):
     max_points = serializers.IntegerField(read_only=True, allow_null=True)
     grade_status = serializers.CharField(read_only=True)
     is_published = serializers.BooleanField(read_only=True)
+    has_pending_regrade = serializers.BooleanField(
+        read_only=True,
+        help_text=(
+            "True while a new AI grade is waiting for the teacher to publish "
+            "it. False once it's published."
+        ),
+    )
     # H-242: what the answer reader noticed about this student's upload.
     flagged_for_review = serializers.BooleanField(read_only=True)
     upload_mismatch = ReviewFlagSerializer(
@@ -577,6 +584,9 @@ class AssignmentDetailSerializer(serializers.ModelSerializer):
                     "grade_status": grade_status,
                     "was_regraded": submission.was_regraded if submission else None,
                     "is_published": submission.is_published if submission else False,
+                    "has_pending_regrade": (
+                        submission.pending_result is not None if submission else False
+                    ),
                     "flagged_for_review": (
                         flagged_for_review(submission) if submission else False
                     ),
