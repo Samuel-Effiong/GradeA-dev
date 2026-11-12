@@ -217,6 +217,7 @@ EXPORT_OMITTED = {
         "content_type": _PROCESSING,
         "sha256": _PROCESSING,
         "relaunch": _PROCESSING,
+        "purge_reason": "internal: how the file was purged (a retry message rule)",
         "created_at": "the same as its file-uploads row's created_at",
     },
     "users.CustomUser": {

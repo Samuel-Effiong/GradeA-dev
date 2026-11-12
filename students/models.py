@@ -740,7 +740,11 @@ class KeptUpload(models.Model):
     #: Only "lifetime" lets a refused retry say the file was deleted after N
     #: days (students.item_retry).
     purge_reason = models.CharField(
-        max_length=16, choices=PurgeReason.choices, blank=True, default=""
+        max_length=16,
+        choices=PurgeReason.choices,
+        blank=True,
+        default="",
+        db_default="",
     )
     created_at = models.DateTimeField(default=timezone.now)
 
