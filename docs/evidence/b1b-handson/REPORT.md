@@ -4,7 +4,8 @@ Brief 7, 11-12 Nov 2026. The real app ran on this machine with the new credit
 behavior ON. I acted as a teacher, a school-license teacher, a school admin, a
 super admin and students, using the same API calls the website makes, with
 real logins and real AI calls. Code: staging a0478508e, then staging
-ef1080075 (the door-close fix) for the reruns.
+ef1080075 (the door-close fix) for the reruns, then staging b3c900aaf (the
+cancel-hold fix) for the BUG-3 rerun.
 
 ## Summary
 
@@ -36,12 +37,15 @@ ef1080075 (the door-close fix) for the reruns.
 - **BUG-2 (wording, being fixed):** retrying an upload that the teacher
   cancelled says "its file was deleted after 30 days". The file was deleted
   seconds earlier, by the cancel.
-- **BUG-3 (money, being fixed):** cancelling an upload that hasn't started
-  yet leaves its credit hold in place, so the teacher's spendable credits stay
+- **BUG-3 (fixed, confirmed):** cancelling an upload that hasn't started
+  yet left its credit hold in place, so the teacher's spendable credits stayed
   21,146 lower with nothing running. Only the 36-hour backstop might ever
-  return them, and the books' own self-check doesn't flag it.
+  have returned them, and the books' own self-check didn't flag it. Fixed on
+  staging b3c900aaf, and confirmed here: the hold comes back the moment the
+  upload is cancelled, and a normal upload is still charged exactly (see
+  "BUG-3 rerun" below).
 
-The BUG-2 and BUG-3 checks are to be rerun when their fixes land.
+The BUG-2 check is to be rerun when its fix lands.
 
 ## How it was run
 
@@ -195,11 +199,74 @@ Credit numbers are raw credits (1,000 raw = 1 credit on screen).
 - The sweep's summary line doesn't count items the backstop failed.
 - A teacher with no plan shows balance status "out".
 
+## BUG-3 rerun (staging b3c900aaf, DB2, 12 Nov)
+
+The app was moved to b3c900aaf and restarted (no migrations in the change).
+All steps went through the API as the teacher. The Django shell was used only
+to read the item's hold, the job and the ledger self-check, and to read job
+ids.
+
+| Check | Result | What I saw |
+|---|---|---|
+| (a) Cancel an unstarted upload | PASS | The hold came back at once and the upload job closed. Nothing was charged, then or later. |
+| (b) A normal upload is still charged right | PASS | Charged 12,146; the job's consumed figure is 12,146. |
+
+**(a) Cancel an unstarted upload.**
+- I stopped the worker so the upload couldn't start, then uploaded one paper
+  (Gina_Park.pdf) to Biology Quiz 1.
+  - Wallet: spendable 433,979 → 412,833, held 21,146.
+  - The item was PENDING with its hold HELD, and the upload job was RESERVED.
+    This is the BUG-3 starting point.
+- `tasks/cancel-session` returned 200 ("cancelled_count": 1).
+  - Wallet straight after: spendable 433,979, held 0. The hold was back at
+    once.
+  - The item was CANCELLED with its hold RETURNED.
+  - The upload job was closed: FAILED, 0 consumed, "items: total 1, failed 1,
+    left 0" (`billing/jobs/{id}`).
+  - Ledger self-check: no problems.
+- I restarted the worker, and it picked up the queued task. It saw the cancel
+  and stopped before any AI call. The wallet stayed at 433,979 and the self-check
+  stayed clean.
+- The app deleted the paper's stored file at the cancel.
+
+**(b) A normal upload is still charged right** (the guard against the fix
+refunding a paper that succeeded).
+- The first three tries failed for correct reasons, so they don't count as the
+  guard. Each ran its AI extraction, and each charge was refunded:
+  - Hugo_Mendez.pdf: Hugo isn't on the roster. The AI extraction ran, and its
+    charge was refunded, as designed: an upload that fails before the
+    submission is saved refunds its extraction (`metered_unit`, F1/S6d).
+    Net charge 0.
+  - Chen_Wei.pdf: "This assignment has already been graded, so it can no
+    longer be submitted again." Net charge 0.
+  - Dana_Levi.pdf: I added Dana to the course through the API. She had never
+    signed in, so her enrollment stays PENDING until she accepts (as
+    designed), and the upload said "Dana_Levi.pdf belongs to Dana Levi, who
+    isn't enrolled in this course." Net charge 0.
+- The guard itself: I made a copy of Biology Quiz 1 through the API (one
+  assignment extraction, 13,631 charged), then uploaded Amara_Okafor.pdf to it
+  with the worker running.
+  - Wallet: 420,348 before; spendable 390,234 and held 30,114 while it ran;
+    408,202 after, held 0. The wallet went down by 12,146.
+  - The item was SUCCESS with its hold RETURNED, and the job was SETTLED with
+    12,146 consumed (`billing/jobs/{id}`: consumed 12,146, unbilled 0,
+    completed 1).
+  - Consumed matches the wallet drop exactly. Ledger self-check: no problems.
+
+**Minor, for triage (not bugs I'm stopping for):**
+- An upload whose only paper was cancelled closes as "FAILED" in
+  `billing/jobs`, with the cancel counted under "failed". There's no
+  "cancelled" state there.
+- The worker logs the cancel as an ERROR line ("raised unexpected:
+  TaskCancelledError"). This also happened on DB1, before the fix.
+- Chen's "already graded" refusal keeps its file for 30 days to retry, but a
+  retry can't succeed for that reason. (The roster-miss and not-enrolled
+  refusals deleted their files at once.)
+
 ## Pending rerun
 
-- BUG-2 (the cancelled-upload retry message) and BUG-3 (the cancelled-upload
-  hold) get rerun on the second database once their fixes land. The results
-  will be added here.
+- BUG-2 (the cancelled-upload retry message) gets rerun on DB2 once its fix
+  lands. The results will be added here.
 
 ## Cleanup
 
@@ -235,13 +302,21 @@ prefix delete. Every key was then looked up to confirm it's gone.
   - The logs don't print storage keys, so the list comes from the database
     table plus the probe.
   - The 3 uploads tried before the credentials were fixed created nothing.
-- **DB2 so far: 3 created (all deleted by the app on success).**
+- **DB2 so far: 8 created.** 7 were deleted by the app (on success, cancel or
+  refusal), and 1 is still kept: Chen's "already graded" refusal, kept for
+  retry until 12 Dec.
   - Keys:
     - 47754763fcfb4fb39fbc52b2507f33a7
     - 37f65ad18e704211b350045a4fb0a31a
     - fa39b5580b784c379d8e1f485b97798e
-  - They'll be confirmed with the same lookup at the final cleanup, together
-    with any keys from the reruns.
+    - 0011f54b4e6840c2b49e54a1938f2aa4 (BUG-3 rerun, cancelled)
+    - ec8b2d561c8d4c96b8a7b01fd6e9f99b (Hugo, not on the roster)
+    - d617345ff4ab409a802455052fb060be (Chen, already graded: still kept)
+    - 0657e88c4a8f4f71ac9e8b73ecd75417 (Dana, not enrolled)
+    - ad9dbcbda02245deaf018ad580d91313 (Amara, the guard)
+  - They'll all be confirmed with the same lookup at the final cleanup. The
+    kept one gets deleted by its exact key. The list will grow with any keys
+    from the BUG-2 rerun.
 
 **Still to do at the end:**
 - Stop the web server, worker, scheduler and private Redis.
@@ -253,7 +328,10 @@ prefix delete. Every key was then looked up to confirm it's gone.
 
 The brief asked for about 25 papers. I used more:
 - about 20 answer extractions and about 11 gradings on DB1, and about 5 more
-  papers on DB2;
+  papers on DB2 before the BUG-3 rerun;
+- the BUG-3 rerun on DB2: 4 answer extractions (Hugo, Chen, Dana and Amara;
+  only Amara's was charged, as the other three were refused and refunded) and
+  1 assignment extraction;
 - 91 provider calls on DB1 in total, about 865 display credits;
 - of those, 19 small text-only extractions, used to spend wallets down to the
   25% and 10% lines.
