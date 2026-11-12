@@ -3,9 +3,9 @@ its usage sorts (beta bug fixes, owner 2026-11-12).
 
 GET analytics beta/intent-signals takes the same last_login_*, activated_*,
 plan_tier, plan_category, plan_interval, has_plan and the eight usage ranges
-(credits_used, credits_left, papers_graded, assignments_created, _min and
+(credit_usage, credits_left, papers_graded, assignments_created, _min and
 _max) as GET /api/v1/users/, and they mean the same. `ordering` also takes
-the user list's credits_used, credits_left, papers_graded,
+the user list's credit_usage, credits_left, papers_graded,
 assignments_created and activated_at sorts (apply_sort). Nothing is copied: the matching
 teachers come from the user list's own code (users.user_list.ensure, the way
 users.filters.UserEnrollmentFilter.filter_list_value uses it), and the leads
@@ -29,7 +29,7 @@ from users.models import CustomUser
 #: or refused exactly as there.
 NAMES = ("last_login_after", "last_login_before", "activated_after",
          "activated_before", "plan_tier", "plan_category", "plan_interval",
-         "has_plan", "credits_used_min", "credits_used_max", "credits_left_min",
+         "has_plan", "credit_usage_min", "credit_usage_max", "credits_left_min",
          "credits_left_max", "papers_graded_min", "papers_graded_max",
          "assignments_created_min", "assignments_created_max")  # fmt: skip
 
@@ -56,8 +56,8 @@ class LeadFilterSet(django_filters.FilterSet):
     has_plan = _declared("has_plan")
     activated_after = _declared("activated_after")
     activated_before = _declared("activated_before")
-    credits_used_min = _declared("credits_used_min")
-    credits_used_max = _declared("credits_used_max")
+    credit_usage_min = _declared("credit_usage_min")
+    credit_usage_max = _declared("credit_usage_max")
     credits_left_min = _declared("credits_left_min")
     credits_left_max = _declared("credits_left_max")
     papers_graded_min = _declared("papers_graded_min")
@@ -88,7 +88,7 @@ def help_text(name):
 
 #: The sorts taken from the user list (users.user_list.SORT_KEYS), each with
 #: or without "-".
-SORT_KEYS = ("credits_used", "credits_left", "papers_graded", "assignments_created",
+SORT_KEYS = ("credit_usage", "credits_left", "papers_graded", "assignments_created",
              "activated_at")  # fmt: skip
 SORT_VALUES = tuple(v for key in SORT_KEYS for v in (key, f"-{key}"))
 
@@ -118,9 +118,12 @@ def apply_sort(queryset, ordering):
 
 
 #: The values a lead row shows besides its own: the user list's (LISTED).
-ROW_VALUES = ("plan_tier", "plan_category", "plan_interval", "credits_used",
-              "credits_left", "papers_graded", "assignments_created",
-              "activated_at")  # fmt: skip
+#: The ones a row carries as top-level fields (the same names as the user
+#: list's row); the usage number is metrics.credit_usage (S10).
+ROW_FIELDS = ("plan_tier", "plan_category", "plan_interval", "credits_left",
+              "papers_graded", "assignments_created", "activated_at")  # fmt: skip
+#: Plus the wallet's usage, whole credits and exact, for metrics.
+ROW_VALUES = (*ROW_FIELDS, "credits_used", "credits_used_raw")
 
 
 def row_values(user_ids):

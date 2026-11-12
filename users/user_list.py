@@ -35,6 +35,7 @@ from billing.models import (
     CONVERSION_FACTOR,
     CreditBucket,
     CreditUsageLog,
+    CreditWallet,
     LicenseSubscription,
     PlanTier,
     SchoolCreditAllocation,
@@ -220,12 +221,26 @@ def _expressions():
             ),
             ("credits_left_raw",),
         ),
-        # The dashboard's usage: all time, net of refunds.
+        # The dashboard's usage: all time, net of refunds. A user's charges
+        # are the logs of the billed user, Coalesce(user_id, wallet__user_id)
+        # = user (SM ruling, S10): user_id survives a deleted wallet, and an
+        # old log without one is still found through its wallet.
         "credits_used_raw": (
             lambda: Coalesce(
                 _total(
                     CreditUsageLog.objects.filter(
-                        wallet__user=OuterRef("pk"), is_refunded=False
+                        # Coalesce(user_id, wallet__user_id) = user. Written
+                        # without a join on the wallet: an inner join would
+                        # drop the logs whose wallet row is gone, the very
+                        # ones user_id is kept for.
+                        Q(user_id=OuterRef("pk"))
+                        | Q(
+                            user_id__isnull=True,
+                            wallet_id__in=CreditWallet.objects.filter(
+                                user=OuterRef(OuterRef("pk"))
+                            ).values("pk"),
+                        ),
+                        is_refunded=False,
                     ),
                     "SUM",
                     F("amount"),
@@ -344,7 +359,7 @@ SORT_KEYS = {
     "assignments_created": "assignments_created",
     "papers_graded": "papers_graded",
     "credits_left": "credits_left_raw",
-    "credits_used": "credits_used_raw",
+    "credit_usage": "credits_used_raw",
 }
 #: Keys that are model columns; last_login is one but sorts nulls last too.
 #: No "username": CustomUser has none (`username = None`), so ordering by it

@@ -99,8 +99,8 @@ class UserEnrollmentFilter(django_filters.FilterSet):
     # Usage ranges (owner 2026-11-12): whole numbers, both ends inclusive,
     # compared with the list's own values (users.user_list), in the credits
     # users see.
-    credits_used_min = WholeNumberFilter(method="filter_usage_range")
-    credits_used_max = WholeNumberFilter(method="filter_usage_range")
+    credit_usage_min = WholeNumberFilter(method="filter_usage_range")
+    credit_usage_max = WholeNumberFilter(method="filter_usage_range")
     credits_left_min = WholeNumberFilter(method="filter_usage_range")
     credits_left_max = WholeNumberFilter(method="filter_usage_range")
     papers_graded_min = WholeNumberFilter(method="filter_usage_range")
@@ -123,8 +123,8 @@ class UserEnrollmentFilter(django_filters.FilterSet):
         "plan_tier": ("plan_tier", "exact"),
         "plan_category": ("plan_category", "exact"),
         "plan_interval": ("plan_interval", "exact"),
-        "credits_used_min": ("credits_used", "gte"),
-        "credits_used_max": ("credits_used", "lte"),
+        "credit_usage_min": ("credits_used", "gte"),
+        "credit_usage_max": ("credits_used", "lte"),
         "credits_left_min": ("credits_left", "gte"),
         "credits_left_max": ("credits_left", "lte"),
         "papers_graded_min": ("papers_graded", "gte"),
@@ -277,11 +277,11 @@ FILTER_HELP = {
         + _DATE_ONLY.format(example="`activated_before=2026-11-01`")
         + f" Users who have not confirmed are left out. {_SUPER_ADMIN_ONLY}"
     ),
-    "credits_used_min": (
+    "credit_usage_min": (
         "Keeps users who have used at least this many credits in total, after "
         f"refunds. Users who have used none count as 0. {_SUPER_ADMIN_ONLY}"
     ),
-    "credits_used_max": (
+    "credit_usage_max": (
         "Keeps users who have used at most this many credits in total, after "
         f"refunds. Users who have used none count as 0. {_SUPER_ADMIN_ONLY}"
     ),

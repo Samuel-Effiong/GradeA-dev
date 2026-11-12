@@ -79,14 +79,16 @@ class PromptFixture(APITestCase):
             last_name=f"Last{n:02d}",
         )
 
-    def build(self):
+    def build(self, charges=False):
+        """`charges`: give each lead real wallet charges (they also show up in
+        the template's weekly trends, so only the block test asks for them)."""
         people = {}
         for n in range(12):
             user = self.person(n)
             profile, _ = BetaProfile.objects.get_or_create(user=user)
             BetaProfile.objects.filter(pk=profile.pk).update(
                 conversion_probability=5.0 + 7.5 * n,
-                total_credits_used=3_000 * n,  # the tally differs from the wallet
+                total_credits_used=1_000 * n,
                 initial_beta_credits=20_000,
                 has_hit_80_percent=n % 3 == 0,
                 distinct_login_days=n,
@@ -94,8 +96,8 @@ class PromptFixture(APITestCase):
                 credits_used_grading=100 * (n % 4),
                 credits_used_creation=150,
             )
-            if n:
-                wallet_charge(user, 1_000 * n)
+            if n and charges:
+                wallet_charge(user, 2_000 * n)  # the wallet differs from the tally
             people[user.email] = user
         outsider = self.person(99, UserTypes.SCHOOL_ADMIN)
         profile, _ = BetaProfile.objects.get_or_create(user=outsider)
@@ -192,8 +194,8 @@ def expected_row(n):
         "email": f"lead{n:02d}.prompt@x.example",
         "score": round(5.0 + 7.5 * n, 1),
         "metrics": {
-            "credit_usage": 1_000 * n,
-            "usage_percentage": round(1_000 * n / 20_000 * 100, 1),
+            "credit_usage": 2 * n,  # wallet charges of 2,000 * n
+            "usage_percentage": round(2_000 * n / 20_000 * 100, 1),
             "login_days": n,
             "last_active": (NOW - timedelta(days=n)).date().isoformat(),
             "primary_use_case": "Grading" if grading > creation else "Creation",
@@ -214,7 +216,7 @@ EXPECTED_BLOCK = repr([expected_row(n) for n in range(11, 1, -1)])
 class LeadBlockTests(PromptFixture):
     def test_the_block_is_exactly_the_top_ten_leads(self):
         # Q-L4: the exact string. On the base it was "[]".
-        block = self.lead_block(self.template(self.build()))
+        block = self.lead_block(self.template(self.build(charges=True)))
 
         self.assertEqual(block, EXPECTED_BLOCK)
 
