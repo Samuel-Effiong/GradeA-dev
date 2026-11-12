@@ -41,6 +41,7 @@ from dashboard.throttling import CustomAIPromptThrottle
 from users.models import UserTypes
 
 from . import intent_signals as signal_rules
+from . import lead_filters
 from .imports import stripe
 from .models import (
     BetaProfile,
@@ -2384,6 +2385,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 enum=[*signal_rules.SIGNAL_COUNTS],
+                description=lead_filters.help_text("signals_min"),
             ),
             *(
                 OpenApiParameter(
@@ -2392,8 +2394,54 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                     location=OpenApiParameter.QUERY,
                     required=False,
                     enum=["true", "false"],
+                    description=lead_filters.help_text(flag),
                 )
                 for flag in signal_rules.FLAGS
+            ),
+            OpenApiParameter(
+                name="last_login_after",
+                type=OpenApiTypes.DATETIME,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("last_login_after"),
+            ),
+            OpenApiParameter(
+                name="last_login_before",
+                type=OpenApiTypes.DATETIME,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("last_login_before"),
+            ),
+            OpenApiParameter(
+                name="plan_tier",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                enum=[value for value, _ in PlanTier.choices],
+                description=lead_filters.help_text("plan_tier"),
+            ),
+            OpenApiParameter(
+                name="plan_category",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                enum=[value for value, _ in PlanCategory.choices],
+                description=lead_filters.help_text("plan_category"),
+            ),
+            OpenApiParameter(
+                name="plan_interval",
+                type=OpenApiTypes.STR,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                enum=[value for value, _ in BillingInterval.choices],
+                description=lead_filters.help_text("plan_interval"),
+            ),
+            OpenApiParameter(
+                name="has_plan",
+                type=OpenApiTypes.BOOL,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("has_plan"),
             ),
             OpenApiParameter(
                 name="search",
@@ -2503,6 +2551,14 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         if not signal_filters.is_valid():
             raise translate_validation(signal_filters.errors)
         queryset = signal_filters.qs
+
+        # The user list's plan and last-login filters (lead_filters).
+        plan_filters = lead_filters.LeadFilterSet(
+            request.query_params, queryset=queryset, request=request
+        )
+        if not plan_filters.is_valid():
+            raise translate_validation(plan_filters.errors)
+        queryset = plan_filters.qs
 
         ordering = request.query_params.get("ordering")
         if ordering in signal_rules.ORDERING_VALUES:

@@ -205,13 +205,17 @@ class BadValuesTests(LeadFilterBase):
             {"plan_tier": "GOLD"},
             {"plan_category": "FREE"},
             {"plan_interval": "WEEKLY"},
-            {"has_plan": "perhaps"},
             {"last_login_after": "yesterday"},
             {"last_login_before": "not-a-date"},
         ):
             with self.subTest(params):
                 response = self.client.get(reverse(URL), params)
                 self.assertEqual(response.status_code, 400, response.content[:200])
+
+    def test_has_plan_with_a_word_that_is_not_true_or_false_does_nothing(self):
+        """As on the user list: it is the same BooleanFilter."""
+        self.build_plans()
+        self.assertEqual(self.kept(has_plan="perhaps"), self.kept())
 
     def test_the_400_has_the_shape_the_signal_filters_give(self):
         bad_signal = self.client.get(reverse(URL), {"signals_min": "9"})
