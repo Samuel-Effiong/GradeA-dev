@@ -330,7 +330,7 @@ class ExtractionNumbersInOrderTest(TestCase):
         self.assertEqual(
             data["ai_raw_payload"][MODEL_NUMBERS], {"5": "5", "6": "6", "8": "8"}
         )
-        self.assertEqual(headings(data["raw_input"], "Question 5 (10 marks)"), 1)
+        self.assertEqual(headings(data["raw_input"], "Question 5 (10 points)"), 1)
         self.assertEqual(headings(data["raw_input"], "Question 1 ("), 0)
         self.assertIn("Extracting assignment content", logged)
         self.assertNotIn("Question numbers put in order", logged)
@@ -342,7 +342,7 @@ class ExtractionNumbersInOrderTest(TestCase):
         # builder and the converter on such questions, 2026-10-07).
         document = data["raw_input"]
         self.assertIsInstance(document, str)
-        for heading in ("Question 1 (10 marks)", "Question 2 (", "Question 3 ("):
+        for heading in ("Question 1 (10 points)", "Question 2 (", "Question 3 ("):
             self.assertEqual(headings(document, heading), 1, heading)
 
     def test_one_log_line_with_ids_and_counts_and_no_question_text(self):
@@ -494,7 +494,7 @@ class TheExtractionRoutesSaveNumbersInOrderTest(AIOutputAllowListFixture):
         )
         self.assert_saved_in_order(assignment)
         self.assertEqual(headings(assignment.raw_input, "Question 3 ("), 1)
-        self.assertEqual(headings(assignment.raw_input, "Question 1 (10 marks)"), 1)
+        self.assertEqual(headings(assignment.raw_input, "Question 1 (10 points)"), 1)
 
     @patch(EXTRACT)
     def test_create_by_text_keeps_a_paper_numbered_five_to_eight(self, mock_ai):
@@ -555,7 +555,7 @@ class TheExtractionRoutesSaveNumbersInOrderTest(AIOutputAllowListFixture):
         )
         assignment = Assignment.objects.get(course=self.course_b, title="Uploaded Five")
         self.assertEqual(numbers_and_texts(assignment.questions), FIVE_TO_EIGHT)
-        self.assertEqual(headings(assignment.raw_input, "Question 5 (10 marks)"), 1)
+        self.assertEqual(headings(assignment.raw_input, "Question 5 (10 points)"), 1)
 
     @patch(EXTRACT)
     def test_a_label_the_serializer_would_refuse_no_longer_costs_the_save(
@@ -614,7 +614,7 @@ class GenerationNumbersInOrderTest(AIOutputAllowListFixture):
         snapshot = message.assignment_snapshot
         self.assertEqual(numbers_and_texts(snapshot["questions"]), IN_ORDER)
         self.assertEqual(headings(snapshot["raw_input"], "Question 3 ("), 1)
-        self.assertEqual(headings(snapshot["raw_input"], "Question 1 (10 marks)"), 1)
+        self.assertEqual(headings(snapshot["raw_input"], "Question 1 (10 points)"), 1)
         self.assertIn("Question numbers put in order", logged)
         self.assertIn(f"user={self.teacher_b.id}", logged)
         self.assertIn("changed=2", logged)
@@ -627,7 +627,7 @@ class GenerationNumbersInOrderTest(AIOutputAllowListFixture):
             message = self.generate()
         snapshot = message.assignment_snapshot
         self.assertEqual(numbers_and_texts(snapshot["questions"]), FIVE_TO_EIGHT)
-        self.assertEqual(headings(snapshot["raw_input"], "Question 5 (10 marks)"), 1)
+        self.assertEqual(headings(snapshot["raw_input"], "Question 5 (10 points)"), 1)
 
         assignment = self.save_draft(message)
 

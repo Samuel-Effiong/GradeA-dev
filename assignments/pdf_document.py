@@ -12,7 +12,7 @@ bytes or the cache would serve one caller's document to the other.
 from django.utils.html import escape as escape_html
 
 from .pdf_renderer import ensure_capacity, render_html_to_pdf
-from .services import AssignmentProcessingService, _strip_html_from_title
+from .services import AssignmentProcessingService, _strip_html_from_title, points_text
 
 
 def render_assignment_pdf(assignment, include_rubric: bool) -> bytes:
@@ -58,6 +58,7 @@ def render_assignment_pdf(assignment, include_rubric: bool) -> bytes:
     # isn't already known-safe (a server-formatted date, a plain int)
     # needs escaping here, matching what format_assignment_standard_html
     # already does for the fields it renders itself.
+    total_points = assignment.total_points or "N/A"
     course_name = escape_html(assignment.course.name if assignment.course else "Course")
     teacher_name = escape_html(
         assignment.course.teacher.get_full_name()
@@ -244,7 +245,7 @@ def render_assignment_pdf(assignment, include_rubric: bool) -> bytes:
                 <div class="meta">
                     <span>{teacher_name}</span>
                     <span>Due {due_date_str}</span>
-                    <span>{assignment.total_points or 'N/A'} marks total</span>
+                    <span>{points_text(total_points)} total</span>
                 </div>
             </div>
 

@@ -93,11 +93,11 @@ class TeacherViewTest(SimpleTestCase):
         # It has to be IN the heading, not floating nearby: the heading is
         # the run the extractor associates with the question.
         html = render(assignment(question(qtype="ESSAY", points=8)))
-        self.assertIn("Question 1 (8 marks) &mdash; Essay", html)
+        self.assertIn("Question 1 (8 points) &mdash; Essay", html)
 
     def test_marks_and_number_are_unchanged(self):
         html = render(assignment(question(number=3, points=12)))
-        self.assertIn("Question 3 (12 marks)", html)
+        self.assertIn("Question 3 (12 points)", html)
 
     def test_each_question_gets_its_own_label(self):
         html = render(
@@ -107,9 +107,9 @@ class TeacherViewTest(SimpleTestCase):
                 question(3, "ESSAY", 10),
             )
         )
-        self.assertIn("Question 1 (2 marks) &mdash; Multiple Choice", html)
-        self.assertIn("Question 2 (8 marks) &mdash; Short Answer", html)
-        self.assertIn("Question 3 (10 marks) &mdash; Essay", html)
+        self.assertIn("Question 1 (2 points) &mdash; Multiple Choice", html)
+        self.assertIn("Question 2 (8 points) &mdash; Short Answer", html)
+        self.assertIn("Question 3 (10 points) &mdash; Essay", html)
 
     def test_lowercase_stored_type_is_still_labelled(self):
         # format_assignment_standard_html uppercases before lookup;
@@ -126,7 +126,7 @@ class StudentViewTest(SimpleTestCase):
     def test_label_is_absent_for_students(self):
         html = render(assignment(question(qtype="ESSAY")), include_rubric=False)
         self.assertNotIn("&mdash; Essay", html)
-        self.assertIn("Question 1 (8 marks)", html)
+        self.assertIn("Question 1 (8 points)", html)
 
     def test_no_type_label_leaks_for_any_type(self):
         for qtype, label in QUESTION_TYPE_LABELS.items():
@@ -145,7 +145,7 @@ class StudentViewTest(SimpleTestCase):
 
     def test_student_heading_matches_the_pre_feature_shape(self):
         html = render(assignment(question(number=2, points=5)), include_rubric=False)
-        self.assertIn("<strong>Question 2 (5 marks)</strong>", html)
+        self.assertIn("<strong>Question 2 (5 points)</strong>", html)
 
 
 class MalformedTypeTest(SimpleTestCase):
@@ -154,30 +154,30 @@ class MalformedTypeTest(SimpleTestCase):
 
     def test_unknown_type_gets_no_label(self):
         html = render(assignment(question(qtype="MULTIPART")))
-        self.assertIn("<strong>Question 1 (8 marks)</strong>", html)
+        self.assertIn("<strong>Question 1 (8 points)</strong>", html)
 
     def test_hybrid_gets_no_label(self):
         # HYBRID is an ASSIGNMENT-level type; a question carrying it is
         # malformed, and labelling it would assert something false.
         html = render(assignment(question(qtype="HYBRID")))
-        self.assertIn("<strong>Question 1 (8 marks)</strong>", html)
+        self.assertIn("<strong>Question 1 (8 points)</strong>", html)
         self.assertNotIn("Hybrid", html)
 
     def test_missing_type_gets_no_label(self):
         data = assignment(question())
         del data["questions"][0]["question_type"]
         html = render(data)
-        self.assertIn("<strong>Question 1 (8 marks)</strong>", html)
+        self.assertIn("<strong>Question 1 (8 points)</strong>", html)
 
     def test_null_type_gets_no_label(self):
         # question_type arrives from AI extraction and can be an explicit
         # null, which is not the same as an absent key.
         html = render(assignment(question(qtype=None)))
-        self.assertIn("<strong>Question 1 (8 marks)</strong>", html)
+        self.assertIn("<strong>Question 1 (8 points)</strong>", html)
 
     def test_empty_string_type_gets_no_label(self):
         html = render(assignment(question(qtype="")))
-        self.assertIn("<strong>Question 1 (8 marks)</strong>", html)
+        self.assertIn("<strong>Question 1 (8 points)</strong>", html)
 
     def test_html_in_a_type_cannot_inject(self):
         # question_type is AI-supplied and this document is rendered to PDF
@@ -203,7 +203,7 @@ class ProseMirrorRoundTripTest(SimpleTestCase):
         # associates it with the question by proximity in the heading run.
         html = render(assignment(question(number=2, qtype="ESSAY", points=10)))
         flat = json.dumps(json.loads(APS.html_to_prosemirror_text(html)))
-        heading = "Question 2 (10 marks) \\u2014 Essay"
+        heading = "Question 2 (10 points) \\u2014 Essay"
         self.assertIn(heading, flat.replace("—", "\\u2014"))
 
     def test_student_document_carries_no_label_after_conversion(self):
