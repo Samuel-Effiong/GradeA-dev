@@ -35,11 +35,14 @@ FREQUENT_DAYS = 8
 ACTIVE_WINDOW = timedelta(days=7)
 SIGNAL_COUNTS = tuple(range(len(FLAGS) + 1))
 
-#: The `signals` ordering, as documented on both endpoints (Q-S2).
+#: The `signals` ordering text on the sales-leads list (Q-S2). Owner's plain
+#: wording, 2026-11-12; the user list has its own text.
 ORDERING_DOC = (
-    "signals: signal count ascending; -signals: signal count descending. "
-    "Ties: conversion_probability descending, nulls last, then id ascending, "
-    "in both directions."
+    "Sorts the leads. `signals` puts teachers with the fewest signals first; "
+    "`-signals` puts teachers with the most signals first. Teachers with the "
+    "same number of signals are sorted by conversion probability, highest "
+    "first, with empty ones last, then by their ID. Left empty, leads come in "
+    "order of conversion probability, highest first."
 )
 ORDERING_VALUES = ("signals", "-signals")
 
