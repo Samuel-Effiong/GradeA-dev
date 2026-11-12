@@ -54,6 +54,9 @@ TEXT_1 = (
     "Top up credits, then resume the remaining items. Your files are kept for "
     "{days} days, so you won't need to upload them again."
 )
+#: Owner, 2026-11-12 (team/approved_wording_b1b_handson_2026-11-12.md #1): a
+#: GRADING paper keeps no file, so its text 1 is the first sentence only.
+TEXT_1_GRADING = "Top up credits, then resume the remaining items."
 TEXT_2 = (
     "This upload can't be retried because its file was deleted after {days} "
     "days. Upload the file again."
@@ -79,7 +82,8 @@ TEXT_3_LICENSE = (
 QUEUE = {
     "queued": (
         "Your grading batch is waiting for credits",
-        "Your credits ran out while grading {assignment}. {done} of {total} "
+        "You don't have enough credits right now while grading {assignment}. "
+        "{done} of {total} "
         "papers were graded and saved. The other {left} papers will start "
         "again on their own when you add credits. They will wait for {days} "
         "days, until {expires_on}.",
@@ -165,6 +169,50 @@ class MidBatchRemediationTests(TestCase):
     def test_another_lifetime_fills_its_days(self):
         build = module("AutoGrader.reason_codes").mid_batch_remediation
         self.assertEqual(build(7), TEXT_1.format(days=7))
+
+
+class Text1ByItemTypeTests(TestCase):
+    """Owner 2026-11-12 #1: text 1 on a GRADING paper is only "Top up
+    credits, then resume the remaining items."; an upload item keeps the
+    full approved text 1."""
+
+    def remediation(self, task_type):
+        item = BackgroundProcessingTask.objects.create(
+            requested_by=user(f"t1.{uuid.uuid4().hex[:6]}"),
+            task_type=task_type,
+            status=BackgroundTaskStatus.FAILURE,
+            reason_code=ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH.value,
+        )
+        return module("students.item_results").item_result(item, {})["remediation"]
+
+    def test_a_grading_paper_gets_only_the_first_sentence(self):
+        self.assertEqual(
+            self.remediation(BackgroundTaskType.BATCH_SUBMISSION_GRADING),
+            TEXT_1_GRADING,
+        )
+
+    def test_an_answer_upload_keeps_the_full_text_1(self):
+        self.assertEqual(
+            self.remediation(BackgroundTaskType.BATCH_ANSWER_UPLOAD),
+            TEXT_1.format(days=30),
+        )
+
+    def test_an_assignment_upload_keeps_the_full_text_1(self):
+        self.assertEqual(
+            self.remediation(BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD),
+            TEXT_1.format(days=30),
+        )
+
+    @override_settings(QUEUE_LIFETIME_DAYS=7)
+    def test_the_grading_text_has_no_days_to_fill(self):
+        self.assertEqual(
+            self.remediation(BackgroundTaskType.BATCH_SUBMISSION_GRADING),
+            TEXT_1_GRADING,
+        )
+
+    def test_the_catalogue_default_is_still_the_full_text_1(self):
+        spec = REASON_CODES[ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH]
+        self.assertEqual(spec.remediation, TEXT_1.format(days=30))
 
 
 # --------------------------------------------------------------------------
