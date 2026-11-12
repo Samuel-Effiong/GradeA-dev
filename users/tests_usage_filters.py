@@ -264,3 +264,28 @@ class OldNamesTests(UsageBase):
         row = self.row(self.with_used(2_500))
         self.assertEqual(row["credit_usage"], 2)
         self.assertNotIn("credits_used", row)
+
+
+class ChargesFollowTheBilledUserTests(UsageBase):
+    def test_a_log_whose_wallet_is_gone_still_counts_on_the_users_list(self):
+        user = self.with_used(4_500)
+        CreditWallet.objects.filter(user=user).delete()  # no constraint: log stays
+        self.assertEqual(self.row(user)["credit_usage"], 4)
+        self.assertEqual(self.listed([user], credit_usage_min=4), {user})
+        self.assertEqual(self.listed([user], credit_usage_max=3), set())
+
+    def test_an_old_log_without_a_user_id_counts_through_its_wallet(self):
+        from billing.models import CreditUsageLog
+
+        user = self.person()
+        wallet = self.wallet(user)
+        bucket = self.bucket(wallet, 0, expires_in=-400)
+        CreditUsageLog.objects.create(
+            user_id=None,  # logs from before the column existed
+            user_email=user.email,
+            wallet=wallet,
+            bucket=bucket,
+            amount=2_500,
+            feature="Grading Assignment",
+        )
+        self.assertEqual(self.row(user)["credit_usage"], 2)

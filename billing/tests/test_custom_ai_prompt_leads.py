@@ -86,7 +86,7 @@ class PromptFixture(APITestCase):
             profile, _ = BetaProfile.objects.get_or_create(user=user)
             BetaProfile.objects.filter(pk=profile.pk).update(
                 conversion_probability=5.0 + 7.5 * n,
-                total_credits_used=1_000 * n,
+                total_credits_used=3_000 * n,  # the tally differs from the wallet
                 initial_beta_credits=20_000,
                 has_hit_80_percent=n % 3 == 0,
                 distinct_login_days=n,
@@ -94,6 +94,8 @@ class PromptFixture(APITestCase):
                 credits_used_grading=100 * (n % 4),
                 credits_used_creation=150,
             )
+            if n:
+                wallet_charge(user, 1_000 * n)
             people[user.email] = user
         outsider = self.person(99, UserTypes.SCHOOL_ADMIN)
         profile, _ = BetaProfile.objects.get_or_create(user=outsider)
@@ -146,6 +148,38 @@ class TemplatePinTests(PromptFixture):
         self.assertIn("### COHORT SUMMARY:", rest)
         self.assertIn("'total_beta_users': 13", rest)
         self.assertIn("### FEATURE MIX (Value Drivers):", rest)
+
+
+def wallet_charge(user, amount, when=None):
+    """A real charge on the user's wallet: the lead rows' usage number is the
+    wallet's (S10), not BetaProfile.total_credits_used."""
+    from datetime import timedelta as _td
+
+    from django.utils import timezone as _tz
+
+    from billing.models import (
+        CreditBucket,
+        CreditBucketType,
+        CreditUsageLog,
+        CreditWallet,
+    )
+
+    wallet, _ = CreditWallet.objects.get_or_create(user=user)
+    bucket = CreditBucket.objects.create(
+        wallet=wallet,
+        bucket_type=CreditBucketType.MONTHLY,
+        total_credits=amount,
+        used_credits=amount,
+        expires_at=_tz.now() + _td(days=30),
+    )
+    return CreditUsageLog.objects.create(
+        user_id=user.id,
+        user_email=user.email,
+        wallet=wallet,
+        bucket=bucket,
+        amount=amount,
+        feature="Grading Assignment",
+    )
 
 
 def expected_row(n):
@@ -285,4 +319,5 @@ class LeadBlockCostTests(PromptFixture):
                 lead_rows(top_leads(NOW, 10))
             counts.append(len(ctx.captured_queries))
 
-        self.assertEqual(counts, [1, 1])
+        # The leads, plus the wallet usage of all of them in one query (S10).
+        self.assertEqual(counts, [2, 2])

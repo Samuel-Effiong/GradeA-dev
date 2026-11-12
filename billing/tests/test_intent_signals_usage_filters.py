@@ -138,11 +138,11 @@ class CreditsUsedFilterTests(UsageBase):
         self.assertNotIn(self.two.email, self.kept(credit_usage_min=3))
         self.assertIn(self.two.email, self.kept(credit_usage_max=2))
 
-    def test_the_row_still_shows_the_beta_counter(self):
+    def test_the_row_shows_the_wallet_value_not_the_beta_counter(self):
         BetaProfile = type(self.two.beta_profile)
         BetaProfile.objects.filter(user=self.two).update(total_credits_used=777)
         rows = {r["email"]: r for r in self.leads()}
-        self.assertEqual(rows[self.two.email]["metrics"]["credit_usage"], 777)
+        self.assertEqual(rows[self.two.email]["metrics"]["credit_usage"], 2)
 
 
 class CreditsLeftFilterTests(UsageBase):
@@ -391,3 +391,18 @@ class SwaggerTests(UsageBase):
             ordering["description"].endswith(f" {ORDERING_ADDITION}"),
             ordering["description"],
         )
+
+
+class ChargesFollowTheBilledUserTests(UsageBase):
+    """A user's charges are the logs whose user_id is the user, or, for an old
+    log without one, whose wallet is theirs (SM ruling, S10). A log whose
+    wallet row is gone still counts."""
+
+    def test_a_log_whose_wallet_is_gone_still_counts_on_the_lead_list(self):
+        user = self.lead(used=4_500, left=0)
+        CreditWallet.objects.filter(user=user).delete()  # no constraint: log stays
+        self.assertTrue(CreditUsageLog.objects.filter(user_id=user.id).exists())
+        rows = {r["email"]: r for r in self.leads()}
+        self.assertEqual(rows[user.email]["metrics"]["credit_usage"], 4)
+        self.assertIn(user.email, self.kept(credit_usage_min=4))
+        self.assertNotIn(user.email, self.kept(credit_usage_max=3))

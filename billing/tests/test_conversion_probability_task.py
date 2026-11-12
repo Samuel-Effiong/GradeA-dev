@@ -271,7 +271,11 @@ class SalesLeadsUsagePercentageTests(TestCase):
     def test_a_normal_profile_still_reports_a_real_percentage(self):
         """The guard must not flatten the metric it protects."""
         teacher = make_teacher("normallead@gmail.com")
-        set_profile(teacher, initial_beta_credits=1000, total_credits_used=250)
+        # The percentage follows the wallet's charges (S10), not the tally.
+        set_profile(teacher, initial_beta_credits=1000, total_credits_used=999)
+        from billing.tests.test_custom_ai_prompt_leads import wallet_charge
+
+        wallet_charge(teacher, 250)
 
         response = self.client.get(self._url())
 
