@@ -750,6 +750,7 @@ class ExportFieldDecisionTests(SimpleTestCase):
                 "content_type",
                 "sha256",
                 "relaunch",
+                "purge_reason",
                 "created_at",
             },
         )
