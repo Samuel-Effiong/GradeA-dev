@@ -34,9 +34,11 @@ from .test_intent_signals_pins import NOW, SignalsFixture, profile
 
 FLAGS = ("at_80_percent", "frequent_user", "active_last_week", "is_power_grader")
 SIGNALS_ORDERING_DOC = (
-    "signals: signal count ascending; -signals: signal count descending. "
-    "Ties: conversion_probability descending, nulls last, then id ascending, "
-    "in both directions."
+    "Sorts the leads. `signals` puts teachers with the fewest signals first; "
+    "`-signals` puts teachers with the most signals first. Teachers with the "
+    "same number of signals are sorted by conversion probability, highest "
+    "first, with empty ones last, then by their ID. Left empty, leads come in "
+    "order of conversion probability, highest first."
 )
 ALL4 = {
     "has_hit_80_percent": True,
