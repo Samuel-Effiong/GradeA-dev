@@ -47,3 +47,13 @@ task/review-flags. Every run: --settings=settings_worktree --keepdb
   (passes serially).
 - RR1 (the failing classes + R1): Ran 109, one test of mine fixed, then
   serial Ran 13, OK.
+- N2 final near on 66330aced (students assignments ai_processor users
+  guards60, fresh test DBs, no --keepdb): Ran 4971, OK (skipped=26). Four
+  fewer than N1: rewritten second-opinion and missing-answer tests, plus
+  one new R1 test.
+- Staging snapshots (grep of origin/staging): assignments/c1_snapshots/
+  teacher_detail.json and student_detail.json pin flagged_for_review false
+  and upload_mismatch null (a paper with no flags, so no `level`);
+  classrooms/e1_snapshots/school_summary.json has the dashboard's
+  flagged_for_review_count (confidence, unrelated). None pins second_opinion
+  or review_reasons. Staging not changed.
