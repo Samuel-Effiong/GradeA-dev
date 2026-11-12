@@ -14,6 +14,7 @@ The query parameter names are unchanged.
 """
 
 import django_filters
+from django import forms
 from django.core.validators import EMPTY_VALUES
 from django.db.models import Exists, OuterRef, Q
 from rest_framework.filters import OrderingFilter
@@ -62,6 +63,12 @@ ENROLLMENT_LOOKUPS = {
 }
 
 
+class WholeNumberFilter(django_filters.NumberFilter):
+    """A whole number: 1.5 or abc is a 400, like any other bad filter value."""
+
+    field_class = forms.IntegerField
+
+
 class UserEnrollmentFilter(django_filters.FilterSet):
     enrollments__course = django_filters.UUIDFilter(method="filter_enrollment")
     enrollments__course__isnull = django_filters.BooleanFilter(
@@ -89,6 +96,17 @@ class UserEnrollmentFilter(django_filters.FilterSet):
         choices=BillingInterval.choices, method="filter_list_value"
     )
     has_plan = django_filters.BooleanFilter(method="filter_list_value")
+    # Usage ranges (owner 2026-11-12): whole numbers, both ends inclusive,
+    # compared with the list's own values (users.user_list), in the credits
+    # users see.
+    credits_used_min = WholeNumberFilter(method="filter_usage_range")
+    credits_used_max = WholeNumberFilter(method="filter_usage_range")
+    credits_left_min = WholeNumberFilter(method="filter_usage_range")
+    credits_left_max = WholeNumberFilter(method="filter_usage_range")
+    papers_graded_min = WholeNumberFilter(method="filter_usage_range")
+    papers_graded_max = WholeNumberFilter(method="filter_usage_range")
+    assignments_created_min = WholeNumberFilter(method="filter_usage_range")
+    assignments_created_max = WholeNumberFilter(method="filter_usage_range")
     # Brief 4: the signals (billing.intent_signals), teachers only.
     signals_min = signal_rules.count_filter("filter_signal_value")
     at_80_percent = signal_rules.flag_filter("filter_signal_value")
@@ -105,6 +123,14 @@ class UserEnrollmentFilter(django_filters.FilterSet):
         "plan_tier": ("plan_tier", "exact"),
         "plan_category": ("plan_category", "exact"),
         "plan_interval": ("plan_interval", "exact"),
+        "credits_used_min": ("credits_used", "gte"),
+        "credits_used_max": ("credits_used", "lte"),
+        "credits_left_min": ("credits_left", "gte"),
+        "credits_left_max": ("credits_left", "lte"),
+        "papers_graded_min": ("papers_graded", "gte"),
+        "papers_graded_max": ("papers_graded", "lte"),
+        "assignments_created_min": ("assignments_created", "gte"),
+        "assignments_created_max": ("assignments_created", "lte"),
     }
 
     class Meta:
@@ -166,6 +192,11 @@ class UserEnrollmentFilter(django_filters.FilterSet):
         if field != "last_login":
             queryset = user_list.ensure(queryset, field)
         return queryset.filter(**{f"{field}__{lookup}": value})
+
+    def filter_usage_range(self, queryset, name, value: int):
+        """The usage ranges are filter_list_value's. The `value: int` hint is
+        what makes Swagger show an integer, not a generic number."""
+        return self.filter_list_value(queryset, name, value)
 
     def filter_signal_value(self, queryset, name, value):
         """The same super admin gate as filter_list_value."""
@@ -245,6 +276,38 @@ FILTER_HELP = {
         "date and time; the time you give is included. "
         + _DATE_ONLY.format(example="`activated_before=2026-11-01`")
         + f" Users who have not confirmed are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "credits_used_min": (
+        "Keeps users who have used at least this many credits in total, after "
+        f"refunds. Users who have used none count as 0. {_SUPER_ADMIN_ONLY}"
+    ),
+    "credits_used_max": (
+        "Keeps users who have used at most this many credits in total, after "
+        f"refunds. Users who have used none count as 0. {_SUPER_ADMIN_ONLY}"
+    ),
+    "credits_left_min": (
+        "Keeps users with at least this many credits left. Users without a "
+        f"credit wallet are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "credits_left_max": (
+        "Keeps users with at most this many credits left. Users without a "
+        f"credit wallet are left out. {_SUPER_ADMIN_ONLY}"
+    ),
+    "papers_graded_min": (
+        "Keeps teachers who have had at least this many papers graded by the "
+        f"AI. Teachers who have graded none count as 0. {_SUPER_ADMIN_ONLY}"
+    ),
+    "papers_graded_max": (
+        "Keeps teachers who have had at most this many papers graded by the "
+        f"AI. Teachers who have graded none count as 0. {_SUPER_ADMIN_ONLY}"
+    ),
+    "assignments_created_min": (
+        "Keeps teachers who have created at least this many assignments. "
+        f"Teachers who have created none count as 0. {_SUPER_ADMIN_ONLY}"
+    ),
+    "assignments_created_max": (
+        "Keeps teachers who have created at most this many assignments. "
+        f"Teachers who have created none count as 0. {_SUPER_ADMIN_ONLY}"
     ),
     "plan_tier": (
         "Keeps users whose current plan has this tier. The current plan is, "

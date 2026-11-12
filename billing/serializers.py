@@ -1829,6 +1829,23 @@ class ConversionLeadSerializer(serializers.Serializer):
     flags = ConversionLeadFlagsSerializer()
 
 
+class ConversionLeadListSerializer(ConversionLeadSerializer):
+    """A row of the sales-leads list: the lead plus the teacher's plan and
+    usage, with the names, types and nulls of the user list's row
+    (users.list_serializers.UserListSerializer; none of those fields has
+    help_text there). ConversionLeadSerializer itself stays as it was: the
+    custom AI prompt's lead block uses it."""
+
+    plan_tier = serializers.CharField(read_only=True, allow_null=True)
+    plan_category = serializers.CharField(read_only=True, allow_null=True)
+    plan_interval = serializers.CharField(read_only=True, allow_null=True)
+    credits_used = serializers.IntegerField(read_only=True)
+    credits_left = serializers.IntegerField(read_only=True, allow_null=True)
+    papers_graded = serializers.IntegerField(read_only=True)
+    assignments_created = serializers.IntegerField(read_only=True)
+    activated_at = serializers.DateTimeField(read_only=True)
+
+
 class BetaProfileSerializer(serializers.ModelSerializer):
     """
     Serializer for the BetaProfile model providing deep insights

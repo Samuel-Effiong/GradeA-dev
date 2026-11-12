@@ -244,9 +244,8 @@ class NothingChangesWithoutTheNewParamsTests(LeadFilterBase):
         )
         self.assertEqual(empty.status_code, 200)
         self.assertEqual(empty.content, plain.content)
-        # The rows carry no plan or login fields: the payload keys are as before.
+        # The rows carry no login field (S9b added the plan and usage ones).
         row = json.loads(plain.content)["data"]["results"][0]
-        self.assertNotIn("plan_tier", row)
         self.assertNotIn("last_login", row)
 
 
@@ -294,6 +293,16 @@ class EveryParameterIsDescribedTests(LeadFilterBase):
         "plan_category",
         "plan_interval",
         "has_plan",
+        "activated_after",
+        "activated_before",
+        "credits_used_min",
+        "credits_used_max",
+        "credits_left_min",
+        "credits_left_max",
+        "papers_graded_min",
+        "papers_graded_max",
+        "assignments_created_min",
+        "assignments_created_max",
     )
 
     def test_every_filter_has_a_description(self):

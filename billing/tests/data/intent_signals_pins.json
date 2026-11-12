@@ -581,6 +581,10 @@
     "previous": null,
     "results": [
       {
+        "activated_at": null,
+        "assignments_created": 0,
+        "credits_left": 0,
+        "credits_used": 0,
         "email": "a.all4.sig@x.example",
         "flags": {
           "active_last_week": true,
@@ -597,9 +601,17 @@
           "usage_percentage": 85.0
         },
         "name": "Ada Four",
+        "papers_graded": 0,
+        "plan_category": null,
+        "plan_interval": null,
+        "plan_tier": null,
         "score": 91.5
       },
       {
+        "activated_at": null,
+        "assignments_created": 0,
+        "credits_left": 0,
+        "credits_used": 0,
         "email": "b.three.sig@x.example",
         "flags": {
           "active_last_week": true,
@@ -616,9 +628,17 @@
           "usage_percentage": 82.5
         },
         "name": "Ben Three",
+        "papers_graded": 0,
+        "plan_category": null,
+        "plan_interval": null,
+        "plan_tier": null,
         "score": 72.2
       },
       {
+        "activated_at": null,
+        "assignments_created": 0,
+        "credits_left": 0,
+        "credits_used": 0,
         "email": "e.two.sig@x.example",
         "flags": {
           "active_last_week": false,
@@ -635,9 +655,17 @@
           "usage_percentage": 80.0
         },
         "name": "Ed Two",
+        "papers_graded": 0,
+        "plan_category": null,
+        "plan_interval": null,
+        "plan_tier": null,
         "score": 55.0
       },
       {
+        "activated_at": null,
+        "assignments_created": 0,
+        "credits_left": 0,
+        "credits_used": 0,
         "email": "c.one.sig@x.example",
         "flags": {
           "active_last_week": false,
@@ -654,9 +682,17 @@
           "usage_percentage": 0.0
         },
         "name": "Cy One",
+        "papers_graded": 0,
+        "plan_category": null,
+        "plan_interval": null,
+        "plan_tier": null,
         "score": 40.0
       },
       {
+        "activated_at": null,
+        "assignments_created": 0,
+        "credits_left": 0,
+        "credits_used": 0,
         "email": "d.none.sig@x.example",
         "flags": {
           "active_last_week": false,
@@ -673,6 +709,10 @@
           "usage_percentage": 0.0
         },
         "name": "Di None",
+        "papers_graded": 0,
+        "plan_category": null,
+        "plan_interval": null,
+        "plan_tier": null,
         "score": 10.5
       }
     ]

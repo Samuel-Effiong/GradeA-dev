@@ -32,6 +32,7 @@ from freezegun import freeze_time
 from rest_framework.test import APITestCase
 
 from billing.models import BetaProfile
+from billing.serializers import ConversionLeadListSerializer, ConversionLeadSerializer
 from users.models import CustomUser, UserTypes
 
 PIN = Path(__file__).parent / "data" / "custom_ai_prompt_template_pin.json"
@@ -190,6 +191,13 @@ class LeadBlockTests(PromptFixture):
         page = self.client.get(
             reverse("analytics-intent-signals"), {"page_size": 10}
         ).json()["data"]["results"]
+        # The list rows also show the teacher's plan and usage (S9b); the
+        # prompt block's rows do not, so the comparison is on the shared keys.
+        for row in page:
+            for name in ConversionLeadListSerializer().fields.keys() - set(
+                ConversionLeadSerializer().fields
+            ):
+                del row[name]
         text = json.dumps(page)
         for email, user in people.items():
             text = text.replace(str(user.pk), f"<id:{email}>")
