@@ -488,6 +488,10 @@ class AStudentLearnsNothingOfAHeldResult(HeldBase):
             # student's data export (EXPORT_OMITTED); pinned by
             # students.tests_data_export ... test_the_q1_q2_declarations.
             "students/data_export.py",
+            # The teacher's assignment page: has_pending_regrade. The
+            # student detail serializer there reads neither name
+            # (students.tests_pending_regrade_flag).
+            "assignments/serializers.py",
         }
         found = set()
         for path in Path(django_settings.BASE_DIR).glob("*/**/*.py"):
