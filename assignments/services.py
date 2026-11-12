@@ -2,6 +2,7 @@ import base64
 import logging
 import re
 from datetime import datetime
+from decimal import Decimal, InvalidOperation
 from io import BytesIO
 from typing import Any, Dict
 from urllib.parse import urlparse
@@ -102,6 +103,19 @@ AI_HTML_ALLOWED_ATTRIBUTES: Dict[str, Any] = {
     "th": ["colspan", "rowspan"],
     "span": _allow_math_block_class,
 }
+
+
+def points_text(printed) -> str:
+    """ "1 point" for a value that is exactly 1 (1, 1.0, Decimal("1.00"),
+    "1"), else "{value} points" (0, 0.5, "N/A", empty and anything
+    unreadable keep what was printed). Decided from the value that is
+    printed (owner, 2026-11-12)."""
+    try:
+        if Decimal(str(printed).strip()) == 1:
+            return "1 point"
+    except (InvalidOperation, ValueError):
+        pass
+    return f"{printed} points"
 
 
 def _none_default(value, default):
@@ -899,7 +913,7 @@ class AssignmentProcessingService:
             html_output.append(
                 f"""
             <div style="margin-bottom:40px;">
-                <p><strong>Question {q_no} ({q_points} marks){type_suffix}</strong></p>
+                <p><strong>Question {q_no} ({points_text(q_points)}){type_suffix}</strong></p>
                 {q_text}
             """
             )
@@ -966,12 +980,12 @@ class AssignmentProcessingService:
                 html_output.append(
                     """
                 <div style="margin-top:15px;">
-                    <p><strong>Marking Guide / Rubric:</strong></p>
+                    <p><strong>Grading Guide / Rubric:</strong></p>
                     <table border="1" cellpadding="6" cellspacing="0" width="100%" style="border-collapse:collapse;">
                         <thead>
                             <tr>
                                 <th align="left">Performance Level</th>
-                                <th align="center">Marks</th>
+                                <th align="center">Points</th>
                                 <th align="left">Criteria</th>
                             </tr>
                         </thead>

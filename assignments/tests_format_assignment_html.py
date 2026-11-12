@@ -211,7 +211,7 @@ class QuestionLevelNoneHandlingTest(SimpleTestCase):
         html = A.format_assignment_standard_html(
             base_data(questions=[base_question(points=0)])
         )
-        self.assertIn("(0 marks)", html)
+        self.assertIn("(0 points)", html)
 
     def test_non_dict_question_entries_are_skipped_not_raised(self):
         html = A.format_assignment_standard_html(
@@ -586,13 +586,13 @@ class RubricNoneHandlingTest(SimpleTestCase):
             base_data(questions=[base_question(rubric=None)])
         )
         self.assertIn("Question 1", html)
-        self.assertNotIn("Marking Guide", html)
+        self.assertNotIn("Grading Guide", html)
 
     def test_non_list_rubric_does_not_raise(self):
         html = A.format_assignment_standard_html(
             base_data(questions=[base_question(rubric="not a list")])
         )
-        self.assertNotIn("Marking Guide", html)
+        self.assertNotIn("Grading Guide", html)
 
     def test_non_dict_rubric_entries_are_skipped_not_raised(self):
         html = A.format_assignment_standard_html(
@@ -674,7 +674,7 @@ class RubricNoneHandlingTest(SimpleTestCase):
             ),
             include_rubric=False,
         )
-        self.assertNotIn("Marking Guide", html)
+        self.assertNotIn("Grading Guide", html)
         self.assertNotIn("The answer.", html)
 
     def test_genuine_word_none_as_a_rubric_level_is_not_mistaken_for_the_bug(self):
