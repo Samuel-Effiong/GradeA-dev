@@ -298,6 +298,21 @@ class ReconcileTests(TallyFixture, TestCase):
         self.assertEqual(profile.total_credits_used, 367)
         self.assertEqual(listed, profile.total_credits_used)
 
+    def test_the_written_fields_match_the_spelled_out_list(self):
+        import ast
+        import inspect
+
+        source = inspect.getsource(beta_tallies().reconcile)
+        calls = [
+            node
+            for node in ast.walk(ast.parse(source.lstrip()))
+            if isinstance(node, ast.Call)
+            and getattr(node.func, "attr", None) == "bulk_update"
+        ]
+        self.assertEqual(len(calls), 1)
+        listed = [e.value for e in calls[0].args[1].elts]  # type: ignore[attr-defined]
+        self.assertEqual(listed, list(beta_tallies().WRITTEN_FIELDS))
+
     def test_many_profiles_take_a_fixed_number_of_queries(self):
         users = [self.teacher() for _ in range(6)]
         for user in users:

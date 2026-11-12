@@ -42,6 +42,8 @@ FEATURE_FIELDS = tuple(sorted(set(FEATURE_TO_ANALYTICS_FIELD.values())))
 TALLY_FIELDS = (TOTAL_FIELD, *FEATURE_FIELDS)
 FLAG_FIELDS = ("has_hit_80_percent", "has_hit_cap")
 SCORE_FIELDS = ("conversion_probability", "usage_velocity")
+#: What reconcile writes (spelled out again at its bulk_update).
+WRITTEN_FIELDS = (*TALLY_FIELDS, *FLAG_FIELDS, *SCORE_FIELDS)
 
 BATCH_SIZE = 500
 
@@ -186,7 +188,6 @@ def reconcile(
     usage_log_model, wallet_model = _models(usage_log_model, wallet_model)
     model = profiles.model
     now = now or timezone.now()
-    fields = [*TALLY_FIELDS, *FLAG_FIELDS, *SCORE_FIELDS]
     result: list[Correction] = []
 
     ids = list(profiles.order_by("pk").values_list("pk", flat=True))
@@ -215,6 +216,20 @@ def reconcile(
                 score, velocity = AnalyticsService.conversion_score(profile, now=now)
                 profile.conversion_probability = score
                 profile.usage_velocity = velocity
-            model.objects.bulk_update([p for p, _ in changed], fields)
+            # Written out so audit.tests_history_guard can read them: none is
+            # a tracked (history) field. WRITTEN_FIELDS must stay equal.
+            model.objects.bulk_update(
+                [p for p, _ in changed],
+                [
+                    "total_credits_used",
+                    "credits_used_creation",
+                    "credits_used_feedback",
+                    "credits_used_grading",
+                    "has_hit_80_percent",
+                    "has_hit_cap",
+                    "conversion_probability",
+                    "usage_velocity",
+                ],
+            )
             result.extend(c for _, c in changed)
     return result
