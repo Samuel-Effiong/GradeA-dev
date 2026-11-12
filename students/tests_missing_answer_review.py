@@ -25,7 +25,8 @@ from django.utils import timezone
 from assignments.models import Assignment
 from classrooms.models import Course, Session
 from students.models import StudentSubmission
-from students.services import _populate_and_save_grade, _review_sort_key
+from students.review_state import review_sort_key as _review_sort_key
+from students.services import _populate_and_save_grade
 from users.models import CustomUser, UserTypes
 
 QUESTIONS = [
@@ -157,61 +158,39 @@ class MissingAnswerReviewTest(TestCase):
         submission = self.grade(grading(not_found=MISSING, score=15))
         self.assertEqual(float(submission.score), 15.0)
 
-    # ── accumulation: both sources at once ────────────────────────────
-    def test_missing_answer_and_disagreement_are_both_reported(self):
-        # The if/elif this replaced would have reported only one.
+    # ── R1 (owner, 2026-11-12): the second AI files nothing ───────────
+    def test_missing_answer_is_reported_alone_beside_a_disagreement(self):
         submission = self.grade(grading(not_found=MISSING, second_opinion=DISAGREEMENT))
         types = {r["type"] for r in submission.review_reasons}
-        self.assertEqual(types, {"answer_not_found", "grader_disagreement"})
-
-    def test_missing_answer_outranks_a_moderate_disagreement(self):
-        moderate = {
-            "disagreements": [
-                {
-                    "question_number": 1,
-                    "a": {"score_awarded": 15},
-                    "b": {"score_awarded": 10},
-                    "severity": {"tier": "moderate", "gap_fraction": 0.25},
-                }
-            ]
-        }
-        submission = self.grade(grading(not_found=MISSING, second_opinion=moderate))
+        self.assertEqual(types, {"answer_not_found"})
         self.assertEqual(submission.review_tier, "critical")
+        self.assertEqual(submission.review_severity, _review_sort_key("critical", 1.0))
 
-    def test_missing_answer_combines_with_second_opinion_unavailable(self):
+    def test_missing_answer_is_reported_alone_beside_an_unavailable_one(self):
         unavailable = {"needs_review": True, "skipped": "out of credits"}
         submission = self.grade(grading(not_found=MISSING, second_opinion=unavailable))
-        types = {r["type"] for r in submission.review_reasons}
-        self.assertIn("answer_not_found", types)
-        self.assertEqual(len(submission.review_reasons), 2)
+        self.assertEqual(
+            [r["type"] for r in submission.review_reasons], ["answer_not_found"]
+        )
 
-    # ── regression: existing behaviour must be byte-identical ─────────
-    def test_disagreement_only_behaves_exactly_as_before(self):
+    def test_disagreement_only_does_not_flag(self):
         submission = self.grade(grading(second_opinion=DISAGREEMENT))
-        self.assertTrue(submission.needs_review)
-        self.assertEqual(submission.review_tier, "critical")
-        self.assertEqual(len(submission.review_reasons), 1)
-        self.assertEqual(submission.review_reasons[0]["type"], "grader_disagreement")
-        self.assertEqual(submission.review_severity, _review_sort_key("critical", 0.75))
+        self.assertFalse(submission.needs_review)
+        self.assertIsNone(submission.review_reasons)
+        self.assertIsNone(submission.review_tier)
+        self.assertIsNone(submission.review_severity)
+        # Stored for our own checks.
+        self.assertEqual(
+            submission.feedback["second_opinion"]["disagreements"],
+            DISAGREEMENT["disagreements"],
+        )
 
-    def test_second_opinion_unavailable_behaves_exactly_as_before(self):
+    def test_second_opinion_unavailable_does_not_flag(self):
         submission = self.grade(
             grading(second_opinion={"needs_review": True, "skipped": "out of credits"})
         )
-        self.assertTrue(submission.needs_review)
-        self.assertEqual(submission.review_tier, "moderate")
-        self.assertEqual(submission.review_severity, _review_sort_key("moderate", None))
-        self.assertEqual(
-            submission.review_reasons[0]["type"], "second_opinion_unavailable"
-        )
-
-    def test_disagreement_suppresses_the_unavailable_reason_as_before(self):
-        # The original elif semantics: a disagreement means the second
-        # opinion DID run, so "unavailable" must not also appear.
-        both = dict(DISAGREEMENT, needs_review=True, skipped="out of credits")
-        submission = self.grade(grading(second_opinion=both))
-        types = {r["type"] for r in submission.review_reasons}
-        self.assertEqual(types, {"grader_disagreement"})
+        self.assertFalse(submission.needs_review)
+        self.assertIsNone(submission.review_reasons)
 
     def test_clean_grade_clears_a_stale_flag(self):
         self.grade(grading(not_found=MISSING))

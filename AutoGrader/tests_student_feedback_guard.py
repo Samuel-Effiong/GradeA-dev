@@ -96,10 +96,8 @@ RAW_FEEDBACK_READERS = {
         "students/serializers.py",
         "StudentSubmissionSerializer.update",
     ): "teacher: compares an edit with the AI's own feedback; returns nothing",
-    (
-        "students/serializers.py",
-        "StudentSubmissionDetailSerializer.get_second_opinion",
-    ): "teacher: the review screen's second-opinion block",
+    # R1 (owner, 2026-11-12): StudentSubmissionDetailSerializer.
+    # get_second_opinion is gone; teachers are not sent the second AI's block.
     (
         "students/serializers.py",
         "StudentSubmissionDetailSerializer.get_question_breakdown",

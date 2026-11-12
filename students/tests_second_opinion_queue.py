@@ -1,9 +1,13 @@
 """
-End-to-end coverage for the teacher review queue fed by the blind second
-opinion: persistence through grade_engine, the ?needs_review filter, and
-both teacher resolution paths (mark-reviewed = "AI grade confirmed",
-update-grade = "overridden") — each of which is a labeled data point for
-the future eval loop.
+End-to-end coverage for the blind second opinion and the teacher review
+queue: persistence through grade_engine, the ?needs_review filter, and both
+teacher resolution paths (mark-reviewed = "AI grade confirmed",
+update-grade = "overridden") - each a labeled data point for the eval loop.
+
+R1 (owner, 2026-11-12): the second opinion still runs and is stored in
+feedback['second_opinion'], but it no longer puts a submission in the queue
+and no teacher payload carries it. The queue tests below flag a paper with
+an answer the reader could not find instead (students/review_state.py).
 
 Run with:
     python manage.py test students.tests_second_opinion_queue
@@ -24,6 +28,7 @@ from assignments.models import Assignment
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from classrooms.models import Course, Session
 from students.models import StudentSubmission
+from students.review_state import review_sort_key
 from users.models import CustomUser, UserTypes
 
 A_MODEL = "primary-model"
@@ -146,21 +151,43 @@ class SecondOpinionQueueTest(APITestCase):
             grade_engine(self.teacher, self.submission)
         self.submission.refresh_from_db()
 
+    def _flag_missing_answer(self, submission=None):
+        """Put a graded paper in the queue the way grading does for an
+        answer the reader could not find: critical."""
+        submission = submission or self.submission
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            needs_review=True,
+            review_reasons=[{"type": "answer_not_found", "question_number": 1}],
+            review_severity=review_sort_key("critical", 1.0),
+            review_tier="critical",
+        )
+        submission.refresh_from_db()
+
+    def _flag_off_topic(self, submission):
+        """...and for an off-topic answer: moderate."""
+        StudentSubmission.objects.filter(pk=submission.pk).update(
+            needs_review=True,
+            review_reasons=[{"type": "extraction_flag", "kind": "OFF_TOPIC"}],
+            review_severity=review_sort_key("moderate", None),
+            review_tier="moderate",
+        )
+        submission.refresh_from_db()
+
     # ── Persistence through grade_engine ──────────────────────────────
 
-    def test_disagreement_persists_needs_review_with_reasons(self):
+    def test_disagreement_is_stored_and_does_not_flag(self):
         self._grade(_responder(a_score=15, b_score=0))
 
-        self.assertTrue(self.submission.needs_review)
-        [reason] = self.submission.review_reasons
-        self.assertEqual(reason["type"], "grader_disagreement")
-        self.assertEqual(reason["a_score"], 15)
-        self.assertEqual(reason["b_score"], 0)
+        self.assertFalse(self.submission.needs_review)
+        self.assertIsNone(self.submission.review_reasons)
+        self.assertIsNone(self.submission.review_severity)
+        self.assertIsNone(self.submission.review_tier)
         # Grader A's score is the stored grade regardless of B.
         self.assertEqual(float(self.submission.score), 15.0)
-        # Both rationales are stored for the side-by-side display.
-        disagreements = self.submission.feedback["second_opinion"]["disagreements"]
-        self.assertEqual(len(disagreements), 1)
+        # Both rationales and the tier are stored, for our own checks.
+        [stored] = self.submission.feedback["second_opinion"]["disagreements"]
+        self.assertEqual(stored["severity"]["tier"], "critical")
+        self.assertEqual(stored["severity"]["gap_fraction"], 0.75)
 
     def test_agreement_does_not_flag(self):
         self._grade(_responder(a_score=15, b_score=15))
@@ -168,12 +195,16 @@ class SecondOpinionQueueTest(APITestCase):
         self.assertIsNone(self.submission.review_reasons)
         self.assertEqual(self.submission.feedback["second_opinion"]["agreements"], [1])
 
-    def test_regrade_that_now_agrees_clears_stale_flag(self):
-        # Ledger #7.
+    def test_regrade_clears_a_stale_disagreement_flag(self):
+        # Ledger #7: a row flagged by a disagreement before R1 is cleared by
+        # its next grading.
         self._grade(_responder(a_score=15, b_score=0))
-        self.assertTrue(self.submission.needs_review)
-
-        self._grade(_responder(a_score=15, b_score=15))
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            needs_review=True,
+            review_reasons=[{"type": "grader_disagreement", "tier": "critical"}],
+            review_tier="critical",
+        )
+        self._grade(_responder(a_score=15, b_score=0))
         self.assertFalse(self.submission.needs_review)
         self.assertIsNone(self.submission.review_reasons)
 
@@ -181,6 +212,7 @@ class SecondOpinionQueueTest(APITestCase):
 
     def test_needs_review_filter_lists_flagged_submissions(self):
         self._grade(_responder(a_score=15, b_score=0))
+        self._flag_missing_answer()
         self.client.force_authenticate(user=self.teacher)
 
         response = self.client.get(
@@ -196,7 +228,7 @@ class SecondOpinionQueueTest(APITestCase):
         ids = [row["id"] for row in response.data["results"]]
         self.assertNotIn(str(self.submission.id), ids)
 
-    def test_detail_exposes_second_opinion_block(self):
+    def test_detail_carries_no_second_opinion_block(self):
         self._grade(_responder(a_score=15, b_score=0))
         self.client.force_authenticate(user=self.teacher)
 
@@ -204,15 +236,12 @@ class SecondOpinionQueueTest(APITestCase):
             reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
         )
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertTrue(response.data["needs_review"])
-        self.assertEqual(len(response.data["second_opinion"]["disagreements"]), 1)
+        self.assertFalse(response.data["needs_review"])
+        self.assertNotIn("second_opinion", response.data)
 
     def test_detail_exposes_question_breakdown_always(self):
         # The full per-question breakdown is present regardless of
-        # needs_review — a disagreement in second_opinion should be
-        # readable in the context of the whole submission, not in
-        # isolation, and a teacher should be able to inspect any
-        # submission in full detail, not only flagged ones.
+        # needs_review, so a teacher can inspect any submission in full.
         self._grade(_responder(a_score=15, b_score=15))  # agreement, no flag
         self.client.force_authenticate(user=self.teacher)
 
@@ -226,23 +255,10 @@ class SecondOpinionQueueTest(APITestCase):
         self.assertEqual(entry["score_awarded"], 15)
         self.assertEqual(entry["question_text"], "Discuss.")
 
-    def test_disagreement_joins_to_question_breakdown_by_question_number(self):
-        self._grade(_responder(a_score=15, b_score=0))
-        self.client.force_authenticate(user=self.teacher)
-
-        response = self.client.get(
-            reverse("student-submission-detail", kwargs={"pk": self.submission.pk})
-        )
-        [disagreement] = response.data["second_opinion"]["disagreements"]
-        [breakdown_entry] = response.data["question_breakdown"]
-        self.assertEqual(
-            str(disagreement["question_number"]),
-            str(breakdown_entry["question_number"]),
-        )
-
     def test_mark_reviewed_confirms_and_is_idempotent(self):
         # Ledger #15.
         self._grade(_responder(a_score=15, b_score=0))
+        self._flag_missing_answer()
         self.client.force_authenticate(user=self.teacher)
         url = reverse(
             "student-submission-mark-reviewed", kwargs={"pk": self.submission.pk}
@@ -262,10 +278,10 @@ class SecondOpinionQueueTest(APITestCase):
         ]
         # Exactly one resolution entry despite the double POST.
         self.assertEqual(len(resolutions), 1)
-        # The original disagreement entry is preserved (label data).
+        # The original entry is preserved (label data).
         self.assertTrue(
             any(
-                entry.get("type") == "grader_disagreement"
+                entry.get("type") == "answer_not_found"
                 for entry in self.submission.review_reasons
             )
         )
@@ -273,6 +289,7 @@ class SecondOpinionQueueTest(APITestCase):
     def test_update_grade_resolves_as_overridden(self):
         # Ledger #16.
         self._grade(_responder(a_score=15, b_score=0))
+        self._flag_missing_answer()
         self.client.force_authenticate(user=self.teacher)
 
         response = self.client.patch(
@@ -296,55 +313,22 @@ class SecondOpinionQueueTest(APITestCase):
 
     # ── Severity (triage) ─────────────────────────────────────────────
 
-    def test_disagreement_severity_is_persisted(self):
-        # 15 vs 0 on a 20-point question: gap fraction 0.75 → critical.
-        # review_severity is the TIER-WEIGHTED sort key, not the raw
-        # fraction: critical's band starts at 2/3, plus 0.75/3 within it.
-        self._grade(_responder(a_score=15, b_score=0))
-
-        [reason] = self.submission.review_reasons
-        self.assertEqual(reason["tier"], "critical")
-        self.assertEqual(reason["gap_fraction"], 0.75)
-        self.assertAlmostEqual(self.submission.review_severity, 2 / 3 + 0.75 / 3, 5)
-        self.assertEqual(self.submission.review_tier, "critical")
-
-        stored = self.submission.feedback["second_opinion"]["disagreements"][0]
-        self.assertEqual(stored["severity"]["tier"], "critical")
-
-    def test_agreement_resets_severity(self):
-        self._grade(_responder(a_score=15, b_score=0))
-        self.assertIsNotNone(self.submission.review_severity)
-        self.assertEqual(self.submission.review_tier, "critical")
-
-        self._grade(_responder(a_score=15, b_score=15))
-        self.assertIsNone(self.submission.review_severity)
-        self.assertIsNone(self.submission.review_tier)
-
-    def _grade_second_submission(self, responder, tag):
-        """Grade a second submission on the same assignment, leaving
-        self.submission pointing back at the original."""
+    def _second_submission(self, tag):
         other_student = CustomUser.objects.create_user(
             email=f"{tag}-{timezone.now().timestamp()}@example.com",
             password="password123",  # pragma: allowlist secret
             user_type=UserTypes.STUDENT,
         )
-        other = StudentSubmission.objects.create(
+        return StudentSubmission.objects.create(
             assignment=self.submission.assignment,
             student=other_student,
             answers=[{"question_number": 1, "answer_html": "<p>my essay answer</p>"}],
         )
-        original = self.submission
-        self.submission = other
-        self._grade(responder)
-        graded = self.submission
-        self.submission = original
-        return graded
 
     def test_queue_orders_by_severity(self):
-        # Ledger #9: critical disagreements surface before mild ones.
-        self._grade(_responder(a_score=15, b_score=0))  # critical
-        # 15 vs 10 is one rubric level, gap 5/20 = 0.25 → moderate.
-        self._grade_second_submission(_responder(a_score=15, b_score=10), "mild")
+        # Ledger #9: critical reasons surface before moderate ones.
+        self._flag_missing_answer()
+        self._flag_off_topic(self._second_submission("mild"))
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
@@ -357,28 +341,20 @@ class SecondOpinionQueueTest(APITestCase):
         tiers = [row["review_tier"] for row in response.data["results"]]
         self.assertEqual(tiers, ["critical", "moderate"])
 
-    def test_critical_outranks_moderate_even_with_a_smaller_point_gap(self):
-        # Ledger #9, the case raw gap_fraction ordering got WRONG: this
-        # submission's disagreement is critical only because the graders
-        # are 2 rubric levels apart (20 vs 10 on the 20/15/10/0 ladder),
-        # while its gap fraction (0.5) is no larger than a moderate one.
-        # Tier must win the ordering regardless.
-        self._grade(_responder(a_score=20, b_score=10))
-        self.assertEqual(self.submission.review_tier, "critical")
-
-        moderate = self._grade_second_submission(
-            _responder(a_score=15, b_score=10), "moderate"
+    def test_critical_outranks_moderate_even_with_a_smaller_gap(self):
+        # The case raw gap_fraction ordering got WRONG: tier must win.
+        self.assertGreater(
+            review_sort_key("critical", 0.5), review_sort_key("moderate", 0.9)
         )
-        self.assertEqual(moderate.review_tier, "moderate")
-        # The critical one sorts higher despite both being measurable gaps.
-        self.assertGreater(self.submission.review_severity, moderate.review_severity)
+        self.assertGreater(
+            review_sort_key("moderate", 0.5), review_sort_key("borderline", 0.9)
+        )
 
     def test_review_tier_filter_returns_only_criticals(self):
         # Ledger #10.
-        self._grade(_responder(a_score=15, b_score=0))  # critical
-        moderate = self._grade_second_submission(
-            _responder(a_score=15, b_score=10), "tierfilter"
-        )
+        self._flag_missing_answer()
+        moderate = self._second_submission("tierfilter")
+        self._flag_off_topic(moderate)
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(
@@ -394,8 +370,8 @@ class SecondOpinionQueueTest(APITestCase):
         # Postgres sorts NULLs FIRST on DESC, so without the nulls_last
         # override an unqualified ?ordering=-review_severity listed every
         # un-flagged submission ahead of the actual review queue.
-        self._grade(_responder(a_score=15, b_score=0))
-        self._grade_second_submission(_responder(a_score=15, b_score=15), "agreed")
+        self._flag_missing_answer()
+        self._second_submission("agreed")
 
         self.client.force_authenticate(user=self.teacher)
         response = self.client.get(

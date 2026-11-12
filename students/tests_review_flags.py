@@ -364,11 +364,12 @@ class LevelOnEveryFlagTest(Base):
                 submission = self.upload(
                     dict(CLEAN, answers=[answer(1, html="4"), flagged])
                 )
-                for user in (self.teacher, submission.student):
-                    answers = self.detail(user, submission)["answers"]
-                    self.assertIsNone(answers[0]["review_flag"])
-                    self.assertEqual(answers[1]["review_flag"]["kind"], kind)
-                    self.assertEqual(answers[1]["review_flag"]["level"], "question")
+                # A student's page has no answers: they read each flag in
+                # the answer document (H-253).
+                answers = self.detail(self.teacher, submission)["answers"]
+                self.assertIsNone(answers[0]["review_flag"])
+                self.assertEqual(answers[1]["review_flag"]["kind"], kind)
+                self.assertEqual(answers[1]["review_flag"]["level"], "question")
 
     def test_the_level_is_added_when_shown_never_stored(self):
         submission = self.upload(MISMATCHED)
@@ -573,9 +574,10 @@ class NoPayloadCarriesTheSecondOpinionTest(Base):
         self.assertIn("second_opinion", submission.feedback)
 
 
-class WholePaperUnreadableTest(Base):
-    """SM Q5: the teacher's "Needs review" is true for a whole-paper-
-    unreadable submission; the student's stays as today."""
+class UnreadableAnswersTest(Base):
+    """SM Q5 and its follow-up: the teacher's "Needs review" is true when
+    stored answers could not be read, the whole paper or some answers; the
+    student's stays as today."""
 
     tag = "r1-unr"
 
@@ -609,6 +611,23 @@ class WholePaperUnreadableTest(Base):
             student, reverse("assignment-detail", kwargs={"pk": self.assignment.pk})
         )
         self.assertIs(page["student_flagged_for_review"], False)
+
+    def test_some_answers_unreadable_also_flags_for_the_teacher(self):
+        # SM ruling: a count (only some answers unreadable) is a question-
+        # level problem, and any one of those flags the whole submission.
+        StudentSubmission.objects.filter(pk=self.submission.pk).update(
+            review_reasons=[{"type": "answers_unreadable", "left_out": 1}],
+        )
+        self.assertIs(
+            self.detail(self.teacher, self.submission)["flagged_for_review"], True
+        )
+        self.assertIs(self.assignment_row(self.submission)["flagged_for_review"], True)
+        self.assertIs(
+            self.detail(self.submission.student, self.submission)["flagged_for_review"],
+            False,
+        )
+        [reason] = self.detail(self.teacher, self.submission)["review_reasons"]
+        self.assertEqual(reason["level"], "question")
 
     def test_a_teachers_review_clears_it(self):
         StudentSubmission.objects.filter(pk=self.submission.pk).update(
