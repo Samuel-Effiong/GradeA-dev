@@ -66,7 +66,13 @@
   - P1, a superseded intent paid anyway is granted: 1 FAIL.
   - P2, the GRANTED hook matches only by the link (M-B24): 5 FAIL.
   - P3, removing a teacher leaves the request open: 1 FAIL.
-- N1 near run on the final tree, billing + users + guards67. Expected Ran 5046, 10 static skips (billing 2988, users 1137, guards67 1151, overlap removed). Result: see the next line.
+- N0 near run before the guard fixes (on ef1080075): Ran 5046 FAILED (failures=4, skipped=16). The four standing guards that failed, all fixed in the guard-registration commit:
+  - route coverage: the flag-off 404 ran before sign-in, so an anonymous caller got 404; it now runs after sign-in (anonymous gets 401);
+  - audit target label: `CreditRequest` had none; added "Credit request" (new admin-facing label, needs owner approval);
+  - history guard: approve's dynamic link update is now static, and `_move` (conditional status update) is listed;
+  - student data map: `CreditRequest.teacher` and `decided_by` added as staff.
+  - Guards + credit tests after the fixes: Ran 134 OK.
+- N1 near run on the final tree (rebased on staging b3c900aaf), billing + users + guards67, holds and credit requests unset. Expected Ran 5052, 10 static skips (billing 2994, users 1137, guards67 1151, overlap removed). Result: Ran 5052 OK (skipped=16).
 
 ## Before the flag goes on (ops)
 
