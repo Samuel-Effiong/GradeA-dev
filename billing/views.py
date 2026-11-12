@@ -67,6 +67,7 @@ from .serializers import (
     BetaSummarySerializer,
     BetaUserDetailResponseSerializer,
     CarryOverHistorySerializer,
+    ConversionLeadListSerializer,
     ConversionLeadSerializer,
     CreditBucketSerializer,
     CreditLedgerSerializer,
@@ -2534,7 +2535,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         ],
         responses={
             200: OpenApiResponse(
-                response=ConversionLeadSerializer(many=True),
+                response=ConversionLeadListSerializer(many=True),
                 description="Ranked list of high-intent conversion leads with scoring and metrics",
                 # One row per example: drf-spectacular wraps each value as one
                 # item of the paginated results (brief 4, R1c).
@@ -2649,8 +2650,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
 
         # 2. Structure the response for the Sales Team
         data = lead_rows(leads)
+        usage = lead_filters.row_values(p.user_id for p in leads)
+        for row, p in zip(data, leads, strict=True):
+            row.update(usage[p.user_id])
+            del row["pk"]
 
-        serializer = ConversionLeadSerializer(data, many=True)
+        serializer = ConversionLeadListSerializer(data, many=True)
         if page is not None:
             return self.get_paginated_response(serializer.data)
         return Response(serializer.data)

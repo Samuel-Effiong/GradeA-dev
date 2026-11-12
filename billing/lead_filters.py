@@ -115,3 +115,19 @@ def apply_sort(queryset, ordering):
         ),
         "user_id",
     )
+
+
+#: The values a lead row shows besides its own: the user list's (LISTED).
+ROW_VALUES = ("plan_tier", "plan_category", "plan_interval", "credits_used",
+              "credits_left", "papers_graded", "assignments_created",
+              "activated_at")  # fmt: skip
+
+
+def row_values(user_ids):
+    """user id -> {value: ...} for one page of leads, in ONE query, from the
+    user list's own expressions (users.user_list), so the cost does not grow
+    with the page."""
+    users = user_list.ensure(
+        CustomUser.objects.filter(pk__in=list(user_ids)), *ROW_VALUES, annotate=True
+    )
+    return {row["pk"]: row for row in users.values("pk", *ROW_VALUES)}
