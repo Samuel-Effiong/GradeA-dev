@@ -77,7 +77,7 @@ NEW_KEYS = (
     "assignments_created",
     "papers_graded",
     "credits_left",
-    "credits_used",
+    "credit_usage",
 )
 #: Brief 4 (signals, users.tests_user_list_signals): five more list-only keys.
 SIGNAL_KEYS = (
@@ -412,10 +412,10 @@ class CreditValueTests(Base):
         self.used(user, 1_700)
         self.used(user, 9_000, refunded=True)
 
-        self.assertEqual(self.row(user)["credits_used"], 4_200 // CONVERSION_FACTOR)
+        self.assertEqual(self.row(user)["credit_usage"], 4_200 // CONVERSION_FACTOR)
 
     def test_credits_used_is_zero_without_usage(self):
-        self.assertEqual(self.row(self.person())["credits_used"], 0)
+        self.assertEqual(self.row(self.person())["credit_usage"], 0)
 
     def test_credits_left_is_null_without_a_wallet(self):
         user = self.person()
@@ -611,7 +611,7 @@ class OrderingTests(Base):
             self.order_of([more, less], ordering="credits_left"), [less, more]
         )
 
-    def test_credits_used(self):
+    def test_credit_usage(self):
         heavy, light, idle = self.named("A", "B", "C")
         for user in (heavy, light, idle):
             self.wallet(user)
@@ -619,7 +619,7 @@ class OrderingTests(Base):
         self.used(heavy, 5_000)
         self.used(idle, 7_000, refunded=True)
 
-        self.assert_order("credits_used", [idle, light, heavy])
+        self.assert_order("credit_usage", [idle, light, heavy])
 
     def test_id_breaks_every_tie_in_both_directions(self):
         people = sorted(self.named("Z", "Y", "X", "W"), key=lambda u: u.pk)
