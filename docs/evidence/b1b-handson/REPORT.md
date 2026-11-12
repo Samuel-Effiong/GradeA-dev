@@ -5,7 +5,8 @@ behavior ON. I acted as a teacher, a school-license teacher, a school admin, a
 super admin and students, using the same API calls the website makes, with
 real logins and real AI calls. Code: staging a0478508e, then staging
 ef1080075 (the door-close fix) for the reruns, then staging b3c900aaf (the
-cancel-hold fix) for the BUG-3 rerun.
+cancel-hold fix) for the BUG-3 rerun, then staging 30926b024 (the retry-message
+fix) for the BUG-2 rerun.
 
 ## Summary
 
@@ -17,7 +18,7 @@ cancel-hold fix) for the BUG-3 rerun.
 | 4 | Waiting work expires | PASS | Warning first, then expiry. Nothing charged, and both emails word for word. |
 | 5 | Cancel waiting work | PASS | Cancelled, nothing charged, no email. |
 | 6 | Late door | PASS | Refused, nothing charged, the late-door email sent. |
-| 7 | Retry from the kept file | PASS, with BUG-2 | The retry works without re-uploading. A cancelled upload's retry message is wrong (BUG-2). |
+| 7 | Retry from the kept file | PASS on the fix (BUG-2) | The retry works without re-uploading. A cancelled upload's retry message was wrong (BUG-2), now fixed and confirmed. |
 | 8 | Low-balance warnings | PASS (0% not reached) | The 25% and 10% emails are word for word, and the screens show the right status. |
 | 9 | Other AI actions | PASS | Charged right, holds released, refused right when short. |
 | 10 | Two batches at once, one wallet | PASS | Credits never went below zero; the extra paper waited, then ran. |
@@ -34,9 +35,12 @@ cancel-hold fix) for the BUG-3 rerun.
   stayed "reserved" forever, so switch-off (13) could never finish. Fixed on
   staging ef1080075, and confirmed here: a fresh upload ends SETTLED and drain
   reaches DRAINED.
-- **BUG-2 (wording, being fixed):** retrying an upload that the teacher
-  cancelled says "its file was deleted after 30 days". The file was deleted
-  seconds earlier, by the cancel.
+- **BUG-2 (fixed, confirmed):** retrying an upload that the teacher
+  cancelled said "its file was deleted after 30 days". The file had been
+  deleted seconds earlier, by the cancel. Fixed on staging 30926b024, and
+  confirmed here: a cancelled upload gets the plain "can't be retried"
+  answer, and only a file that really reached its 30 days says so (see
+  "BUG-2 rerun" below).
 - **BUG-3 (fixed, confirmed):** cancelling an upload that hasn't started
   yet left its credit hold in place, so the teacher's spendable credits stayed
   21,146 lower with nothing running. Only the 36-hour backstop might ever
@@ -45,7 +49,7 @@ cancel-hold fix) for the BUG-3 rerun.
   upload is cancelled, and a normal upload is still charged exactly (see
   "BUG-3 rerun" below).
 
-The BUG-2 check is to be rerun when its fix lands.
+All three bugs are fixed and confirmed.
 
 ## How it was run
 
@@ -263,18 +267,67 @@ refunding a paper that succeeded).
   retry can't succeed for that reason. (The roster-miss and not-enrolled
   refusals deleted their files at once.)
 
-## Pending rerun
+## BUG-2 rerun (staging 30926b024, DB2, 12 Nov)
 
-- BUG-2 (the cancelled-upload retry message) gets rerun on DB2 once its fix
-  lands. The results will be added here.
+The app was moved to 30926b024, the two new migrations were run (students
+0042 purge_reason, billing 0086), and the servers were restarted. All steps
+went through the API. The Django shell was used only to read the kept-file
+rows, to move one kept-until date into the past and queue the app's own
+hourly purge task, and to read the self-check.
+
+| Check | Result | What I saw |
+|---|---|---|
+| (a) Cancel an upload, then retry | PASS | 409 "This item can't be retried as it is." No "30 days". |
+| (b) Lost file | PASS, unchanged | The retry fails with the usual message, and the next retry gets the plain 409. No "30 days". |
+| (c) A real 30-day purge | PASS | 409 "This upload can't be retried because its file was deleted after 30 days. Upload the file again." |
+
+**(a) Cancel, then retry.**
+- I stopped the worker, uploaded Bruno_Silva.pdf, cancelled the session
+  (200), and retried at once: 409 "This item can't be retried as it is."
+  (resolution replace_file).
+- I restarted the worker. It saw the cancel and discarded the kept file: the
+  row reads purged, reason "discarded", and the file is gone.
+- I retried again, after the discard. This is the exact BUG-2 case: 409
+  "This item can't be retried as it is.", with no "30 days". Before the fix
+  this said "…its file was deleted after 30 days…".
+
+**(b) Lost file (unchanged path).**
+- teacher2 set up a course and quiz through the API, with small manual grants
+  so the paper wouldn't fit. Amara's upload failed INSUFFICIENT_CREDITS,
+  nothing was charged, and the file was kept for retry.
+- I deleted that one Cloudinary object by its exact key and confirmed it gone
+  with a lookup. The row was left as it was (LIVE).
+- Top-up (API grant), then retry 1: 202, then FAILURE "We couldn't process
+  this submission upload. Please check the file and try again, or contact
+  support if this continues."
+- Retry 2: 409 "This item can't be retried as it is." (replace_file), no
+  "30 days".
+- Nothing was charged for the lost file, the same as on DB1.
+
+**(c) A real 30-day purge** (shell used to move the date).
+- Chen's refused paper still had its kept file (LIVE until 12 Dec). In the
+  shell I set its kept-until one minute into the past and queued the app's
+  own `purge_kept_uploads` task, which the worker ran: "purged 1, failed 0".
+  - The row reads purged, reason "lifetime".
+  - The app deleted the file from Cloudinary itself.
+- Retry through the API: 409 "This upload can't be retried because its file
+  was deleted after 30 days. Upload the file again."
+
+**At the end:** ledger self-check with no problems, and no job left reserved,
+running or waiting.
+
+**Minor, for triage:** the web log shows "Error decoding JSON: Expecting
+value…" around the assignment extraction (twice in this rerun, 28 times on
+DB1). Both assignment creations behaved correctly (one refused with 402, one
+created).
 
 ## Cleanup
 
 **Databases.**
 - The first database (DB1) was dropped through Django, the same way it was
   created, when I moved to ef1080075.
-- The second database (DB2) is kept until the BUG-2 and BUG-3 reruns are
-  done, then dropped the same way.
+- The second database (DB2) was dropped the same way after the BUG-2 rerun.
+  It had no open connections, and a check afterwards found it gone.
 
 **Cloudinary.** Only exact keys were deleted, one at a time: no listing, no
 prefix delete. Every key was then looked up to confirm it's gone.
@@ -302,27 +355,35 @@ prefix delete. Every key was then looked up to confirm it's gone.
   - The logs don't print storage keys, so the list comes from the database
     table plus the probe.
   - The 3 uploads tried before the credentials were fixed created nothing.
-- **DB2 so far: 8 created.** 7 were deleted by the app (on success, cancel or
-  refusal), and 1 is still kept: Chen's "already graded" refusal, kept for
-  retry until 12 Dec.
+- **DB2: 10 created, 10 confirmed gone.**
+  - 9 were deleted by the app itself (on success, cancel, refusal or discard,
+    and Chen's by the 30-day purge in BUG-2 check (c)). That's why I deleted
+    nothing by hand at the end: Chen's file was already gone.
+  - 1 was deleted by me, by its exact key, to stage the lost-file test
+    (BUG-2 check (b)).
   - Keys:
     - 47754763fcfb4fb39fbc52b2507f33a7
     - 37f65ad18e704211b350045a4fb0a31a
     - fa39b5580b784c379d8e1f485b97798e
     - 0011f54b4e6840c2b49e54a1938f2aa4 (BUG-3 rerun, cancelled)
     - ec8b2d561c8d4c96b8a7b01fd6e9f99b (Hugo, not on the roster)
-    - d617345ff4ab409a802455052fb060be (Chen, already graded: still kept)
+    - d617345ff4ab409a802455052fb060be (Chen, already graded: removed by the 30-day purge)
     - 0657e88c4a8f4f71ac9e8b73ecd75417 (Dana, not enrolled)
     - ad9dbcbda02245deaf018ad580d91313 (Amara, the guard)
-  - They'll all be confirmed with the same lookup at the final cleanup. The
-    kept one gets deleted by its exact key. The list will grow with any keys
-    from the BUG-2 rerun.
+    - c58ef959abdc498fa59da1b64345f8d3 (BUG-2 (a), cancelled and discarded)
+    - d185f14103fa4abab5d1d8d3973cda05 (BUG-2 (b), deleted by me for the
+      lost-file test)
+  - All are under `kept_uploads/`. Each was looked up at the end and was
+    gone.
 
-**Still to do at the end:**
-- Stop the web server, worker, scheduler and private Redis.
-- Drop DB2.
-- Finish the Cloudinary check for DB2.
-- Delete the Python environment b1b_handson_env.
+**Total: 22 created, 22 confirmed gone.**
+
+**Also done:**
+- The web server, worker, scheduler and private Redis are stopped. No
+  hands-on process is left.
+- The Python environment b1b_handson_env is deleted. Nothing used it.
+- The local logs and the settings override were moved out of the repo and
+  never committed.
 
 ## AI use, stated plainly
 
@@ -332,6 +393,8 @@ The brief asked for about 25 papers. I used more:
 - the BUG-3 rerun on DB2: 4 answer extractions (Hugo, Chen, Dana and Amara;
   only Amara's was charged, as the other three were refused and refunded) and
   1 assignment extraction;
+- the BUG-2 rerun on DB2: 1 assignment extraction (teacher2's quiz) and no
+  paper calls;
 - 91 provider calls on DB1 in total, about 865 display credits;
 - of those, 19 small text-only extractions, used to spend wallets down to the
   25% and 10% lines.
