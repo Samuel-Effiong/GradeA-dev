@@ -263,6 +263,41 @@ class ReconcileTests(TallyFixture, TestCase):
         self.assertEqual(profile.total_credits_used, 42)
         self.assertEqual(profile.credits_used_grading, 42)
 
+    def test_the_reconciled_total_equals_the_users_list_credit_usage(self):
+        from users.user_list import ensure
+
+        user = self.teacher()
+        profile = self.drifted(user, total_credits_used=99_999)
+        self.charge(user, 300, GRADING)
+        self.charge(user, 700, CREATION, refunded=True)
+        self.charge(user, 25, UNMAPPED)
+        CreditUsageLog.objects.create(  # wallet row gone, user_id kept
+            user_id=user.id,
+            wallet_id=uuid.uuid4(),
+            bucket=user.r2_bucket,
+            amount=40,
+            feature=GRADING,
+        )
+        CreditUsageLog.objects.create(  # legacy: no user_id
+            wallet=user.r2_wallet, bucket=user.r2_bucket, amount=2, feature=GRADING
+        )
+        self.charge(self.teacher(), 999, GRADING)
+
+        beta_tallies().reconcile(BetaProfile.objects.all())
+
+        profile.refresh_from_db()
+        listed = (
+            ensure(
+                CustomUser.objects.filter(pk=user.pk),
+                "credits_used_raw",
+                annotate=True,
+            )
+            .values_list("credits_used_raw", flat=True)
+            .get()
+        )
+        self.assertEqual(profile.total_credits_used, 367)
+        self.assertEqual(listed, profile.total_credits_used)
+
     def test_many_profiles_take_a_fixed_number_of_queries(self):
         users = [self.teacher() for _ in range(6)]
         for user in users:

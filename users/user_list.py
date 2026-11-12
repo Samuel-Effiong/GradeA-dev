@@ -31,11 +31,11 @@ from django.utils import timezone
 
 from assignments.models import Assignment
 from billing import intent_signals as signal_rules
+from billing.charges import charged_q
 from billing.models import (
     CONVERSION_FACTOR,
     CreditBucket,
     CreditUsageLog,
-    CreditWallet,
     LicenseSubscription,
     PlanTier,
     SchoolCreditAllocation,
@@ -229,18 +229,8 @@ def _expressions():
             lambda: Coalesce(
                 _total(
                     CreditUsageLog.objects.filter(
-                        # Coalesce(user_id, wallet__user_id) = user. Written
-                        # without a join on the wallet: an inner join would
-                        # drop the logs whose wallet row is gone, the very
-                        # ones user_id is kept for.
-                        Q(user_id=OuterRef("pk"))
-                        | Q(
-                            user_id__isnull=True,
-                            wallet_id__in=CreditWallet.objects.filter(
-                                user=OuterRef(OuterRef("pk"))
-                            ).values("pk"),
-                        ),
-                        is_refunded=False,
+                        # billing.charges: the rule the beta tallies use.
+                        charged_q(user=OuterRef("pk"))
                     ),
                     "SUM",
                     F("amount"),

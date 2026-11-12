@@ -29,10 +29,11 @@ from datetime import datetime
 from typing import Any, Iterable
 
 from django.db import transaction
-from django.db.models import OuterRef, Q, QuerySet, Subquery, Sum, UUIDField
+from django.db.models import OuterRef, QuerySet, Subquery, Sum, UUIDField
 from django.db.models.functions import Coalesce
 from django.utils import timezone
 
+from billing.charges import charged_q
 from billing.services import FEATURE_TO_ANALYTICS_FIELD, AnalyticsService
 
 TOTAL_FIELD = "total_credits_used"
@@ -67,26 +68,19 @@ def charged_logs(
     has no database constraint, and an inner join would silently drop a log
     whose wallet was deleted even though its own user_id is set.
 
-    `user_ids` narrows it to those users (index on user_id; the wallet path
-    only for older rows without one). Default ordering is cleared so the
-    result can be grouped.
+    `user_ids` narrows it to those users with billing.charges.charged_q, the
+    rule the users list uses too. Default ordering is cleared so the result
+    can be grouped.
     """
     usage_log_model, wallet_model = _models(usage_log_model, wallet_model)
     wallet_user = wallet_model.objects.filter(pk=OuterRef("wallet_id")).values(
         "user_id"
     )[:1]
-    logs = usage_log_model.objects.filter(is_refunded=False)
+    logs = usage_log_model.objects.all()
     if user_ids is not None:
-        user_ids = list(user_ids)
-        logs = logs.filter(
-            Q(user_id__in=user_ids)
-            | Q(
-                user_id__isnull=True,
-                wallet_id__in=wallet_model.objects.filter(user_id__in=user_ids).values(
-                    "pk"
-                ),
-            )
-        )
+        logs = logs.filter(charged_q(user_ids=user_ids, wallet_model=wallet_model))
+    else:
+        logs = logs.filter(is_refunded=False)
     return logs.annotate(
         charged_user_id=Coalesce(
             "user_id", Subquery(wallet_user), output_field=UUIDField()
