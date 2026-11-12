@@ -1337,6 +1337,39 @@ def run_live_qa_console_job(self, run_id):
 
 @shared_task(bind=True, max_retries=0)
 @single_instance(max_hold=beat_locks.DAILY)
+def reconcile_beta_tallies(self):
+    """
+    R2, nightly: every BetaProfile's tallies back to its wallet charges.
+
+    Runs billing.beta_tallies.reconcile over all profiles: drift in the
+    total and the per-feature counters is corrected, and the 80% and cap
+    flags are set or cleared to match real usage (owner, 2026-11-12). A
+    profile that already matches is not written. One INFO line per
+    corrected profile.
+
+    Before recalculate_conversion_probabilities (00:30), so the nightly
+    scores read corrected tallies. Analytics only: no credits, no money.
+    """
+    from .beta_tallies import reconcile
+
+    corrections = reconcile(BetaProfile.objects.all())
+    for correction in corrections:
+        logger.info(
+            "Beta tallies corrected for user %s: total %s -> %s (gap %+d); "
+            "changed %s",
+            correction.user_id,
+            correction.before.get("total_credits_used", "unchanged"),
+            correction.after.get("total_credits_used", "unchanged"),
+            correction.total_gap,
+            ", ".join(sorted(correction.after)),
+        )
+    summary = f"Beta tallies: {len(corrections)} profile(s) corrected."
+    logger.info(summary)
+    return summary
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
 def recalculate_conversion_probabilities(self):
     """
     Nightly refresh of every BetaProfile's conversion score.
