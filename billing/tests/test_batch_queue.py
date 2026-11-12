@@ -830,7 +830,7 @@ class QueueEmailTests(TransactionTestCase):
         texts = batch_queue.QUEUE_EMAIL_TEXTS
         self.assertEqual(
             texts["queued"][1],
-            "You don't have enough credits right now while grading {assignment}. "
+            "You don't have enough credits right now to finish grading {assignment}. "
             "{done} of {total} "
             "papers were graded and saved. The other {left} papers will start "
             "again on their own when you add credits. They will wait for {days} "
