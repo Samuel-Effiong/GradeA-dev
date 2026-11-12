@@ -846,7 +846,7 @@ class AssignmentProcessingService:
             html_output.append(
                 f"""
             <div style="margin-bottom:30px;">
-                <p><strong>Total Marks:</strong> {total_points}</p>
+                <p><strong>Total Points:</strong> {total_points}</p>
                 {"<p><strong>Due Date:</strong> " + due_date + "</p>" if due_date else ""}
             </div>
             """

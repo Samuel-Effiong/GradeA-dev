@@ -120,17 +120,17 @@ class DocumentLevelNoneHandlingTest(SimpleTestCase):
     def test_none_total_points_does_not_leak_the_word_none(self):
         html = A.format_assignment_standard_html(base_data(total_points=None))
         self.assertNotIn("None", html)
-        self.assertIn("Total Marks:</strong> 0", html)
+        self.assertIn("Total Points:</strong> 0", html)
 
     def test_zero_total_points_is_preserved_not_blanked(self):
         html = A.format_assignment_standard_html(base_data(total_points=0))
-        self.assertIn("Total Marks:</strong> 0", html)
+        self.assertIn("Total Points:</strong> 0", html)
 
     def test_missing_total_points_key_defaults_to_zero(self):
         data = base_data()
         del data["total_points"]
         html = A.format_assignment_standard_html(data)
-        self.assertIn("Total Marks:</strong> 0", html)
+        self.assertIn("Total Points:</strong> 0", html)
 
     def test_none_questions_does_not_raise(self):
         html = A.format_assignment_standard_html(base_data(questions=None))
@@ -748,7 +748,7 @@ class ExistingBehaviourIsUnchangedTest(SimpleTestCase):
         for expected in (
             "Final Exam",
             "Read carefully.",
-            "Total Marks:</strong> 25",
+            "Total Points:</strong> 25",
             "May 01, 2026",
             "Define entropy.",
             "Excellent",

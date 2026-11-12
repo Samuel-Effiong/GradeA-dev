@@ -58,6 +58,13 @@ class QuestionHeadingTests(SimpleTestCase):
         self.assertIn("Question 1 (1 point) &mdash; Essay", html)
 
 
+class DocumentTotalTests(SimpleTestCase):
+    def test_the_total_line_says_points(self):
+        html = render(assignment(question(points=8)))
+        self.assertIn("Total Points:</strong> 8", html)
+        self.assertNotIn("Total Marks", html)
+
+
 class RubricTests(SimpleTestCase):
     def test_title_and_column(self):
         html = render(assignment(question(qtype="ESSAY")), include_rubric=True)
