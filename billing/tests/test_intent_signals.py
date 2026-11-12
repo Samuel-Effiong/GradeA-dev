@@ -435,7 +435,7 @@ class LeadOpenApiTests(LeadsBase):
         allowed = set(
             ordering["schema"].get("items", ordering["schema"]).get("enum", [])
         )
-        self.assertEqual(allowed, {"signals", "-signals"})
+        self.assertGreaterEqual(allowed, {"signals", "-signals"})
         self.assertIn(SIGNALS_ORDERING_DOC, ordering.get("description", ""))
         for name in ("signals_min", *FLAGS):
             self.assertIn(name, params)

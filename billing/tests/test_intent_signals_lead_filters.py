@@ -294,6 +294,16 @@ class EveryParameterIsDescribedTests(LeadFilterBase):
         "plan_category",
         "plan_interval",
         "has_plan",
+        "activated_after",
+        "activated_before",
+        "credits_used_min",
+        "credits_used_max",
+        "credits_left_min",
+        "credits_left_max",
+        "papers_graded_min",
+        "papers_graded_max",
+        "assignments_created_min",
+        "assignments_created_max",
     )
 
     def test_every_filter_has_a_description(self):
