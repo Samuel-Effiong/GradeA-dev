@@ -13,9 +13,13 @@ from __future__ import annotations
 from collections import Counter
 
 from audit.enums import ErrorClass, ReasonCode
-from AutoGrader.reason_codes import REASON_CODES, credit_refusal_remediation
+from AutoGrader.reason_codes import (
+    MID_BATCH_GRADING_REMEDIATION,
+    REASON_CODES,
+    credit_refusal_remediation,
+)
 
-from .models import BackgroundTaskStatus
+from .models import BackgroundTaskStatus, BackgroundTaskType
 
 #: failure_codes' key for a failure with no reason code. A documented
 #: sentinel, not a ReasonCode: such a failure reads as error_class SYSTEM.
@@ -29,11 +33,18 @@ def _spec(code):
         return None
 
 
-def _remediation(spec, code, meta):
+def _remediation(spec, code, meta, task_type=None):
     """The spec's remediation, or (H-281) the individual-teacher one when
-    the stored credit refusal says so (meta["message_variant"])."""
+    the stored credit refusal says so (meta["message_variant"]), or (owner,
+    2026-11-12) text 1's first sentence only for a grading paper, which
+    keeps no file."""
     if spec is None:
         return None
+    if (
+        code == ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH.value
+        and task_type == BackgroundTaskType.BATCH_SUBMISSION_GRADING
+    ):
+        return MID_BATCH_GRADING_REMEDIATION
     if code == ReasonCode.INSUFFICIENT_CREDITS.value:
         chosen = credit_refusal_remediation(meta.get("message_variant"))
         if chosen is not None:
@@ -69,7 +80,7 @@ def item_result(task, context):
         "reason_code": code,
         "error_class": error_class,
         "message": task.error if failed else None,
-        "remediation": _remediation(spec, code, meta),
+        "remediation": _remediation(spec, code, meta, task.task_type),
         "retryable": bool(spec.retryable) if spec is not None else False,
         "retry_count": task.retry_count,
         # Dashed UUID, same form as X-Request-ID and a sync body's `reference`,

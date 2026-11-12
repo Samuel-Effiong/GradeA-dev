@@ -62,7 +62,8 @@ QUEUE_EMAIL_APPROVED = True
 QUEUE_EMAIL_TEXTS = {
     "queued": (
         "Your grading batch is waiting for credits",
-        "Your credits ran out while grading {assignment}. {done} of {total} "
+        "You don't have enough credits right now while grading {assignment}. "
+        "{done} of {total} "
         "papers were graded and saved. The other {left} papers will start "
         "again on their own when you add credits. They will wait for {days} "
         "days, until {expires_on}.",

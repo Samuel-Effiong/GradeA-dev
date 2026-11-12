@@ -155,6 +155,12 @@ def mid_batch_remediation(days=None):
     )
 
 
+#: Owner-approved 2026-11-12 (team/approved_wording_b1b_handson_2026-11-12.md
+#: #1): text 1 on a GRADING paper. Grading keeps no file, so only the first
+#: sentence applies; upload items keep the full text 1 above.
+MID_BATCH_GRADING_REMEDIATION = "Top up credits, then resume the remaining items."
+
+
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.MISSING_STUDENT_NAME: ReasonSpec(
         ErrorClass.USER,
@@ -268,6 +274,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         mid_batch_remediation(),
         retryable=True,
         params=frozenset({"completed", "total"}),
+        alternative_remediations=(MID_BATCH_GRADING_REMEDIATION,),
         # Approved by QA (the founder), 2026-10-01: when not one item had
         # finished, "after 0 of N" read wrong. H-269: the spec picks the
         # variant from completed, not the raiser.
