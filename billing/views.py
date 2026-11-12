@@ -2376,7 +2376,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 type=OpenApiTypes.STR,
                 location=OpenApiParameter.QUERY,
                 required=False,
-                enum=[*signal_rules.ORDERING_VALUES],
+                enum=[*signal_rules.ORDERING_VALUES, *lead_filters.SORT_VALUES],
                 description=signal_rules.ORDERING_DOC,
             ),
             OpenApiParameter(
@@ -2411,6 +2411,76 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 location=OpenApiParameter.QUERY,
                 required=False,
                 description=lead_filters.help_text("last_login_before"),
+            ),
+            OpenApiParameter(
+                name="activated_after",
+                type=OpenApiTypes.DATETIME,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("activated_after"),
+            ),
+            OpenApiParameter(
+                name="activated_before",
+                type=OpenApiTypes.DATETIME,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("activated_before"),
+            ),
+            OpenApiParameter(
+                name="credits_used_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("credits_used_min"),
+            ),
+            OpenApiParameter(
+                name="credits_used_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("credits_used_max"),
+            ),
+            OpenApiParameter(
+                name="credits_left_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("credits_left_min"),
+            ),
+            OpenApiParameter(
+                name="credits_left_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("credits_left_max"),
+            ),
+            OpenApiParameter(
+                name="papers_graded_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("papers_graded_min"),
+            ),
+            OpenApiParameter(
+                name="papers_graded_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("papers_graded_max"),
+            ),
+            OpenApiParameter(
+                name="assignments_created_min",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("assignments_created_min"),
+            ),
+            OpenApiParameter(
+                name="assignments_created_max",
+                type=OpenApiTypes.INT,
+                location=OpenApiParameter.QUERY,
+                required=False,
+                description=lead_filters.help_text("assignments_created_max"),
             ),
             OpenApiParameter(
                 name="plan_tier",
@@ -2561,7 +2631,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         queryset = plan_filters.qs
 
         ordering = request.query_params.get("ordering")
-        if ordering in signal_rules.ORDERING_VALUES:
+        if ordering in lead_filters.SORT_VALUES:
+            leads = lead_filters.apply_sort(queryset, ordering).select_related("user")
+        elif ordering in signal_rules.ORDERING_VALUES:
             leads = queryset.select_related("user").order_by(
                 *signal_rules.ordering_terms(
                     ordering.startswith("-"), id_field="user_id"

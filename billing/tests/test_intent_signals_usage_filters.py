@@ -58,7 +58,7 @@ class UsageBase(LeadFilterBase):
         if left is None:
             CreditWallet.objects.filter(user=user).delete()
             return user
-        wallet, bucket = self.wallet(user, total=left)
+        wallet, bucket = self.wallet(user, total=max(left, 0), used=max(-left, 0))
         for amount, is_refunded in ((used, False), (refunded, True)):
             if amount:
                 CreditUsageLog.objects.create(
