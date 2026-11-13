@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -58,6 +59,7 @@ class DarkUntilEnabled(_ViewBase):
         return super().dispatch(request, *args, **kwargs)
 
 
+@extend_schema(tags=["Tags"])
 class TagViewSet(
     DarkUntilEnabled,
     mixins.ListModelMixin,
@@ -128,6 +130,7 @@ class TagViewSet(
         return Response({"affected_count": services.tag_impact(self.get_object())})
 
 
+@extend_schema(tags=["Tags"])
 class AssignmentTagsView(DarkUntilEnabled, APIView):
     """PUT /assignments/{id}/tags {tag_ids: [...]}: replace the set.
 

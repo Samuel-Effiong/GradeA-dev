@@ -11,6 +11,7 @@ exists.
 from django.conf import settings
 from django.http import HttpResponse
 from django.utils.http import content_disposition_header
+from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
@@ -42,6 +43,7 @@ class StudentDataToolsView(APIView):
         return super().handle_exception(exc)
 
 
+@extend_schema(tags=["Student Data"])
 class StudentDataExportView(StudentDataToolsView):
     # Not "head": Django serves HEAD through get(), which would build the
     # zip and record an export nobody downloaded (SM review).

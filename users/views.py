@@ -3439,6 +3439,7 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
         ],
         responses={200: WaitlistSerializer(many=True)},
     ),
+    create=extend_schema(tags=["Waitlist"]),
     retrieve=extend_schema(
         tags=["Waitlist"],
         summary="Retrieve a waitlist entry",

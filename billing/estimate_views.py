@@ -12,6 +12,7 @@ must get the verdict INSUFFICIENT (FR-B-04's 0 boundary).
 """
 
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -68,6 +69,7 @@ class EstimateRequestSerializer(serializers.Serializer):
     submission_ids = _SubmissionIds()
 
 
+@extend_schema(tags=["Billing"])
 class BillingEstimateView(APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 

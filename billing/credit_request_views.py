@@ -14,6 +14,7 @@ import logging
 
 import stripe
 from django.http import Http404
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -95,6 +96,7 @@ def _refusal(exc):
     return Response({"detail": str(exc)}, status=exc.status_code)
 
 
+@extend_schema(tags=["Credit Requests"])
 class CreditRequestViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     lookup_value_regex = "[0-9a-fA-F-]{36}"
