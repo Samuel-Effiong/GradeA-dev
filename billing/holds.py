@@ -1179,10 +1179,20 @@ def begin_single_call(*, wallet, target_teacher, estimate):
 
 
 def finish_single_call(
-    job, actual, *, feature, task_type, course, school, record_id=None
+    job,
+    actual,
+    *,
+    feature,
+    task_type,
+    course,
+    school,
+    record_id=None,
+    with_outcome=False,
 ):
     """Settle the call's actual usage, return the rest, close the job.
-    Returns the billing task id (the settlement's id)."""
+    Returns the billing task id (the settlement's id); with
+    with_outcome=True, (billing task id, the SettlementOutcome), so the
+    caller can tally what was charged (R2)."""
     outcome = settle(
         job,
         actual,
@@ -1197,7 +1207,10 @@ def finish_single_call(
         # Not settled (a deleted wallet, a duplicate key): settle returned
         # before its job UPDATE, so close the job as before (NOTES §3.3a).
         finish_job(job, AIJobStatus.SETTLED)
-    return str(outcome.record_id) if outcome.record_id else None
+    billing_task_id = str(outcome.record_id) if outcome.record_id else None
+    if with_outcome:
+        return billing_task_id, outcome
+    return billing_task_id
 
 
 def abandon_single_call(job):
@@ -1242,7 +1255,7 @@ class _SingleCallHold:
         try:
             with transaction.atomic():
                 before_charge()
-                billing_task_id = finish_single_call(
+                billing_task_id, outcome = finish_single_call(
                     self.job,
                     actual,
                     feature=feature,
@@ -1250,8 +1263,13 @@ class _SingleCallHold:
                     course=course,
                     school=school,
                     record_id=self.usage_id,
+                    with_outcome=True,
                 )
-                _record_analytics(self.billed, actual, feature)
+                # R2: the tally takes what was charged, as the batch path
+                # does (_UnitCallHold via Unit.settle_root): chargeable, not
+                # actual, and nothing when the call did not settle.
+                if outcome.settled and outcome.chargeable:
+                    _record_analytics(self.billed, outcome.chargeable, feature)
         except BaseException:
             self.abandon()
             raise
