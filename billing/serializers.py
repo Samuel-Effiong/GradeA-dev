@@ -1814,6 +1814,15 @@ class BetaUserDetailResponseSerializer(serializers.Serializer):
     metrics = ConversionLeadMetricsSerializer()
     flags = ConversionLeadFlagsSerializer()
 
+    # The lead row's plan and usage fields (S11), in its order.
+    plan_tier = serializers.CharField(read_only=True, allow_null=True)
+    plan_category = serializers.CharField(read_only=True, allow_null=True)
+    plan_interval = serializers.CharField(read_only=True, allow_null=True)
+    credits_left = serializers.IntegerField(read_only=True, allow_null=True)
+    papers_graded = serializers.IntegerField(read_only=True)
+    assignments_created = serializers.IntegerField(read_only=True)
+    activated_at = serializers.DateTimeField(read_only=True)
+
     # Behavioral Charts & Engagement
     daily_usage = DailyTimeSeriesSerializer(many=True)
     feature_mix = BetaUserFeatureMixSerializer()
