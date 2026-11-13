@@ -14,7 +14,12 @@ import logging
 
 import stripe
 from django.http import Http404
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import (
+    OpenApiParameter,
+    extend_schema,
+    extend_schema_view,
+    inline_serializer,
+)
 from rest_framework import serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
@@ -96,7 +101,53 @@ def _refusal(exc):
     return Response({"detail": str(exc)}, status=exc.status_code)
 
 
-@extend_schema(tags=["Credit Requests"])
+CREDIT_REQUESTS = ["Credit Requests"]
+COUNTS_REPLY = inline_serializer(
+    "CreditRequestCounts",
+    {
+        "pending": serializers.IntegerField(),
+        "answered": serializers.IntegerField(),
+        "granted": serializers.IntegerField(),
+        "declined": serializers.IntegerField(),
+    },
+)
+APPROVE_REPLY = inline_serializer(
+    "CreditRequestApproved",
+    {"request": CreditRequestSerializer(), "purchase": serializers.DictField()},
+)
+
+
+@extend_schema(tags=CREDIT_REQUESTS)
+@extend_schema_view(
+    list=extend_schema(
+        tags=CREDIT_REQUESTS,
+        parameters=[
+            OpenApiParameter(
+                "status", str, OpenApiParameter.QUERY, enum=CreditRequestStatus.values
+            )
+        ],
+        responses=CreditRequestSerializer(many=True),
+    ),
+    create=extend_schema(
+        tags=CREDIT_REQUESTS,
+        request=CreateCreditRequestSerializer,
+        responses={201: CreditRequestSerializer},
+    ),
+    counts=extend_schema(tags=CREDIT_REQUESTS, responses=COUNTS_REPLY),
+    approve=extend_schema(
+        tags=CREDIT_REQUESTS,
+        request=ApproveCreditRequestSerializer,
+        responses=APPROVE_REPLY,
+    ),
+    decline=extend_schema(
+        tags=CREDIT_REQUESTS,
+        request=DeclineCreditRequestSerializer,
+        responses=CreditRequestSerializer,
+    ),
+    withdraw=extend_schema(
+        tags=CREDIT_REQUESTS, request=None, responses=CreditRequestSerializer
+    ),
+)
 class CreditRequestViewSet(viewsets.ViewSet):
     permission_classes = [IsAuthenticated]
     lookup_value_regex = "[0-9a-fA-F-]{36}"
