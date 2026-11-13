@@ -1,9 +1,0 @@
-test_no_other_code_names_the_model (ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable.test_no_other_code_names_the_model) ... ok
-
-----------------------------------------------------------------------
-Ran 1 test in 0.061s
-
-OK
-Found 1 test(s).
-Skipping setup of unused database(s): default.
-System check identified no issues (0 silenced).

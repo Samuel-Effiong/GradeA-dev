@@ -1,6 +1,0 @@
-OK   ai_processor/migrations/0007_aicallrecord_assignment_created_index.py: additive only
-OK   ai_processor/migrations/0008_aicallrecord_billed_user_created_index.py: additive only
-OK   billing/migrations/0081_aijob_deleted_items.py: additive only
-OK   billing/migrations/0082_aijob_deleted_items_validate.py: additive only
-OK   billing/migrations/0083_b1b4_estimate_source_and_drift_run.py: additive only
-OK   students/migrations/0041_keptupload.py: additive only

@@ -1,3 +1,0 @@
-B1b-6 makemigrations --check: ENV unset; declared No changes detected
-No changes detected
-exit 0
