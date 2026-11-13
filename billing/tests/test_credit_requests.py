@@ -305,6 +305,8 @@ class CreateTests(Fixture):
         event = AuditEvent.objects.get(action=getattr(AuditAction, CREATE_ACTION))
         self.assertEqual(event.target_id, request.pk)
         self.assertEqual(event.retention_class, "FINANCIAL")
+        # The audit record keeps how many blocks were asked for.
+        self.assertEqual(event.metadata.get("blocks"), 2)
 
     def test_one_open_request_per_teacher_w6(self):
         self.new_request()
@@ -356,6 +358,9 @@ class CreateTests(Fixture):
         self.assertEqual(str(ctx.exception), APPROVED_TEXTS["error_answered"])
         decided = AuditEvent.objects.filter(action=getattr(AuditAction, DECIDE_ACTION))
         self.assertEqual(decided.count(), 1)
+        # The audit record keeps the decision and the blocks asked for.
+        self.assertEqual(decided.get().metadata.get("decision"), "decline")
+        self.assertEqual(decided.get().metadata.get("blocks"), 2)
 
     def test_withdraw_only_while_waiting_w9(self):
         request = self.new_request()

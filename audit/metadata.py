@@ -146,6 +146,10 @@ ALLOWED_KEYS = frozenset(
         "cold_start_cost_factor",
         "unstarted_backstop_hours",
         "hold_sweep_margin_minutes",
+        # Epic B1c: a credit request's size (how many blocks) and how it was
+        # answered (approve, decline or withdraw).
+        "blocks",
+        "decision",
         # H-273: reason label derived from exception class or status code
         "reason_label",
         # H-273: failing field names on ValidationError (names only, never messages)
