@@ -77,3 +77,107 @@ class SwaggerGroupsTests(APITestCase):
             if tags != [tag]:
                 wrong.append(f"{method.upper()} {path}: {tags} != {[tag]}")
         self.assertEqual(wrong, [])
+
+    # S12 addendum: request and reply shapes.
+    BODIES = {
+        ("post", "/api/v1/billing/estimate"): (
+            "EstimateRequest",
+            ("assignment_id", "submission_ids"),
+        ),
+        ("post", "/api/v1/billing/credit-requests"): (
+            "CreateCreditRequest",
+            ("requested_blocks", "message", "ai_job"),
+        ),
+        ("post", "/api/v1/billing/credit-requests/{id}/approve"): (
+            "ApproveCreditRequest",
+            ("blocks", "payment_method"),
+        ),
+        ("post", "/api/v1/billing/credit-requests/{id}/decline"): (
+            "DeclineCreditRequest",
+            ("reason",),
+        ),
+        ("post", "/api/v1/tags"): (None, ("tag_type", "name")),
+        ("patch", "/api/v1/tags/{id}"): (None, ("name",)),
+        ("put", "/api/v1/assignments/{id}/tags"): ("AssignmentTags", ("tag_ids",)),
+    }
+    REPLIES = {
+        ("post", "/api/v1/billing/estimate"): (
+            "p50",
+            "p90",
+            "verdict",
+            "spendable",
+            "projected_remaining_p50",
+            "projected_remaining_p90",
+            "source",
+            "shape_basis",
+            "sample_size",
+            "n",
+        ),
+        ("get", "/api/v1/billing/credit-requests/counts"): (
+            "pending",
+            "answered",
+            "granted",
+            "declined",
+        ),
+        ("get", "/api/v1/tags/{id}/impact"): ("affected_count",),
+        ("put", "/api/v1/assignments/{id}/tags"): ("tags",),
+        ("post", "/api/v1/billing/credit-requests/{id}/approve"): (
+            "request",
+            "purchase",
+        ),
+        ("post", "/api/v1/billing/credit-requests"): ("id", "status"),
+        ("post", "/api/v1/billing/credit-requests/{id}/decline"): ("id", "status"),
+        ("post", "/api/v1/billing/credit-requests/{id}/withdraw"): ("id", "status"),
+        ("post", "/api/v1/tags"): ("id", "tag_type", "name"),
+        ("patch", "/api/v1/tags/{id}"): ("id", "tag_type", "name"),
+    }
+
+    def resolve(self, node):
+        ref = node.get("$ref")
+        if ref:
+            return self.schema["components"]["schemas"][ref.rsplit("/", 1)[1]]
+        return node
+
+    def properties(self, node):
+        node = self.resolve(node)
+        if node.get("type") == "array":
+            node = self.resolve(node["items"])
+        return set(node.get("properties", {}))
+
+    def success(self, op):
+        codes = [c for c in op["responses"] if c.startswith("2")]
+        content = op["responses"][codes[0]].get("content", {}) if codes else {}
+        return content.get("application/json", {}).get("schema")
+
+    def test_request_bodies_are_documented(self):
+        problems = []
+        for (method, path), (_, fields) in self.BODIES.items():
+            op = self.schema["paths"][path][method]
+            body = op.get("requestBody", {}).get("content", {})
+            node = (body.get("application/json") or {}).get("schema")
+            if node is None:
+                problems.append(f"{method.upper()} {path}: no request body")
+            elif not set(fields) <= self.properties(node):
+                problems.append(f"{method.upper()} {path}: {self.properties(node)}")
+        self.assertEqual(problems, [])
+
+    def test_withdraw_takes_no_body(self):
+        op = self.schema["paths"]["/api/v1/billing/credit-requests/{id}/withdraw"][
+            "post"
+        ]
+        self.assertNotIn("requestBody", op)
+
+    def test_success_replies_are_documented(self):
+        problems = []
+        for (method, path), fields in self.REPLIES.items():
+            node = self.success(self.schema["paths"][path][method])
+            if node is None:
+                problems.append(f"{method.upper()} {path}: no 2xx schema")
+            elif not set(fields) <= self.properties(node):
+                problems.append(f"{method.upper()} {path}: {self.properties(node)}")
+        self.assertEqual(problems, [])
+
+    def test_credit_request_list_documents_status_and_reply(self):
+        op = self.schema["paths"]["/api/v1/billing/credit-requests"]["get"]
+        self.assertIn("status", {p["name"] for p in op.get("parameters", [])})
+        self.assertIn("id", self.properties(self.success(op)))
