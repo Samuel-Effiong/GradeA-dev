@@ -16,7 +16,7 @@ from AutoGrader.beat_locks import single_instance
 from billing.immutable import allow_unsafe_mutation
 
 from .emitter import emit
-from .enums import AuditAction, RetentionClass
+from .enums import FINANCIAL_ACTIONS, AuditAction, RetentionClass
 from .models import AuditEvent
 
 # X-4: source_ip/user_agent are blanked after this many days regardless of
@@ -30,7 +30,12 @@ PII_SHORT_RETENTION_DAYS = 90
 def sweep_audit_retention(self):
     """
     Deletes AuditEvent rows past their retention_class's cutoff (A6: 12
-    months general, 3 years student-record).
+    months general, 3 years student-record, 7 years financial).
+
+    FINANCIAL actions (CREDIT_TRANSACTION and B1's credit/purchase actions)
+    are excluded from both the GENERAL and STUDENT_RECORD deletes, so old
+    rows tagged GENERAL before the FINANCIAL class existed are kept until
+    the 7-year cutoff.
 
     Deletion is the one case `AuditEvent.mutable_fields` cannot cover (it
     only exempts source_ip/user_agent from the append-only guard), so this
@@ -42,14 +47,30 @@ def sweep_audit_retention(self):
     now = timezone.now()
     general_cutoff = now - timedelta(days=365)
     student_cutoff = now - timedelta(days=365 * 3)
+    financial_cutoff = now - timedelta(days=365 * 7)
 
     with allow_unsafe_mutation():
-        deleted_general, _ = AuditEvent.objects.filter(
-            retention_class=RetentionClass.GENERAL, occurred_at__lt=general_cutoff
-        ).delete()
-        deleted_student, _ = AuditEvent.objects.filter(
-            retention_class=RetentionClass.STUDENT_RECORD,
-            occurred_at__lt=student_cutoff,
+        deleted_general, _ = (
+            AuditEvent.objects.filter(
+                retention_class=RetentionClass.GENERAL,
+                occurred_at__lt=general_cutoff,
+            )
+            .exclude(action__in=FINANCIAL_ACTIONS)
+            .delete()
+        )
+
+        deleted_student, _ = (
+            AuditEvent.objects.filter(
+                retention_class=RetentionClass.STUDENT_RECORD,
+                occurred_at__lt=student_cutoff,
+            )
+            .exclude(action__in=FINANCIAL_ACTIONS)
+            .delete()
+        )
+
+        deleted_financial, _ = AuditEvent.objects.filter(
+            occurred_at__lt=financial_cutoff,
+            action__in=FINANCIAL_ACTIONS,
         ).delete()
 
     # S3 (G6): the sweep records its own run - counts only, actor SYSTEM -
@@ -60,12 +81,13 @@ def sweep_audit_retention(self):
         metadata={
             "deleted_general": deleted_general,
             "deleted_student_record": deleted_student,
+            "deleted_financial": deleted_financial,
         },
     )
 
     summary = (
         f"Audit retention sweep: deleted general={deleted_general} "
-        f"student_record={deleted_student}"
+        f"student_record={deleted_student} financial={deleted_financial}"
     )
     return summary
 

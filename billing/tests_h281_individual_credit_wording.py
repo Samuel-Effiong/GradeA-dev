@@ -22,7 +22,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
@@ -415,6 +415,10 @@ class TheRaiseSitesTagTheRefusal(TestCase):
             self._gate_with_balance(licensed_teacher(), 5_000).individual, False
         )
 
+    # B1b-2 (NOTES §2.3 B4): flag-off only - it reaches the flag-off balance
+    # check through a patched balance. The flag-on half is
+    # TheHoldRefusalIsTaggedToo.test_r8_flag_on_hold_for_call_refuses_individual.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_r8_execute_graded_task_nothing_left_individual(self):
         """Only reachable with an estimate at or below a zero balance."""
         teacher = individual_teacher()
@@ -458,6 +462,42 @@ class TheRaiseSitesTagTheRefusal(TestCase):
         with patch.object(AIProcessor, "estimate_messages_cost", return_value=60_000):
             parked = parked_files(teacher, None, [_png()], "p")
         self.assertIs(parked[0].individual, False)
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class TheHoldRefusalIsTaggedToo(TestCase):
+    """B1b-2 (NOTES §2.3 B4): R8's flag-on twin, on a real path. Nothing is
+    patched on the wallet: a real empty wallet, an estimate above 0, and
+    hold_for_call refuses before the provider with the individual tag."""
+
+    def test_r8_flag_on_hold_for_call_refuses_individual(self):
+        from billing.models import AIJob, CreditUsageLog
+
+        teacher = individual_teacher("h281.r8.on")
+        with patch(
+            "ai_processor.services.can_user_access_ai", return_value=(True, None)
+        ), patch.object(
+            AIProcessor, "estimate_messages_cost", return_value=1_000
+        ), patch.object(
+            AIProcessor,
+            "_AIProcessor__ai_model",
+            side_effect=AssertionError("reached the provider"),
+        ):
+            with self.assertRaises(InsufficientCreditsError) as caught:
+                AIProcessor().execute_graded_task(
+                    teacher,
+                    None,
+                    "h281",
+                    system_prompt="system",
+                    user_prompt="user",
+                    prompt_version="h281",
+                )
+        self.assertIs(caught.exception.individual, True)
+        job = AIJob.objects.get(job_type="SINGLE_CALL")
+        self.assertEqual(job.status, "FAILED")
+        wallet = CreditWallet.objects.get(user=teacher)
+        self.assertEqual(wallet.reserved_credits, 0)
+        self.assertFalse(CreditUsageLog.objects.filter(wallet=wallet).exists())
 
 
 # ----------------------------------------------- (b) what each surface says

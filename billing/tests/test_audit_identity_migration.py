@@ -33,7 +33,7 @@ import uuid
 
 from django.db import connection
 from django.db.migrations.executor import MigrationExecutor
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.utils import timezone
 
 BILLING_FROM = ("billing", "0058_alter_licensebillingrecord_record_type")
@@ -55,6 +55,11 @@ BILLING_TO = ("billing", "0060_backfill_audit_identity")
 # the only version that cannot drift from the repository.
 
 
+# B1b-2 (NOTES §2.3 B1): flag-off only. These migrate back past billing 0074,
+# whose reverse is refused with the flag on by design (that half is pinned by
+# billing.tests.test_holds_schema.ReverseGuardTests
+# .test_reverse_is_refused_with_the_flag_on).
+@override_settings(BILLING_HOLDS_ENABLED=False)
 class AuditIdentityMigrationTests(TransactionTestCase):
     """
     TransactionTestCase because the migration executor issues DDL, which
@@ -86,9 +91,13 @@ class AuditIdentityMigrationTests(TransactionTestCase):
         super().tearDown()
 
     def _restore_targets(self, loader):
-        """Current leaves of BOTH apps, so teardown restores rather than rewinds."""
+        """The current leaf of EVERY app, so teardown restores rather than
+        rewinds. Rewinding billing also un-applies the later migrations of
+        apps that depend on it (students 0037+, Epic B1a), so restoring only
+        billing and users left them unapplied for every later test in the
+        process. Restoring a leaf that was never rewound is a no-op."""
         targets = []
-        for app in ("billing", "users"):
+        for app in sorted({label for label, _ in loader.graph.leaf_nodes()}):
             leaves = list(loader.graph.leaf_nodes(app))
             if len(leaves) != 1:
                 self.fail(
@@ -97,6 +106,22 @@ class AuditIdentityMigrationTests(TransactionTestCase):
                 )
             targets.append(leaves[0])
         return targets
+
+    def test_the_restore_brings_back_every_apps_leaf(self):
+        """SM ruling 2026-11-06 (B1a 3a): after a rewind of billing, the
+        restore leaves every app at its current leaf."""
+        self._migrate(BILLING_FROM)
+        executor = MigrationExecutor(connection)
+        executor.loader.build_graph()
+        executor.migrate(self._restore_targets(executor.loader))
+        executor.loader.build_graph()
+        applied = set(executor.loader.applied_migrations)
+        missing = sorted(
+            f"{app}.{name}"
+            for app, name in executor.loader.graph.leaf_nodes()
+            if (app, name) not in applied
+        )
+        self.assertEqual(missing, [])
 
     def _insert_user(self, apps, email):
         """

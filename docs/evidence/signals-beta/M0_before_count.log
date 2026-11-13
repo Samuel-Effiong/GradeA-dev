@@ -1,8 +1,0 @@
-Ran 1 test in 1.297s
-OK
-MEASURE distribution profiles=5 8
-MEASURE distribution profiles=30 8
-MEASURE intent-signals page_size 5 9
-MEASURE user-list page_size 5 13
-MEASURE intent-signals page_size 25 9
-MEASURE user-list page_size 25 13

@@ -1,0 +1,65 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "id": "user:Theo",
+    "name": "Theo Snap",
+    "email": "theo@e1-snapshot.test",
+    "courses": 1,
+    "students": 2,
+    "growth": 100.0,
+    "assignments_per_week": 0.0,
+    "turnaround": 0.2,
+    "ai_confidence": 78.0,
+    "rigor": null,
+    "rigor_breakdown": {
+     "score": null,
+     "demand": null,
+     "evidence": null,
+     "standards": null,
+     "coverage": 0.0,
+     "assignments_scored": 0,
+     "submissions_scored": 1,
+     "label": "Not enough data yet",
+     "meaning": "This teacher has no assignments with difficulty data recorded, so rigor cannot be scored.",
+     "tone": "unknown",
+     "standards_note": null,
+     "coverage_note": "Based on a minority of this teacher's assignments -- the rest have no difficulty data recorded."
+    },
+    "status": true
+   },
+   {
+    "id": "user:Tess",
+    "name": "Tess Snap",
+    "email": "tess@e1-snapshot.test",
+    "courses": 2,
+    "students": 6,
+    "growth": 100.0,
+    "assignments_per_week": 0.0,
+    "turnaround": 0.2,
+    "ai_confidence": 78.5,
+    "rigor": null,
+    "rigor_breakdown": {
+     "score": null,
+     "demand": null,
+     "evidence": 2.4,
+     "standards": null,
+     "coverage": 0.0,
+     "assignments_scored": 0,
+     "submissions_scored": 21,
+     "label": "Not enough data yet",
+     "meaning": "This teacher has no assignments with difficulty data recorded, so rigor cannot be scored.",
+     "tone": "unknown",
+     "standards_note": null,
+     "coverage_note": "Based on a minority of this teacher's assignments -- the rest have no difficulty data recorded."
+    },
+    "status": true
+   }
+  ]
+ }
+}

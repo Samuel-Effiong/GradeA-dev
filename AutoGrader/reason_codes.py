@@ -36,6 +36,7 @@ import string
 from collections.abc import Callable
 from dataclasses import dataclass, field
 
+from django.conf import settings
 from rest_framework import status
 from rest_framework.response import Response
 
@@ -141,6 +142,23 @@ def _overage_cap_variant(params):
 
 def _mid_batch_variant(params):
     return "none_finished" if params.get("completed") == 0 else None
+
+
+def mid_batch_remediation(days=None):
+    """Owner-approved text 1 (team/approved_wording_2026-11-08.md), with the
+    days filled in from QUEUE_LIFETIME_DAYS (08b §4; SM 2026-11-08: built
+    once when the catalogue loads, so the stored remediation has no `{`)."""
+    days = settings.QUEUE_LIFETIME_DAYS if days is None else days
+    return (
+        "Top up credits, then resume the remaining items. Your files are kept "
+        f"for {days} days, so you won't need to upload them again."
+    )
+
+
+#: Owner-approved 2026-11-12 (team/approved_wording_b1b_handson_2026-11-12.md
+#: #1): text 1 on a GRADING paper. Grading keeps no file, so only the first
+#: sentence applies; upload items keep the full text 1 above.
+MID_BATCH_GRADING_REMEDIATION = "Top up credits, then resume the remaining items."
 
 
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
@@ -251,11 +269,12 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         status.HTTP_402_PAYMENT_REQUIRED,
         "Credits ran out after {completed} of {total} items. The finished "
         "items are saved.",
-        # F4: uploads are not stored, so unfinished uploads are re-uploaded.
-        "Top up credits, then resume the remaining items. Unfinished uploads "
-        "need their files uploaded again.",
+        # Owner-approved text 1 (team/approved_wording_2026-11-08.md, B1b-8):
+        # the files are kept (F4); built once from the setting.
+        mid_batch_remediation(),
         retryable=True,
         params=frozenset({"completed", "total"}),
+        alternative_remediations=(MID_BATCH_GRADING_REMEDIATION,),
         # Approved by QA (the founder), 2026-10-01: when not one item had
         # finished, "after 0 of N" read wrong. H-269: the spec picks the
         # variant from completed, not the raiser.
@@ -614,6 +633,71 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         status.HTTP_400_BAD_REQUEST,
         "This submission hasn't been graded yet, so it can't be published.",
         "Grade it first, then publish.",
+        retryable=False,
+    ),
+    # Epic C1 tags (plan 11 D6). No remediation: each message already says
+    # what to do (SM ruling 3). TAG_NAME_TAKEN names the existing tag's type
+    # label and its stored spelling, not what the requester typed.
+    ReasonCode.TAG_NAME_TAKEN: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        'You already have a {tag_type} tag named "{name}".',
+        "",
+        retryable=False,
+        params=frozenset({"tag_type", "name"}),
+    ),
+    ReasonCode.TAG_CHANGED_SINCE_CHECK: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        "This tag's assignments changed since you checked. Review the new "
+        "count and try again.",
+        "",
+        retryable=True,
+    ),
+    ReasonCode.TAG_NAME_MISSING: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        "Enter a tag name.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.TAG_NAME_TOO_LONG: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        "Tag names can be up to 100 characters.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.TOO_MANY_TAGS: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        "An assignment can have up to 50 tags.",
+        "",
+        retryable=False,
+    ),
+    # NFR-CMP-04 erasure refusals (owner-approved wording, 2026-11-08).
+    # Remediation stays empty.
+    ReasonCode.STUDENT_ERASE_NOT_ONLY_A_STUDENT: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        "We can't erase this account because it is also used as a teacher or"
+        " administrator account.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.STUDENT_ERASE_WALLET_NOT_EMPTY: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        "We can't erase this account because its credit wallet has credits or a"
+        " credit history.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.STUDENT_ERASE_BILLING_RECORDS: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        "We can't erase this account because it has billing records.",
+        "",
         retryable=False,
     ),
 }

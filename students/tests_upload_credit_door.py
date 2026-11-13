@@ -22,13 +22,15 @@ Run with:
 """
 
 import base64
+import importlib
 import io
 from datetime import timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.apps import apps
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -137,6 +139,14 @@ def _file(name="a.png", data=PNG, content_type="image/png"):
     return SimpleUploadedFile(name, data, content_type=content_type)
 
 
+def _kept_bytes(payload):
+    """B1b-5 (F4): the bytes of the file a door payload names by its kept id."""
+    row = apps.get_model("students", "KeptUpload").objects.get(
+        pk=payload["kept_upload_id"]
+    )
+    return importlib.import_module("students.kept_files").load(row.storage_key)
+
+
 class _Spy:
     """The estimates the door (or the gate) was given back, in order, by the
     real method."""
@@ -197,6 +207,12 @@ class StudentUploadDoorTest(APITestCase):
             self.assertNotIn(word, message.lower())
         self.assertEqual(sorted(response.data), ["code", "error"])
 
+    # B1b-2 (NOTES §2.3 B2, SM Q2): flag-off only. It asserts the mocked
+    # launch's own id; with the flag on the response carries the door's
+    # pre-assigned id, pinned on this same route (student-submission-upload-
+    # async) by billing.tests.test_holds_door_commit.DoorLaunchOnCommitTests
+    # .test_c2_the_response_task_id_is_the_preassigned_id_on_the_row.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     @patch("students.views.launch_processing_task")
     def test_a_wallet_above_the_estimate_is_queued_as_before(self, launch):
         _, student, _, assignment = _classroom("rich", RICH)
@@ -209,7 +225,8 @@ class StudentUploadDoorTest(APITestCase):
         launch.assert_called_once()
         # The door read the file; the task must still be handed all of it.
         payload = launch.call_args.args[3]
-        self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+        # B1b-5 (F4): the file is kept at the door and the task gets its id.
+        self.assertEqual(_kept_bytes(payload), PNG)
 
     @patch("students.views.launch_processing_task")
     def test_the_line_is_the_estimate_itself_one_below_refuses_the_estimate_passes(
@@ -260,7 +277,10 @@ class StudentUploadDoorTest(APITestCase):
         launch.return_value.id = "task-1"
         _, student, _, assignment = _classroom("garbled", POOR)
 
-        response = self._upload(student, assignment, data=b"not an image")
+        # B1b-2 (NOTES §2.3 B2): the door's launch is deferred to on_commit with
+        # the flag on; run it here as production does. No-op with the flag off.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._upload(student, assignment, data=b"not an image")
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         launch.assert_called_once()
@@ -281,7 +301,10 @@ class StudentUploadDoorTest(APITestCase):
         with patch(
             "users.permissions.HasCreditBalance.has_permission", return_value=True
         ):
-            response = self._upload(student, assignment)
+            # B1b-2 (NOTES §2.3 B2): the door's launch is deferred to on_commit with
+            # the flag on; run it here as production does. No-op with the flag off.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self._upload(student, assignment)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         launch.assert_called_once()
@@ -317,14 +340,18 @@ class TeacherBatchDoorTest(APITestCase):
         launch.return_value.id = "task-1"
         teacher, _, _, assignment = _classroom("batch-rich", RICH)
 
-        response = self._batch(teacher, assignment, count=2)
+        # B1b-2 (NOTES §2.3 B2): the door's launch is deferred to on_commit with
+        # the flag on; run it here as production does. No-op with the flag off.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._batch(teacher, assignment, count=2)
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         self.assertEqual(len(response.data["tasks"]), 2)
         self.assertEqual(launch.call_count, 2)
         for call in launch.call_args_list:
             payload = call.args[3]
-            self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+            # B1b-5 (F4): the file is kept at the door and the task gets its id.
+            self.assertEqual(_kept_bytes(payload), PNG)
 
 
 class AssignmentUploadDoorTest(APITestCase):
@@ -356,12 +383,16 @@ class AssignmentUploadDoorTest(APITestCase):
         launch.return_value.id = "task-1"
         teacher, _, course, _ = _classroom("assign-rich", RICH)
 
-        response = self._upload(teacher, course)
+        # B1b-2 (NOTES §2.3 B2): the door's launch is deferred to on_commit with
+        # the flag on; run it here as production does. No-op with the flag off.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self._upload(teacher, course)
 
         self.assertEqual(response.status_code, status.HTTP_202_ACCEPTED)
         launch.assert_called_once()
         payload = launch.call_args.kwargs["file_payload"]
-        self.assertEqual(base64.b64decode(payload["content_b64"]), PNG)
+        # B1b-5 (F4): the file is kept at the door and the task gets its id.
+        self.assertEqual(_kept_bytes(payload), PNG)
 
 
 class TheDoorFunctionTest(TestCase):

@@ -39,10 +39,12 @@ class ErrorClass(models.TextChoices):
 
 class RetentionClass(models.TextChoices):
     """A6: 12 months for general events, 3 years for those touching student
-    records. Stored per row so the retention sweep has a column to filter on."""
+    records, 7 years for financial/credit events. Stored per row so the
+    retention sweep has a column to filter on."""
 
     GENERAL = "GENERAL", "General (12 months)"
     STUDENT_RECORD = "STUDENT_RECORD", "Student record (3 years)"
+    FINANCIAL = "FINANCIAL", "Financial (7 years)"
 
 
 class AuditAction(models.TextChoices):
@@ -65,9 +67,21 @@ class AuditAction(models.TextChoices):
     TAG_CREATE = "TAG_CREATE", "Tag created"
     TAG_RENAME = "TAG_RENAME", "Tag renamed"
     TAG_DELETE = "TAG_DELETE", "Tag deleted"
+    # Epic C1: an assignment's tags replaced as one set (plan 11 §3.3).
+    ASSIGNMENT_TAGS_SET = "ASSIGNMENT_TAGS_SET", "Assignment tags changed"
     ROSTER_CHANGE = "ROSTER_CHANGE", "Roster changed"
     SUBMISSION_UPLOAD = "SUBMISSION_UPLOAD", "Submission uploaded"
     CREDIT_TRANSACTION = "CREDIT_TRANSACTION", "Credit transaction"
+    # Epic B1a credit holds (plan 08 §3.2). Labels approved by the owner
+    # (SM 2026-11-06).
+    CREDIT_HOLD_RESERVED = "CREDIT_HOLD_RESERVED", "Credits held"
+    CREDIT_HOLD_SETTLED = "CREDIT_HOLD_SETTLED", "Credit hold settled"
+    CREDIT_HOLD_RELEASED = "CREDIT_HOLD_RELEASED", "Credit hold released"
+    CREDIT_HOLD_SWEPT = "CREDIT_HOLD_SWEPT", "Stale credit hold cleared"
+    # Epic B1c credit requests (plan 08 §7 item 1). Labels approved by the
+    # owner (SM 2026-11-11).
+    CREDIT_REQUEST_CREATE = "CREDIT_REQUEST_CREATE", "Credit request made"
+    CREDIT_REQUEST_DECIDE = "CREDIT_REQUEST_DECIDE", "Credit request answered"
     DEPARTMENT_CREATE = "DEPARTMENT_CREATE", "Department created"
     DEPARTMENT_UPDATE = "DEPARTMENT_UPDATE", "Department updated"
     DEPARTMENT_DELETE = "DEPARTMENT_DELETE", "Department deleted"
@@ -78,6 +92,9 @@ class AuditAction(models.TextChoices):
     LIBRARY_COPY = "LIBRARY_COPY", "Library item copied"
     ADMIN_ACTION = "ADMIN_ACTION", "Admin action"
     DATA_EXPORT = "DATA_EXPORT", "Data export"
+    # NFR-CMP-04: a student's data erased, in full or from a teacher's
+    # courses (metadata.scope). Owner-approved label (2026-11-08).
+    STUDENT_DATA_ERASE = "STUDENT_DATA_ERASE", "Student data erased"
     PERMISSION_CHANGE = "PERMISSION_CHANGE", "Permission changed"
     # Epic A completion S1: the generic event for a state-changing request
     # that recorded no named event. `metadata.route` says which route.
@@ -117,6 +134,22 @@ STUDENT_RECORD_ACTIONS = frozenset(
         AuditAction.ROSTER_CHANGE,
         AuditAction.SUBMISSION_UPLOAD,
         AuditAction.GRADE_CHANGE,
+    }
+)
+
+
+# Plan 08 §4 (Epic B1a): the who/when/why of every charge is kept 7 years.
+# Stored FINANCIAL at emit, and the retention sweep keeps these actions to
+# the 7-year cutoff whatever class an older row was stored under.
+FINANCIAL_ACTIONS = frozenset(
+    {
+        AuditAction.CREDIT_TRANSACTION,
+        AuditAction.CREDIT_HOLD_RESERVED,
+        AuditAction.CREDIT_HOLD_SETTLED,
+        AuditAction.CREDIT_HOLD_RELEASED,
+        AuditAction.CREDIT_HOLD_SWEPT,
+        AuditAction.CREDIT_REQUEST_CREATE,
+        AuditAction.CREDIT_REQUEST_DECIDE,
     }
 )
 
@@ -260,6 +293,25 @@ class ReasonCode(models.TextChoices):
     # Audit-only: the refusal itself stays uncoded, and a client is told only
     # "This course wasn't found."
     COURSE_NOT_REACHABLE = "COURSE_NOT_REACHABLE", "Course not reachable"
+    # Epic C1 tags (plan 11 D6; owner-approved wording in reason_codes.py).
+    TAG_NAME_TAKEN = "TAG_NAME_TAKEN", "Tag name taken"
+    TAG_CHANGED_SINCE_CHECK = "TAG_CHANGED_SINCE_CHECK", "Tag changed since check"
+    # NFR-CMP-04 erasure refusals (owner-approved labels, 2026-11-08).
+    STUDENT_ERASE_NOT_ONLY_A_STUDENT = (
+        "STUDENT_ERASE_NOT_ONLY_A_STUDENT",
+        "Erase refused: not only a student",
+    )
+    STUDENT_ERASE_WALLET_NOT_EMPTY = (
+        "STUDENT_ERASE_WALLET_NOT_EMPTY",
+        "Erase refused: credit wallet",
+    )
+    STUDENT_ERASE_BILLING_RECORDS = (
+        "STUDENT_ERASE_BILLING_RECORDS",
+        "Erase refused: billing records",
+    )
+    TAG_NAME_MISSING = "TAG_NAME_MISSING", "Tag name missing"
+    TAG_NAME_TOO_LONG = "TAG_NAME_TOO_LONG", "Tag name too long"
+    TOO_MANY_TAGS = "TOO_MANY_TAGS", "Too many tags"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

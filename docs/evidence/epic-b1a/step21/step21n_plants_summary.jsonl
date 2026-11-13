@@ -1,0 +1,2 @@
+{"plant": "PD-1", "rc": 1, "restored": true, "summary": ["Ran 9 tests in 2.526s", "FAILED (failures=3)"], "kill_test_failed": true, "fragment_found": true, "collateral": ["FAIL test_d3b_the_same_through_a_queryset_delete", "FAIL test_d4a_work_on_a_job_whose_wallet_was_deleted_moves_nothing"]}
+{"plant": "PD-2", "rc": 1, "restored": true, "summary": ["Ran 9 tests in 3.332s", "FAILED (errors=1)"], "kill_test_failed": true, "fragment_found": true, "collateral": []}

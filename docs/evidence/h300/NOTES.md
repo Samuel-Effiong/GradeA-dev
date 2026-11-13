@@ -171,3 +171,105 @@ Near results (under flock):
 - Near 07 (`07_guard_sweep.log.gz`, serial, 113 s): **Ran 928, OK (skipped=1)**. **As predicted.**
 
 Ready for the SM to push to beta. No push from Lane 2.
+
+# Part 2: staging (SM go 2026-11-09)
+
+Branch task/h300-staging off origin/staging 4aff59a43. `git merge --no-ff
+origin/beta` (e4a893197, Part 1 as pushed): no conflicts, merge
+687d6a70c84b65386068545790876012e29dfba0. The merged handler holds both the
+beta guard and B1a's departed-share refund. `makemigrations --check
+--dry-run`: No changes detected.
+
+## Road A (staging only, B1a code)
+
+`_refund_departed_share_on_commit` registers `transaction.on_commit` without
+robust=True and calls `refund_departed_teacher_share.delay` and
+`send_email_task.delay` directly. If either raises after commit, the
+handler raises, and `_run_handler_inline` marks the event FAILED with the
+grants made. The fix (declared): register with `robust=True` and queue
+both through `AutoGrader.dispatch.safe_delay`, as the receipt hook does; a
+refund that could not be queued (safe_delay returns None) is logged with
+the module's existing "MANUAL RECONCILIATION NEEDED" helper. Log lines only;
+no user-facing text.
+
+New tests, billing/tests/test_h300_refund_hook.py (from the survey's a1,
+b2, b3; rewritten to assert what the fixed hook does):
+
+- a1 (real commits): the refund's `.delay` raises OperationalError → the
+  event is SUCCEEDED, a and b hold 5000 each, c 0, `.delay` called once, no
+  Refund.create, and a MANUAL RECONCILIATION line naming the intent.
+- a2 (real commits): the email's `.delay` raises OperationalError → the
+  event is SUCCEEDED and the refund was still queued once.
+- a3 (real commits): the refund's `.delay` raises RuntimeError (not a
+  broker error; safe_delay lets it through) → robust=True contains it: the
+  event is SUCCEEDED, the grants are made once.
+- b2, b3 (road B, switch on): a replay grants once and refunds once. They
+  already hold through the merged beta guard (regression on staging).
+
+Red 08 (declared before the run): test_h300_refund_hook (5) plus beta's
+test_h300_reprocess (4), as merged. Count from build_suite: **9**.
+Predicted: **Ran 9, FAILED (failures=3)**: a1, a2, a3, each at the first
+assertion, `'FAILED' != 'SUCCEEDED'`. b2, b3 and beta's four pass. Log
+`08_red_road_a.log`.
+
+Red 08 result (`08_red_road_a.log`): **Ran 9, FAILED (failures=3)**, a1, a2, a3, each `'FAILED' != StripeEventStatus.SUCCEEDED`; b2, b3 and beta's four pass. **As predicted.**
+
+## Road A fix
+
+`_refund_departed_share_on_commit`: `transaction.on_commit(_after_commit,
+robust=True)`; both tasks through `safe_delay`; when the refund cannot be
+queued (safe_delay returns None), `departed_share_refund._manual(...)` logs
+"MANUAL RECONCILIATION NEEDED: ..." with the intent id and the cents owed.
+
+Green 09 (declared before the run): test_h300_refund_hook (5),
+test_h300_reprocess (4), and test_departed_teacher_refund (20; its tests
+patch the refund task's `.delay`, which safe_delay still calls). Count from
+build_suite: **29**. Predicted: **Ran 29, OK**. Log `09_green_road_a.log`.
+
+Plants (one per run, declared before each; labels: green 09's 29; file
+restored from a saved copy, sha256 checked):
+
+- Q1, the refund back to a plain `.delay` (robust and the email's
+  safe_delay stay): predicted **Ran 29, FAILED (failures=1)**: a1, no
+  "MANUAL RECONCILIATION" line (robust=True swallows the OperationalError,
+  so the event is SUCCEEDED, but nobody is told the refund was not
+  queued). Killed by a1. Log `10_plant_q1.log`.
+- Q2, the email back to a plain `.delay` (robust stays): predicted
+  **Ran 29, OK, SURVIVES by design**: robust=True contains the email's
+  error after the refund has been queued, so a2 still sees SUCCEEDED and
+  one refund. safe_delay on the email is defence in depth, not separately
+  observable. Log `11_plant_q2.log`.
+- Q3, robust=True removed (both safe_delays stay): predicted **Ran 29,
+  FAILED (failures=1)**: a3 `'FAILED' != StripeEventStatus.SUCCEEDED` (the
+  RuntimeError is not a broker error, so it reaches the handler). Killed by
+  a3. Log `12_plant_q3.log`.
+
+Green 09 result (`09_green_road_a.log`): Ran 29, OK. **As predicted.**
+
+Plant runner note: the first attempt at Q1-Q3 stopped in the runner script
+itself (a SyntaxError in its plant table, a quoting slip); no plant was
+applied, no test ran, and `billing/stripe_service.py` was untouched. The
+runner was fixed and the three plants ran as declared.
+
+Plant results (each restored, sha256 MATCHED 24e6932dfdf62331):
+- Q1 (`10_plant_q1.log`): Ran 29, FAILED (failures=1), a1, no MANUAL RECONCILIATION line in the logs. Killed, **as predicted**.
+- Q2 (`11_plant_q2.log`): Ran 29, OK. Survives by design, **as predicted**.
+- Q3 (`12_plant_q3.log`): Ran 29, FAILED (failures=1), a3 `'FAILED' != StripeEventStatus.SUCCEEDED`. Killed, **as predicted**.
+
+## Staging near (declared before the runs)
+
+- Near 13, `billing`, --parallel 2: count from build_suite **2619**; 4
+  decorator skips (the opt-in Gate 6 measurements: test_holds_gate6_latency,
+  _m2, _m3, _profile); no runtime skips. Predicted: **Ran 2619, OK
+  (skipped=4)**. Log `13_near_billing.log`.
+- Near 14, the 66-label standing guard list, SERIAL: count **1146**; 1
+  skip (ssrf peer introspection, CI_REQUIRE_NETWORK). Predicted: **Ran
+  1146, OK (skipped=1)**. Log `14_guard_sweep.log`.
+
+Any failure is a STOP.
+
+Near results (under flock):
+- Near 13 (`13_near_billing.log.gz`, --parallel 2, 273 s): **Ran 2619, OK (skipped=4)**. **As predicted.**
+- Near 14 (`14_guard_sweep.log.gz`, serial, 186 s): **Ran 1146, OK (skipped=1)**. **As predicted.**
+
+Ready for the SM to push to staging. No push from Lane 2.

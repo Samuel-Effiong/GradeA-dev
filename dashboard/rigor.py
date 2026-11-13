@@ -32,6 +32,7 @@ from django.db.models import Avg, Count, Q
 
 from assignments.models import Assignment, AssignmentStatus
 from assignments.rigor import compose_rigor, compute_evidence
+from classrooms import grade_service
 from students.models import StudentSubmission
 
 #: `evidence` is a sample statistic, so it needs a sample. Below this many
@@ -267,7 +268,7 @@ def _submission_rollup(teacher_ids, *, session=None):
         StudentSubmission.objects.filter(**filters)
         .values("assignment__course__teacher_id")
         .annotate(
-            avg_percentage=Avg("score_percentage"),
+            avg_percentage=grade_service.mean_percentage(),
             graded=Count("id"),
         )
     )

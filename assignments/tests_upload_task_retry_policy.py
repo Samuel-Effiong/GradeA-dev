@@ -27,7 +27,7 @@ from celery.contrib.testing.worker import start_worker
 from celery.signals import task_postrun, worker_shutdown
 from django.core.cache import cache
 from django.db import connections
-from django.test import TestCase, TransactionTestCase
+from django.test import TestCase, TransactionTestCase, override_settings
 from pdf2image.exceptions import PDFInfoNotInstalledError
 from PIL import Image
 
@@ -45,6 +45,7 @@ from assignments.tests_upload_batch_billing import (
     png,
 )
 from AutoGrader.celery import app as celery_app
+from billing.testing.holds import assert_hold_ledger
 from classrooms.models import Course, Session
 from students.models import (
     BackgroundProcessingTask,
@@ -283,6 +284,9 @@ class AssignmentUploadTaskBillingTest(TransactionTestCase):
         self.assertIsNotNone(first_tracked.assignment_id)
         self.assertIsNone(second_tracked.assignment_id)
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is AssignmentUploadTaskWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_an_unusable_response_is_refunded_and_the_file_released(self):
         self.provider.behaviour[GOOD_FILES["a.png"]] = lambda width: ai_response(
             TOKENS[width], "this is not JSON"
@@ -294,6 +298,36 @@ class AssignmentUploadTaskBillingTest(TransactionTestCase):
         kept, refunded = charges(self.teacher)
         self.assertEqual(kept, [])
         self.assertEqual(refunded, [TOKENS[201]] * self.provider.calls_for("a.png"))
+        self.assertFalse(
+            AssignmentUploadFingerprint.objects.filter(course=self.course).exists()
+        )
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class AssignmentUploadTaskWithHoldsTest(TransactionTestCase):
+    """B1b-2 (NOTES §2.10) B3 twin of AssignmentUploadTaskBillingTest
+    .test_an_unusable_response_is_refunded_and_the_file_released: the same
+    task with holds on. The unusable response is never charged, no refund
+    row is written, the hold is returned and the file is released. The
+    fixture is AssignmentUploadTaskBillingTest's own, called, not inherited,
+    so its other tests do not run again here."""
+
+    def setUp(self):
+        AssignmentUploadTaskBillingTest.setUp(self)
+
+    def _run(self, file_payload, file_name):
+        return AssignmentUploadTaskBillingTest._run(self, file_payload, file_name)
+
+    def test_an_unusable_response_charges_nothing_and_the_file_is_released(self):
+        self.provider.behaviour[GOOD_FILES["a.png"]] = lambda width: ai_response(
+            TOKENS[width], "this is not JSON"
+        )
+
+        outcome, _, tracked = self._run(good_assignment_payload(), "a.png")
+
+        self.assertTrue(outcome.failed())
+        self.assertGreater(self.provider.calls_for("a.png"), 0)
+        assert_hold_ledger(self, self.teacher, kept=[])
         self.assertFalse(
             AssignmentUploadFingerprint.objects.filter(course=self.course).exists()
         )

@@ -3,9 +3,8 @@ User list sorting, D1 (B, owner 2026-11-11): the list's existing payload
 must stay identical while its per-row queries are removed.
 
 The snapshot users/test_data/user_list_payload_pin.json was captured from
-the list on the base commit, BEFORE any change, by running this test once
-with USER_LIST_PIN_WRITE=1 (NOTES, step P0). On beta: base origin/beta
-2c8165b69 (docs/evidence/user-list-beta/NOTES.md, P0).
+the list on the base commit (origin/staging aeb8b157e), BEFORE any change,
+by running this test once with USER_LIST_PIN_WRITE=1 (NOTES, step P0).
 Afterwards the list must reproduce it exactly, minus the nine keys the
 sorting work adds on purpose and the five signal keys (brief 4).
 
@@ -73,10 +72,10 @@ class MixedFixture(Base):
         empty = self.person("g.empty.pin@x.example", first_name="Gus")
 
         # Individual: every bucket type, an expired and a never-expiring one,
-        # usage inside and outside the cycle, a refunded row. The
+        # a hold, usage inside and outside the cycle, a refunded row. The
         # usage log is append-only, so the out-of-cycle row is written
         # first and the cycle starts after it.
-        wallet = self.wallet(individual)
+        wallet = self.wallet(individual, reserved=1_500)
         self.used(individual, 4_400)
         sub = self.subscribe(
             individual,

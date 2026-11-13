@@ -51,6 +51,13 @@ ALLOWED_KEYS = frozenset(
         # S3: the retention sweeps' own record (counts only)
         "deleted_general",
         "deleted_student_record",
+        # Epic B1a (plan 08 §4): the FINANCIAL class's sweep count
+        "deleted_financial",
+        # Epic B1a credit holds: the job's type, the task row it held for
+        # (an id), and what a settlement returned.
+        "job_type",
+        "item_id",
+        "credits_released",
         "scrubbed",
         # identifiers of the things involved (ids, never names)
         "ledger_id",
@@ -61,11 +68,19 @@ ALLOWED_KEYS = frozenset(
         "course_id",
         "lesson_id",
         "tag_id",
+        # Epic C1: a tag's type (a label, never its name), the links a tag
+        # delete removed, and an assignment's tag ids before and after a set.
+        "tag_type",
+        "affected_count",
+        "tag_ids",
         "session_id",
         # H-278: the scope's active session before the change
         "previous_active_session_id",
         "submission_id",
         "student_id",
+        # NFR-CMP-04: how much of a student's data an export covered
+        # ("all", "school" or "courses"), never whose
+        "scope",
         # short labels and versions
         "http_status",
         "auth_method",
@@ -126,6 +141,11 @@ ALLOWED_KEYS = frozenset(
         # events for an escalation and for a manual close. A status, never
         # the free-text reason or note.
         "intent_status",
+        # Epic B1b-4: BillingSettings' editable fields, numbers only, on the
+        # `billing_settings --set` STATE_CHANGE before/after.
+        "cold_start_cost_factor",
+        "unstarted_backstop_hours",
+        "hold_sweep_margin_minutes",
         # H-273: reason label derived from exception class or status code
         "reason_label",
         # H-273: failing field names on ValidationError (names only, never messages)
@@ -294,9 +314,12 @@ METADATA_ALLOWLIST = {
     AuditAction.LESSON_CREATE: frozenset(),
     AuditAction.LESSON_UPDATE: frozenset(),
     AuditAction.LESSON_DELETE: frozenset(),
-    AuditAction.TAG_CREATE: frozenset(),
-    AuditAction.TAG_RENAME: frozenset(),
-    AuditAction.TAG_DELETE: frozenset(),
+    # Epic C1: ids, counts and the type label only. A tag's name is text a
+    # teacher wrote, so neither a create nor a rename records it.
+    AuditAction.TAG_CREATE: frozenset({"tag_type"}),
+    AuditAction.TAG_RENAME: frozenset({"tag_type"}),
+    AuditAction.TAG_DELETE: frozenset({"tag_type", "affected_count"}),
+    AuditAction.ASSIGNMENT_TAGS_SET: frozenset({"course_id"}),
     AuditAction.ROSTER_CHANGE: frozenset(
         {
             "course_id",
@@ -315,6 +338,20 @@ METADATA_ALLOWLIST = {
     ),
     AuditAction.CREDIT_TRANSACTION: frozenset(
         {"credits", "credits_estimated", "credits_actual", "ledger_type", "ledger_id"}
+    ),
+    AuditAction.CREDIT_HOLD_RESERVED: frozenset({"credits", "job_type", "item_id"}),
+    AuditAction.CREDIT_HOLD_SETTLED: frozenset(
+        {"credits", "credits_actual", "credits_released", "job_type", "item_id"}
+    ),
+    AuditAction.CREDIT_HOLD_RELEASED: frozenset(
+        {"credits", "job_type", "item_id", "reason_label"}
+    ),
+    AuditAction.CREDIT_HOLD_SWEPT: frozenset(
+        {"credits", "job_type", "item_id", "reason_label"}
+    ),
+    AuditAction.CREDIT_REQUEST_CREATE: frozenset({"blocks", "license_id"}),
+    AuditAction.CREDIT_REQUEST_DECIDE: frozenset(
+        {"blocks", "license_id", "decision", "reason_label"}
     ),
     AuditAction.DEPARTMENT_CREATE: frozenset(),
     AuditAction.DEPARTMENT_UPDATE: frozenset(),
@@ -338,7 +375,12 @@ METADATA_ALLOWLIST = {
         }
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
-    AuditAction.DATA_EXPORT: frozenset({"file_count", "file_size_bytes"}),
+    # NFR-CMP-04: a student's data erased (students/data_erase.py).
+    AuditAction.STUDENT_DATA_ERASE: frozenset({"scope", "item_count"}),
+    # NFR-CMP-04: a student's data export (students/data_export.py).
+    AuditAction.DATA_EXPORT: frozenset(
+        {"file_count", "file_size_bytes", "item_count", "scope"}
+    ),
     AuditAction.PERMISSION_CHANGE: frozenset({"changed_fields", "source"}),
     # H-34: who and whom are the actor and target; a lock carries nothing
     # more, an unlock says what it cleared.
@@ -363,7 +405,7 @@ METADATA_ALLOWLIST = {
         | _FAILED_AUTH_SUMMARY_KEYS
     ),
     AuditAction.AUDIT_RETENTION_SWEEP: frozenset(
-        {"deleted_general", "deleted_student_record", "scrubbed"}
+        {"deleted_general", "deleted_student_record", "deleted_financial", "scrubbed"}
     ),
     AuditAction.GRADE_CHANGE: frozenset(
         {"assignment_id", "student_id", "changed_fields", "source"}
@@ -398,11 +440,24 @@ _GRADE_FIELDS = frozenset(
 )
 
 BEFORE_AFTER_ALLOWLIST = {
+    # Epic B1b-4: `manage.py billing_settings --set` records the one field it
+    # changed, old and new (08b §1.3 item 5). Exactly BillingSettings'
+    # editable fields; numbers only.
+    AuditAction.STATE_CHANGE: frozenset(
+        {
+            "cold_start_cost_factor",
+            "unstarted_backstop_hours",
+            "hold_sweep_margin_minutes",
+        }
+    ),
     AuditAction.GRADE_CHANGE: _GRADE_FIELDS,
     # AI grading's own before/after (SM note 2): the same grade fields, on
     # the one GRADING_COMPLETED event, with no GRADE_CHANGE beside it.
     AuditAction.GRADING_COMPLETED: _GRADE_FIELDS,
     AuditAction.ROSTER_CHANGE: frozenset({"enrollment_status", "course_id"}),
+    # Epic C1: the tag ids before and after (at most 50, the per-assignment
+    # cap, which is also MAX_LIST_ITEMS).
+    AuditAction.ASSIGNMENT_TAGS_SET: frozenset({"tag_ids"}),
     # Not token_epoch (SM note 1): logout, password change and reset have
     # their own events, and it would add a second event to each of them.
     AuditAction.PERMISSION_CHANGE: frozenset(

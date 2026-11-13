@@ -12,6 +12,12 @@ _TARGET_LABEL = {
     "Session": "Session",
     "LicenseStripeMutationIntent": "License change intent",
     "CreditLedger": "Credit ledger",
+    # Epic B1a: label approved by the owner (SM 2026-11-06).
+    "AIJob": "Credit hold job",
+    # Epic B1c: from the owner-approved "Credit request made/answered".
+    "CreditRequest": "Credit request",
+    # Epic B1b-4: the billing_settings command (the model's verbose_name).
+    "BillingSettings": "Billing settings",
     "SchoolCreditAllocation": "Credit allocation",
     "StudentCourse": "Student enrollment",
     "UserSubscription": "User subscription",

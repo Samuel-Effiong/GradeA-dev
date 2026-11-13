@@ -53,6 +53,12 @@ def charges_in_open_scope() -> bool:
     return bool(_active_task_ids.get())
 
 
+def refund_scope_open() -> bool:
+    """Whether a refund scope is open (B1b-9: a metered unit nested in a
+    flag-off root stays flag-off while draining)."""
+    return _active_task_ids.get() is not None
+
+
 @contextlib.contextmanager
 def billing_refund_scope(*, reason="task failed"):
     """

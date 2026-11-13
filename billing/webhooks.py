@@ -101,6 +101,9 @@ STRIPE_RETRY_WINDOW = timedelta(days=3)
 # one of them.
 _EVENT_HANDLERS = {
     "checkout.session.completed": StripeWebhookHandler.handle_checkout_completed,
+    # Epic B1c: an abandoned credit-request checkout (ops: the production
+    # endpoint must subscribe to this event before the flag goes on).
+    "checkout.session.expired": StripeWebhookHandler.handle_checkout_expired,
     "invoice.payment_succeeded": StripeWebhookHandler.handle_invoice_payment_succeeded,
     "invoice.payment_failed": StripeWebhookHandler.handle_invoice_payment_failed,
     "customer.subscription.deleted": StripeWebhookHandler.handle_subscription_deleted,

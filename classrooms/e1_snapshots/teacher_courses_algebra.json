@@ -1,0 +1,51 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "workflow": {
+   "total_assignments_assigned": 6,
+   "total_draft_assignments": 0,
+   "total_enrolled_students": 6,
+   "total_at_risk_students": 5,
+   "total_assignments_submitted": 16,
+   "total_assignments_graded": 14
+  },
+  "performance": {
+   "average_assignment_grade_by_type": [
+    {
+     "assignment__assignment_type": "ESSAY",
+     "avg_score": 47.4
+    },
+    {
+     "assignment__assignment_type": "OBJECTIVE",
+     "avg_score": 63.55
+    },
+    {
+     "assignment__assignment_type": "SHORT-ANSWER",
+     "avg_score": 50.0
+    }
+   ],
+   "average_assignment_grade_by_topic": [
+    {
+     "assignment__topic__name": "Equations",
+     "avg_score": 61.041666666666664
+    },
+    {
+     "assignment__topic__name": "Graphs",
+     "avg_score": 47.5
+    }
+   ],
+   "lowest_mastery_assignment": {
+    "assignment__id": "assignment:A3 NoPts",
+    "assignment__title": "A3 NoPts",
+    "avg_score": 46.666666666666664
+   },
+   "course_performance_trend": "improving"
+  },
+  "ai_trust": {
+   "average_ai_extraction_confidence": 80.0,
+   "average_ai_grading_confidence": 79.75,
+   "low_confidence_rate": 45.45
+  }
+ }
+}

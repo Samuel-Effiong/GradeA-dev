@@ -47,6 +47,13 @@ billing/ filters on it. Freezing it would mean redesigning refunds as
 reversing rows and rewriting those queries. The financial substance of
 the row - amounts, feature, task, wallet, bucket, timestamps - is
 frozen; only the settled/unsettled marker moves.
+
+ZERO-CREDIT CHECK
+-----------------
+Inserts into a guarded model also run the zero-credit check
+(billing/zero_credit.py). `AuditEvent` uses these guards too, for row
+immutability, but moves no credits, so it is listed in `_NOT_CREDIT_MOVING`
+and an audit event written inside a zero-credit scope is stored (H-299).
 """
 
 import contextlib
@@ -54,6 +61,29 @@ import threading
 
 from django.core.exceptions import ValidationError
 from django.db import models
+
+from billing.zero_credit import (
+    BULK_INSERT,
+    LEDGER_INSERT,
+    USAGE_LOG_INSERT,
+    assert_not_zero_credit,
+)
+
+_INSERT_ATTEMPT = {"creditledger": LEDGER_INSERT, "creditusagelog": USAGE_LOG_INSERT}
+
+# Append-only models that move no credits, so the zero-credit check skips
+# their inserts (H-299). AuditEvent shares these guards for row immutability
+# only; refusing it inside a scope dropped the audit row (the emitter must
+# never fail the user action) and reported a false credit-ledger anomaly.
+# An exemption list on purpose: any append-only model not named here is still
+# treated as a credit write (LEDGER_INSERT), so a new credit table is guarded
+# by default.
+_NOT_CREDIT_MOVING = frozenset({"auditevent"})
+
+
+def _moves_credit(model):
+    return model._meta.model_name not in _NOT_CREDIT_MOVING
+
 
 # `auto_now`-style bookkeeping columns Django itself may rewrite, plus the
 # per-model exemptions declared via `mutable_fields`.
@@ -133,6 +163,8 @@ class AppendOnlyQuerySet(models.QuerySet):
         probe before this override existed. Nothing in the codebase uses
         it; this keeps it that way rather than trusting that it stays true.
         """
+        if _moves_credit(self.model):
+            assert_not_zero_credit(BULK_INSERT)
         if kwargs.get("update_conflicts") and not mutations_allowed():
             raise ImmutableRecordError(
                 f"{self.model.__name__} is append-only; bulk_create("
@@ -183,7 +215,17 @@ class AppendOnlyModel(models.Model):
 def _guard_save(sender, instance, raw, update_fields, **kwargs):
     # `raw` is a loaddata/fixture load: the row is being reconstructed,
     # not edited, and blocking it would make fixtures unusable.
-    if raw or mutations_allowed():
+    if raw:
+        return
+    # Zero-credit scope (billing/zero_credit.py). Checked BEFORE the
+    # mutations_allowed() exemption: that lifts row immutability, not the
+    # "this operation must not write credits" rule. Models that move no
+    # credits (_NOT_CREDIT_MOVING) are exempt from this check only.
+    if instance._state.adding and _moves_credit(sender):
+        assert_not_zero_credit(
+            _INSERT_ATTEMPT.get(sender._meta.model_name, LEDGER_INSERT)
+        )
+    if mutations_allowed():
         return
     if instance._state.adding:
         return

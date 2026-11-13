@@ -7,6 +7,7 @@ from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models, transaction
+from django.db.models.signals import pre_save
 from django.utils import timezone
 from django.utils.functional import cached_property
 from django.utils.translation import gettext_lazy as _
@@ -18,6 +19,7 @@ from audit.enums import AuditAction, AuditOutcome
 
 from .errors import InsufficientCreditsError, is_individual_teacher
 from .immutable import AppendOnlyModel, register_append_only_guards
+from .zero_credit import WALLET_CONSUME, assert_not_zero_credit, guard_bucket_save
 
 # Create your models here.
 
@@ -132,12 +134,50 @@ class LicenseBillingRecordType(models.TextChoices):
         _("Offline Overage Request Approved"),
     )
     CANCELLED = "CANCELLED", _("Cancelled")
+    # B1a plan step 3b (label owner-approved 2026-11-08). Written only while
+    # DEPARTED_SHARE_REFUND_APPROVED is on.
+    OFFLINE_OVERAGE_REFUND_DUE = (
+        "OFFLINE_OVERAGE_REFUND_DUE",
+        _("Overage Refund Owed (Offline)"),
+    )
 
 
 class PendingChangeType(models.TextChoices):
     DOWNGRADE = "DOWNGRADE", _("Downgrade")
     UPGRADE_DEFERRED = "UPGRADE_DEFERRED", _("Upgrade (deferred)")
     LATERAL_DEFERRED = "LATERAL_DEFERRED", _("Interval change (deferred)")
+
+
+class AIJobType(models.TextChoices):
+    # 03a §2.2
+    BATCH_GRADING = "BATCH_GRADING", _("Batch Grading")
+    LESSON_GENERATION = "LESSON_GENERATION", _("Lesson Generation")
+    ASSIGNMENT_GENERATION = "ASSIGNMENT_GENERATION", _("Assignment Generation")
+    INSIGHT_GENERATION = "INSIGHT_GENERATION", _("Insight Generation")
+    # plan 08 §3.1: every hold is a durable row
+    SINGLE_CALL = "SINGLE_CALL", _("Single Call")
+    SINGLE_ITEM = "SINGLE_ITEM", _("Single Item")
+    UPLOAD = "UPLOAD", _("Upload")
+
+
+class AIJobStatus(models.TextChoices):
+    # plan 08 §3.1: 03a's machine without the stored PARTIALLY_COMPLETE
+    ESTIMATED = "ESTIMATED", _("Estimated")
+    RESERVED = "RESERVED", _("Reserved")
+    RUNNING = "RUNNING", _("Running")
+    SETTLED = "SETTLED", _("Settled")
+    FAILED = "FAILED", _("Failed")
+    QUEUED_PENDING_CREDITS = "QUEUED_PENDING_CREDITS", _("Queued Pending Credits")
+    EXPIRED = "EXPIRED", _("Expired")
+    CANCELLED = "CANCELLED", _("Cancelled")
+
+
+class HoldState(models.TextChoices):
+    """A BackgroundProcessingTask's credit hold (plan 08 §3.2). Labelled
+    "credit" so it never reads as an H-279 held re-grade."""
+
+    HELD = "HELD", _("Credit held")
+    RETURNED = "RETURNED", _("Credit returned")
 
 
 PLAN_TIER_HIERARCHY = [
@@ -378,6 +418,24 @@ class SubscriptionPlan(models.Model):
         PlanFeature,
         through="PlanFeatureInclusion",
         related_name="plans",
+    )
+
+    # --- Queue lifetime (Epic B1) ---
+    queue_expiry_days = models.PositiveSmallIntegerField(
+        default=14,
+        db_default=14,
+        help_text=(
+            "Deprecated (owner 2026-11-08): unused; the queue lifetime is "
+            "QUEUE_LIFETIME_DAYS."
+        ),
+    )
+    queue_expiry_warning_hours = models.PositiveSmallIntegerField(
+        default=48,
+        db_default=48,
+        help_text=(
+            "Deprecated (owner 2026-11-08): unused; the queue lifetime is "
+            "QUEUE_LIFETIME_DAYS."
+        ),
     )
 
     # --- Display ---
@@ -660,6 +718,26 @@ class CreditWallet(models.Model):
         help_text="Number of overage blocks used in the current billing cycle",
     )
 
+    # --- Credit holds (Epic B1) ---
+    reserved_credits = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text=(
+            "Credits currently reserved by open AIJob holds. "
+            "Spendable = total_remaining_credits() − reserved_credits."
+        ),
+    )
+    low_balance_warned_level = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        help_text="Last threshold-warning level sent this cycle (25, 10 or 0).",
+    )
+    low_balance_warned_cycle_start = models.DateField(
+        null=True,
+        blank=True,
+        help_text="Billing-cycle start date the last warning was for.",
+    )
+
     created_at = models.DateTimeField(
         auto_now_add=True, help_text="Date and time when the credit wallet was created"
     )
@@ -673,6 +751,15 @@ class CreditWallet(models.Model):
 
     class Meta:
         ordering = ["-created_at"]
+        # Plan 08 §3.2: a bookkeeping error fails loudly, never drifts. The
+        # database side is added NOT VALID then validated (migrations 0075,
+        # 0076); this is the state side.
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(reserved_credits__gte=0),
+                name="creditwallet_reserved_credits_nonneg",
+            ),
+        ]
 
     @cached_property
     def active_subscription(self):
@@ -878,6 +965,7 @@ class CreditWallet(models.Model):
         task_id=None,
         course=None,
         school=None,
+        _wallet_locked=False,
     ):
         """
         Consumes credits from the user's wallet using a type-priority,
@@ -918,8 +1006,19 @@ class CreditWallet(models.Model):
         Raises:
             InsufficientCreditsError: If total available credits are less than requested.
         """
-        # Lock CreditWallet row to serialize consumption requests
-        locked = CreditWallet.objects.select_for_update().get(pk=self.pk)
+        # Zero-credit scope (billing/zero_credit.py): refuse before locking
+        # or touching any bucket.
+        assert_not_zero_credit(WALLET_CONSUME)
+
+        # Lock CreditWallet row to serialize consumption requests.
+        # B1b-3 P3 (NOTES §3.3): `_wallet_locked=True` only from
+        # billing.holds.settle, whose `self` was read under this transaction's
+        # own lock of this row; a second lock would be a no-op round trip.
+        locked = (
+            self
+            if _wallet_locked
+            else CreditWallet.objects.select_for_update().get(pk=self.pk)
+        )
 
         # Re-read under the lock: a dispute landing concurrently must not be
         # raced past by a consumption that read the flag a moment earlier.
@@ -1255,6 +1354,52 @@ def _credit_transaction_action(ledger_type):
     return AuditAction.CREDIT_TRANSACTION
 
 
+#: Epic B1b-6 (plan §3.7): ledger entries that add spendable credits.
+PROMOTING_LEDGER_TYPES = frozenset({"GRANT", "PURCHASE", "REFUND", "PLAN_CHANGE"})
+
+
+def _adds_credits(row):
+    return (
+        row.user_id is not None
+        and row.ledger_type in PROMOTING_LEDGER_TYPES
+        and (row.amount or 0) > 0
+    )
+
+
+def _promote_after_credit(row):
+    if _adds_credits(row):
+        _queue_promotion(row.user_id)
+
+
+def _queue_promotion(user_id):
+    """Epic B1b-6 (plan §3.7, review r1 m3, r2 m-a): a credit entry enqueues
+    the promotion of that user's queued batch jobs after commit; never inline
+    (a promoter error cannot fail the grant), and no query here. Nothing
+    while the flag is off, nor while draining (B1b-9: promotion stops)."""
+    from .holds import holds_for_new_work
+
+    if not holds_for_new_work():
+        return
+    from django.db import transaction
+
+    def promote_queued_jobs_after_commit():
+        _enqueue_promotion(user_id)
+
+    transaction.on_commit(promote_queued_jobs_after_commit)
+
+
+def _enqueue_promotion(user_id):
+    from .tasks import promote_queued_jobs_for_wallet
+
+    wallet_id = (
+        CreditWallet.objects.filter(user_id=user_id)
+        .values_list("pk", flat=True)
+        .first()
+    )
+    if wallet_id is not None:
+        promote_queued_jobs_for_wallet.delay(str(wallet_id))
+
+
 def _emit_credit_transaction(row, owner):
     """One `CREDIT_TRANSACTION` audit event for one written `CreditLedger`
     row. Called from both `record()` (the ~18 `billing/services.py` sites)
@@ -1505,6 +1650,7 @@ class CreditLedger(AppendOnlyModel):
         row = cls.build(user=user, **kwargs)
         row.save()
         _emit_credit_transaction(row, user)
+        _promote_after_credit(row)
         return row
 
     @classmethod
@@ -1523,6 +1669,8 @@ class CreditLedger(AppendOnlyModel):
         users_by_id = get_user_model().objects.in_bulk(user_ids) if user_ids else {}
         for row in objs:
             _emit_credit_transaction(row, users_by_id.get(row.user_id))
+        for user_id in {row.user_id for row in objs if _adds_credits(row)}:
+            _queue_promotion(user_id)
 
 
 class CreditUsageLog(AppendOnlyModel):
@@ -1684,6 +1832,242 @@ class CreditUsageLog(AppendOnlyModel):
 
 
 register_append_only_guards(CreditLedger, CreditUsageLog)
+
+# A zero-credit operation must not move a bucket either (grant, spend, refund,
+# reversal all go through CreditBucket.save). Every used_credits writer also
+# writes a ledger row (audited for B0), so the ledger guards would catch them
+# too, but the bucket is mutated BEFORE the ledger row in several of them.
+pre_save.connect(
+    guard_bucket_save, sender=CreditBucket, dispatch_uid="zero_credit_bucket_guard"
+)
+
+
+# ---------------------------------------------------------------------------
+# Epic B1: AIJob, SettlementRecord, BillingSettings
+# ---------------------------------------------------------------------------
+
+
+class AIJob(models.Model):
+    """One credit-consuming operation and its credit hold (03a §2.2, plan 08
+    §3.1). Every transition is a conditional UPDATE on (id, status)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job_type = models.CharField(max_length=32, choices=AIJobType.choices, db_index=True)
+    status = models.CharField(
+        max_length=32,
+        choices=AIJobStatus.choices,
+        default=AIJobStatus.ESTIMATED,
+        db_index=True,
+    )
+
+    # 03a: an operational row, not history; the ledger keeps the money trail.
+    # NOTES §21v R2: a job is a credit record (owner D1/D4), kept when its
+    # requester is deleted or erased (SET_NULL; the student data map lists it
+    # as KEEP_RECORD).
+    requested_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
+    )
+    # NOTES §21n: a finished job outlives its wallet (SET_NULL); a wallet's
+    # open holds are released by billing.holds.release_open_holds_on_delete
+    # (pre_delete) before it goes, so only a terminal job has no wallet.
+    wallet = models.ForeignKey(
+        CreditWallet,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
+    )
+    school_id = models.UUIDField(null=True, blank=True, db_index=True)
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
+    )
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ai_jobs",
+    )
+
+    # --- Estimate (X-3) ---
+    estimate_p50 = models.IntegerField(null=True, blank=True)
+    estimate_p90 = models.IntegerField(null=True, blank=True)
+    # B1b-4: which tier gave the estimate (billing.estimates SOURCE_*).
+    estimate_source = models.CharField(max_length=16, null=True, blank=True)
+    sufficiency_verdict = models.CharField(max_length=16, null=True, blank=True)
+
+    # --- Hold accounting (plan 08 §3.2) ---
+    reserved_credits = models.IntegerField(default=0, db_default=0)
+    # A timestamp only, never a fencing token (plan 08 §3.2, review r1 M2).
+    reservation_claimed_at = models.DateTimeField(null=True, blank=True)
+    consumed_credits = models.IntegerField(default=0, db_default=0)
+    released_credits = models.IntegerField(default=0, db_default=0)
+    hold_drawn = models.IntegerField(default=0, db_default=0)
+    unbilled_credits = models.IntegerField(default=0, db_default=0)
+    overrun_charged = models.IntegerField(default=0, db_default=0)
+    held_per_item = models.IntegerField(default=0, db_default=0)
+    # B1b FB-1 (NOTES §1.1): what deleted task rows held, drew and released,
+    # so the per-job item_sum check reads live rows + these.
+    deleted_items_held = models.IntegerField(default=0, db_default=0)
+    deleted_items_drawn = models.IntegerField(default=0, db_default=0)
+    deleted_items_released = models.IntegerField(default=0, db_default=0)
+
+    # --- Items ---
+    total_items = models.IntegerField(default=0, db_default=0)
+    completed_items = models.IntegerField(default=0, db_default=0)
+    failed_items = models.IntegerField(default=0, db_default=0)
+    stopped_at_item = models.IntegerField(null=True, blank=True)
+
+    # --- Queue (X-8) ---
+    queued_at = models.DateTimeField(null=True, blank=True)
+    expires_at = models.DateTimeField(null=True, blank=True)
+    warned_expiry_at = models.DateTimeField(null=True, blank=True)
+    cancel_requested_at = models.DateTimeField(null=True, blank=True)
+
+    trace_id = models.UUIDField(db_index=True)
+    meta = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["wallet", "status"],
+                name="aijob_wallet_open_ix",
+                condition=models.Q(status__in=["RESERVED", "RUNNING"]),
+            ),
+            models.Index(
+                fields=["status", "expires_at"],
+                name="aijob_queued_expiry_ix",
+                condition=models.Q(status="QUEUED_PENDING_CREDITS"),
+            ),
+            models.Index(
+                fields=["requested_by", "-created_at"],
+                name="aijob_requester_created_ix",
+            ),
+        ]
+        constraints = [
+            models.CheckConstraint(
+                condition=models.Q(reserved_credits__gte=0)
+                & models.Q(consumed_credits__gte=0)
+                & models.Q(released_credits__gte=0),
+                name="aijob_credits_nonneg",
+            ),
+            models.CheckConstraint(
+                condition=models.Q(
+                    total_items__gte=models.F("completed_items")
+                    + models.F("failed_items")
+                ),
+                name="aijob_items_within_total",
+            ),
+            # billing 0081 (NOT VALID) and 0082 (VALIDATE), the house way.
+            models.CheckConstraint(
+                condition=models.Q(deleted_items_held__gte=0)
+                & models.Q(deleted_items_drawn__gte=0)
+                & models.Q(deleted_items_released__gte=0),
+                name="aijob_deleted_items_nonneg",
+            ),
+        ]
+
+    def __str__(self):
+        return f"AIJob {self.id} ({self.job_type}/{self.status})"
+
+
+class SettlementRecord(models.Model):
+    """Per-item settlement fence: unique (item_id, retry_count)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    job = models.ForeignKey(
+        AIJob,
+        on_delete=models.CASCADE,
+        related_name="settlements",
+    )
+    item_id = models.UUIDField(
+        help_text="BackgroundProcessingTask id, or the job id for E-4/E-5/SINGLE_CALL.",
+    )
+    retry_count = models.PositiveIntegerField(default=0)
+    credits_charged = models.IntegerField(default=0)
+    settled_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["item_id", "retry_count"],
+                name="unique_settlement_per_item_retry",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Settlement {self.item_id}:{self.retry_count}"
+
+
+class BillingSettings(models.Model):
+    """Singleton billing settings, one row. Not in Django admin (SM ruling
+    2026-11-08): read and changed with `manage.py billing_settings`, which
+    audits every change."""
+
+    cold_start_cost_factor = models.FloatField(
+        default=3.0,
+        help_text="Multiplier for the cold-start estimate fallback.",
+    )
+    unstarted_backstop_hours = models.PositiveSmallIntegerField(
+        default=36,
+        help_text="Hours before unstarted items in a job are failed by the backstop.",
+    )
+    hold_sweep_margin_minutes = models.PositiveSmallIntegerField(
+        default=15,
+        db_default=15,
+        help_text=(
+            "Minutes past the redelivery window (and past the time limit for "
+            "jobs with no task row) before a stale credit hold is returned."
+        ),
+    )
+
+    class Meta:
+        verbose_name = "Billing settings"
+        verbose_name_plural = "Billing settings"
+
+    def __str__(self):
+        return "BillingSettings"
+
+    def save(self, *args, **kwargs):
+        self.pk = 1
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+class EstimateDriftRun(models.Model):
+    """One run of the monthly estimate drift check (plan 08 §3.6): the band
+    coverage overall and per shape x batch-size cell, so the trend is
+    visible. It only reports; nothing reads it to change an estimate."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    ran_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    window_days = models.PositiveSmallIntegerField()
+    batches = models.PositiveIntegerField(default=0)
+    coverage = models.FloatField(null=True, blank=True)
+    cells = models.JSONField(default=list, blank=True)
+    suggested_factor = models.FloatField(null=True, blank=True)
+    current_factor = models.FloatField()
+    drifted = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ["-ran_at"]
+
+    def __str__(self):
+        return f"EstimateDriftRun {self.ran_at:%Y-%m-%d} coverage={self.coverage}"
 
 
 class BetaProfile(models.Model):
@@ -1971,6 +2355,11 @@ class LicenseOveragePurchaseStatus(models.TextChoices):
     PENDING = "PENDING", _("Pending")
     COMPLETED = "COMPLETED", _("Completed")
     FAILED = "FAILED", _("Failed")
+    # Epic B1c (plan 08 r4 m3-a): a credit request's checkout that another
+    # purchase for the same request completed first, or that was abandoned.
+    # The completed handler grants nothing on it and refunds a payment that
+    # went through anyway. FAILED keeps its meaning.
+    SUPERSEDED = "SUPERSEDED", _("Superseded")
 
 
 class LicenseOveragePurchaseIntent(models.Model):
@@ -2036,6 +2425,11 @@ class LicenseOveragePurchaseIntent(models.Model):
     )
     failure_reason = models.TextField(null=True, blank=True)
     completed_at = models.DateTimeField(null=True, blank=True)
+    # Epic B1c (plan 08 §3.8): when Stripe closes the checkout page, read
+    # from the created session (the stale-APPROVED sweep's clock), and the
+    # credit request this purchase answers, written before Session.create.
+    session_expires_at = models.DateTimeField(null=True, blank=True)
+    credit_request_id = models.UUIDField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -2289,6 +2683,8 @@ class LicenseOverageOfflineRequest(models.Model):
         on_delete=models.SET_NULL,
         related_name="overage_offline_requests",
     )
+    # Epic B1c (plan 08 §3.8): the credit request this answers, if any.
+    credit_request_id = models.UUIDField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -2299,6 +2695,99 @@ class LicenseOverageOfflineRequest(models.Model):
             models.Index(fields=["status", "-created_at"]),
             models.Index(fields=["license_subscription", "status"]),
         ]
+
+
+class CreditRequestStatus(models.TextChoices):
+    """Epic B1c (plan 08 §3.8). Names approved by the owner (W10,
+    2026-11-11)."""
+
+    PENDING = "PENDING", _("Waiting")
+    APPROVED = "APPROVED", _("Approved")
+    GRANTED = "GRANTED", _("Credits added")
+    DECLINED = "DECLINED", _("Declined")
+    WITHDRAWN = "WITHDRAWN", _("Withdrawn")
+    CLOSED = "CLOSED", _("Closed")
+
+
+CREDIT_REQUEST_OPEN_STATUSES = (
+    CreditRequestStatus.PENDING,
+    CreditRequestStatus.APPROVED,
+)
+
+
+class CreditRequest(models.Model):
+    """Epic B1c (plan 08 §3.8, FR-B-11): a licensed teacher asks their
+    license's admin for more credits. Approval runs the normal overage
+    purchase for that teacher (billing.credit_requests)."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        "users.CustomUser", on_delete=models.CASCADE, related_name="credit_requests"
+    )
+    license_subscription = models.ForeignKey(
+        LicenseSubscription, on_delete=models.CASCADE, related_name="credit_requests"
+    )
+    requested_blocks = models.PositiveIntegerField()
+    message = models.CharField(max_length=500, blank=True, default="")
+    status = models.CharField(
+        max_length=20,
+        choices=CreditRequestStatus.choices,
+        default=CreditRequestStatus.PENDING,
+    )
+    ai_job = models.ForeignKey(
+        "billing.AIJob",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests",
+    )
+    purchase_intent = models.ForeignKey(
+        LicenseOveragePurchaseIntent,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests",
+    )
+    offline_request = models.ForeignKey(
+        LicenseOverageOfflineRequest,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests",
+    )
+    # The last system note (W11-W13) or a purchase error, shown to admins.
+    note = models.TextField(blank=True, default="")
+    decided_by = models.ForeignKey(
+        "users.CustomUser",
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="credit_requests_decided",
+    )
+    decided_at = models.DateTimeField(null=True, blank=True)
+    decline_reason = models.CharField(max_length=500, blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(
+                fields=["license_subscription", "status", "-created_at"],
+                name="billing_creditreq_inbox_ix",
+            ),
+        ]
+        constraints = [
+            # One open request per teacher (plan 08 review r1 B3).
+            models.UniqueConstraint(
+                fields=["teacher"],
+                condition=models.Q(status__in=["PENDING", "APPROVED"]),
+                name="billing_creditreq_one_open_per_teacher",
+            ),
+        ]
+
+    def __str__(self):
+        return f"CreditRequest {self.id} ({self.status})"
 
 
 class SchoolCreditAllocation(models.Model):

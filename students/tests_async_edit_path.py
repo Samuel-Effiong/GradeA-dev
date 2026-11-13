@@ -29,13 +29,19 @@ from celery.contrib.testing.worker import start_worker
 from celery.signals import task_postrun, worker_shutdown
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import connections
-from django.test import LiveServerTestCase, TestCase, TransactionTestCase
+from django.test import (
+    LiveServerTestCase,
+    TestCase,
+    TransactionTestCase,
+    override_settings,
+)
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.tokens import RefreshToken
 
+from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import (
     EXTRACTION_TASK_STALE_AFTER_SECONDS,
@@ -45,6 +51,13 @@ from AutoGrader.celery import app as celery_app
 from AutoGrader.testing.live_server import BurstLiveServerThread
 from billing.models import CreditBucket, CreditBucketType, CreditWallet
 from billing.refunds import record_billing_task_id
+from billing.testing.holds import (
+    ai_response,
+    assert_hold_ledger,
+    call_ai,
+    estimate_for,
+    fund,
+)
 from classrooms.models import Course, EnrollmentStatusType, Session, StudentCourse
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 from students.models import (
@@ -404,6 +417,9 @@ class ExtractionTaskTest(TestCase):
         self.assertEqual(tracked.status, BackgroundTaskStatus.SUCCESS)
         self.assertIn("timed out", tracked.meta["last_error"])
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is ExtractionWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     @patch("billing.services.SubscriptionService.refund_credits")
     @patch("students.services.ai_processor")
     def test_failure_after_the_charge_refunds_it(self, mock_ai, mock_refund):
@@ -456,6 +472,47 @@ class ExtractionTaskTest(TestCase):
         self.assertEqual(mock_ai.extract_answer_with_retry.call_count, 1)
         tracked.refresh_from_db()
         self.assertEqual(tracked.status, BackgroundTaskStatus.SUCCESS)
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class ExtractionWithHoldsTest(TestCase):
+    """B1b-2 (NOTES §2.10) B3 twin of
+    ExtractionTaskTest.test_failure_after_the_charge_refunds_it: the
+    extraction makes one real billed call inside the edit's metered unit,
+    then its result is malformed. Nothing is charged, no refund row is
+    written, the hold is returned, and the row never changed."""
+
+    def setUp(self):
+        (
+            self.teacher,
+            self.student,
+            self.course,
+            self.assignment,
+            self.submission,
+        ) = _classroom("task-on")
+        fund(self.teacher, 10 * estimate_for())
+
+    def test_failure_after_the_call_charges_nothing_and_returns_the_hold(self):
+        def billed_then_junk(*args, **kwargs):
+            call_ai(self.teacher)
+            return {"answers": "not a list"}
+
+        with patch(
+            "ai_processor.services.can_user_access_ai", return_value=(True, None)
+        ), patch.object(
+            AIProcessor, "_AIProcessor__ai_model", return_value=ai_response(1_000)
+        ), patch(
+            "students.services.ai_processor.extract_answer_with_retry",
+            side_effect=billed_then_junk,
+        ):
+            with self.assertRaises(ValueError):
+                update_submission_from_raw_text(
+                    self.student, self.submission, EDITED_TEXT
+                )
+
+        assert_hold_ledger(self, self.teacher, kept=[])
+        self.submission.refresh_from_db()
+        self.assertEqual(self.submission.answers[0]["answer_html"], "original")
 
 
 class UpdateAsyncConcurrencyLiveHTTPTest(LiveServerTestCase):

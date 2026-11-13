@@ -1,0 +1,25 @@
+[
+ {
+  "name": "PB6-11",
+  "group": "B1b-6",
+  "edits": [
+   {
+    "file": "assignments/views.py",
+    "old": "        pairs = _dispatch_tracked_grading(\n            request.user,\n            assignment,\n            ungraded_submissions,\n            session,\n            request=request,\n            batch_id=session.id,\n        )\n",
+    "new": "        from django.test import override_settings as _off\n\n        with _off(BILLING_HOLDS_ENABLED=False):\n            pairs = _dispatch_tracked_grading(\n                request.user,\n                assignment,\n                ungraded_submissions,\n                session,\n                request=request,\n                batch_id=session.id,\n            )\n"
+   }
+  ],
+  "label": "billing.tests.test_batch_queue.GradeAllTests.test_a_waiting_paper_is_listed_with_no_task_id",
+  "expected": "Ran 1, FAILED (failures=1)",
+  "fragments": [
+   "is not None : D6-d: a waiting paper has no task"
+  ],
+  "env": {},
+  "status": "same",
+  "new_location": "",
+  "old_anchor": "",
+  "reason": "",
+  "note": "",
+  "source": "docs/evidence/epic-b1b/step6/PB6-11_4cbd823a4.log"
+ }
+]

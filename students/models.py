@@ -2,6 +2,7 @@ import uuid
 
 from django.core.serializers.json import DjangoJSONEncoder
 from django.db import models, transaction
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from students.grading_label import FIRST_FORM_NOTE, UNLABELLED
@@ -631,9 +632,130 @@ class BackgroundProcessingTask(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # --- Credit holds (Epic B1) ---
+    job = models.ForeignKey(
+        "billing.AIJob",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="items",
+        db_index=False,
+    )
+    hold_state = models.CharField(
+        max_length=10,
+        # Same values and labels as billing.models.HoldState (plan 08 §3.2):
+        # "credit" so it never reads as an H-279 held re-grade.
+        choices=[("HELD", _("Credit held")), ("RETURNED", _("Credit returned"))],
+        null=True,
+        blank=True,
+    )
+    hold_credits = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text="Credits held for this item (held_per_item plus extensions).",
+    )
+    hold_drawn = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text="Credits taken off wallet.reserved_credits by this item's settlement.",
+    )
+    released_credits = models.IntegerField(
+        default=0,
+        db_default=0,
+        help_text="Credits returned to the wallet counter for this item.",
+    )
+
     class Meta:
         ordering = ["-created_at"]
+        indexes = [
+            # Plan 08 §4: built CONCURRENTLY (students 0039); job is
+            # db_index=False so the FK adds no inline index.
+            models.Index(fields=["job"], name="students_bpt_job_id_ix"),
+        ]
 
     def __str__(self):
         label = self.file_name or self.celery_task_id or str(self.id)
         return f"{self.task_type}::{label}"
+
+
+class ErasedStudentRecord(models.Model):
+    """NFR-CMP-04 (owner, 2026-11-06): who a fully erased student was.
+
+    Written by a full erasure, just before the account is deleted, so the
+    rows kept with the student's id alone (the activity log and the credit
+    records, D1/D4) still resolve to a name and an email. Kept 7 years
+    (`keep_until`). No purge is built yet (R9, an open follow-up). Not in
+    the Django admin (no new wording).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    original_user_id = models.UUIDField(unique=True)
+    first_name = models.CharField(max_length=150, blank=True, default="")
+    middle_name = models.CharField(max_length=255, blank=True, default="")
+    last_name = models.CharField(max_length=150, blank=True, default="")
+    email = models.EmailField()
+    erased_at = models.DateTimeField()
+    #: The super admin or school admin who erased the account (a bare id:
+    #: the erasure must not depend on that account staying).
+    erased_by_id = models.UUIDField(null=True, blank=True)
+    keep_until = models.DateTimeField()
+
+
+class KeptUpload(models.Model):
+    """An uploaded file kept for its item (Epic B1b-5, 08b §3.2), so a stopped
+    upload item can be retried without a re-upload. The bytes are a private
+    Cloudinary asset (`students.kept_files`); this row says where, what, and
+    until when. Kept after purge (`purged_at` set) so a refused retry can say
+    the file was deleted. See students/kept_uploads.py."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    processing_task = models.OneToOneField(
+        BackgroundProcessingTask,
+        on_delete=models.CASCADE,
+        related_name="kept_upload",
+    )
+    #: The asset's random public id, `kept_uploads/<hex>`; never a file name.
+    storage_key = models.CharField(max_length=255, unique=True)
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=255, blank=True, default="")
+    size_bytes = models.PositiveBigIntegerField()
+    sha256 = models.CharField(max_length=64)
+    #: The ids a retry relaunches with (SM Q2): `{"topic_id": ...}` for an
+    #: assignment upload. Ids only, never names or bytes.
+    relaunch = models.JSONField(default=dict, blank=True)
+    #: created_at + QUEUE_LIFETIME_DAYS (08b §2.1); moved to now when the
+    #: item succeeds or is cancelled.
+    kept_until = models.DateTimeField()
+    #: Set only once the asset's delete succeeded.
+    purged_at = models.DateTimeField(null=True, blank=True)
+
+    class PurgeReason(models.TextChoices):
+        LIFETIME = "lifetime", "Reached the end of its lifetime"
+        DISCARDED = "discarded", "Discarded: the item ended"
+
+    #: Why the file went. "discarded" is written when discard() makes the row
+    #: due (cancel, refusal, success), so a failed delete the hourly purge
+    #: retries later is still a discard; "lifetime" when the purge deletes a
+    #: row nobody discarded. Blank: lost or corrupt file, or an older row.
+    #: Only "lifetime" lets a refused retry say the file was deleted after N
+    #: days (students.item_retry).
+    purge_reason = models.CharField(
+        max_length=16,
+        choices=PurgeReason.choices,
+        blank=True,
+        default="",
+        db_default="",
+    )
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        indexes = [
+            models.Index(
+                fields=["kept_until"],
+                name="keptupload_due",
+                condition=models.Q(purged_at__isnull=True),
+            )
+        ]
+
+    def __str__(self):
+        return f"KeptUpload {self.pk}"

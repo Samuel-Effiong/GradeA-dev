@@ -1,0 +1,213 @@
+{
+ "course": {
+  "id": "course:Algebra",
+  "name": "Algebra",
+  "session_name": "E1 Fall Tess",
+  "teacher_id": "user:Tess",
+  "generated_at": "2026-10-15T12:00:00Z",
+  "window_days": 60
+ },
+ "overall": {
+  "student_count": 6,
+  "published_assignment_count": 6,
+  "relevant_assignment_count": 5,
+  "submission_count": 16,
+  "expected_submission_count": 30,
+  "submission_rate": 53.33,
+  "graded_submission_count": 15,
+  "average_grade": 60.83,
+  "recent_submission_count": 14,
+  "previous_submission_count": 2,
+  "submission_trend": "IMPROVING",
+  "recent_average_grade": 58.92,
+  "previous_average_grade": 62.75,
+  "grade_trend": "DECLINING",
+  "term_label": "E1 Fall Tess"
+ },
+ "overall_summary": "Algebra currently has 6 enrolled student(s) and 6 published assignment(s) so far in E1 Fall Tess. Students have completed 16 of 30 expected submission(s) (53.33%), and the average graded score across the course is 60.83%. Over the last week, submission activity is improving compared with the prior week, while recent graded performance is declining (58.92% versus 62.75%).",
+ "at_risk_students": [
+  {
+   "student_id": "user:Fay",
+   "student_name": "Fay Snap",
+   "average_grade": null,
+   "assignments_submitted": 0,
+   "assignments_expected": 5,
+   "missing_assignments_count": 5,
+   "submission_rate": 0.0,
+   "grade_trend": "INSUFFICIENT DATA",
+   "recent_scores": [],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "No submitted work for assignments due so far."
+   ],
+   "issue_tags": [
+    "missing_submissions"
+   ]
+  },
+  {
+   "student_id": "user:Cy",
+   "student_name": "Cy Snap",
+   "average_grade": 80.0,
+   "assignments_submitted": 2,
+   "assignments_expected": 5,
+   "missing_assignments_count": 3,
+   "submission_rate": 40.0,
+   "grade_trend": "INSUFFICIENT DATA",
+   "recent_scores": [
+    80.0
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Submission rate is 40.0% with 3 missing assignment(s)."
+   ],
+   "issue_tags": [
+    "missing_submissions"
+   ]
+  },
+  {
+   "student_id": "user:Dee",
+   "student_name": "Dee Snap",
+   "average_grade": 3.64,
+   "assignments_submitted": 3,
+   "assignments_expected": 5,
+   "missing_assignments_count": 2,
+   "submission_rate": 60.0,
+   "grade_trend": "IMPROVING",
+   "recent_scores": [
+    0.0,
+    90.0,
+    50.0
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Submission rate is 60.0% with 2 missing assignment(s).",
+    "Average graded score is 3.64%, below the 70% target."
+   ],
+   "issue_tags": [
+    "missing_submissions",
+    "low_scores"
+   ]
+  },
+  {
+   "student_id": "user:Eve",
+   "student_name": "Eve Snap",
+   "average_grade": 86.96,
+   "assignments_submitted": 3,
+   "assignments_expected": 5,
+   "missing_assignments_count": 2,
+   "submission_rate": 60.0,
+   "grade_trend": "DECLINING",
+   "recent_scores": [
+    95.0,
+    60.0,
+    20.0
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Submission rate is 60.0% with 2 missing assignment(s).",
+    "Recent graded work is trending downward."
+   ],
+   "issue_tags": [
+    "missing_submissions",
+    "declining_performance"
+   ]
+  },
+  {
+   "student_id": "user:Ben",
+   "student_name": "Ben Snap",
+   "average_grade": 46.09,
+   "assignments_submitted": 4,
+   "assignments_expected": 5,
+   "missing_assignments_count": 1,
+   "submission_rate": 80.0,
+   "grade_trend": "STABLE",
+   "recent_scores": [
+    70.0,
+    40.0,
+    120.0,
+    50.0
+   ],
+   "ai_student_summary": null,
+   "risk_reasons": [
+    "Average graded score is 46.09%, which suggests conceptual gaps despite regular submission."
+   ],
+   "issue_tags": [
+    "conceptual_gaps"
+   ]
+  }
+ ],
+ "commonalities": [
+  "4 at-risk student(s) are being pulled down by missing submissions.",
+  "2 at-risk student(s) are showing low-score patterns that suggest comprehension gaps.",
+  "1 at-risk student(s) are trending downward on recent graded work.",
+  "Several at-risk students are struggling on work connected to the topic 'Equations'."
+ ],
+ "trend_watch": {
+  "trending_up": [
+   {
+    "student_id": "user:Dee",
+    "student_name": "Dee Snap",
+    "average_grade": 3.64,
+    "submission_rate": 60.0,
+    "grade_trend": "IMPROVING",
+    "trend_delta": 57.05
+   }
+  ],
+  "trending_down": []
+ },
+ "interventions": [
+  {
+   "scope": "student",
+   "target": "Ben Snap",
+   "student_id": "user:Ben",
+   "reason": "Average graded score is 46.09%, which suggests conceptual gaps despite regular submission.",
+   "recommendation": "Provide re-teaching or targeted practice on the weakest concept area and review the next submission closely."
+  },
+  {
+   "scope": "course",
+   "target": "Algebra",
+   "reason": "Low scores suggest a shared comprehension issue.",
+   "recommendation": "Re-teach the weakest concept or assignment area in a focused mini-lesson and assign one targeted follow-up practice task."
+  },
+  {
+   "scope": "course",
+   "target": "Algebra",
+   "reason": "Missing submissions are a recurring issue.",
+   "recommendation": "Set a catch-up checkpoint, contact missing students directly, and give a short make-up submission window where appropriate."
+  },
+  {
+   "scope": "student",
+   "target": "Fay Snap",
+   "student_id": "user:Fay",
+   "reason": "No submitted work for assignments due so far.",
+   "recommendation": "Reach out directly, identify the blocker, and create a short recovery plan for missed work."
+  },
+  {
+   "scope": "course",
+   "target": "Algebra",
+   "reason": "Some students are slipping on recent work.",
+   "recommendation": "Schedule quick check-ins with students trending downward before the decline becomes persistent."
+  },
+  {
+   "scope": "student",
+   "target": "Cy Snap",
+   "student_id": "user:Cy",
+   "reason": "Submission rate is 40.0% with 3 missing assignment(s).",
+   "recommendation": "Reach out directly, identify the blocker, and create a short recovery plan for missed work."
+  },
+  {
+   "scope": "student",
+   "target": "Dee Snap",
+   "student_id": "user:Dee",
+   "reason": "Submission rate is 60.0% with 2 missing assignment(s).",
+   "recommendation": "Reach out directly, identify the blocker, and create a short recovery plan for missed work."
+  },
+  {
+   "scope": "student",
+   "target": "Eve Snap",
+   "student_id": "user:Eve",
+   "reason": "Submission rate is 60.0% with 2 missing assignment(s).",
+   "recommendation": "Reach out directly, identify the blocker, and create a short recovery plan for missed work."
+  }
+ ]
+}

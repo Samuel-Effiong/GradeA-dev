@@ -32,18 +32,26 @@ Said plainly, as limits:
 """
 
 import logging
+import uuid
+from functools import partial
 
 from django.core.files.uploadedfile import UploadedFile
+from django.db import connection, transaction
 from rest_framework import status
 from rest_framework.response import Response
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
 from AutoGrader.reason_codes import credit_refusal_message
+from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.uploads import validate_upload_size
+from billing import holds as credit_holds
 from billing.errors import InsufficientCreditsError, is_individual_teacher
+from billing.models import HoldState
 from billing.refusals import log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
+from students.models import BackgroundProcessingTask, BackgroundTaskStatus
+from students.task_tracking import attach_celery_task, mark_processing_task_failure
 from users.models import UserTypes
 
 logger = logging.getLogger(__name__)
@@ -57,6 +65,26 @@ def _billed_user(request_user, assignment):
         course = getattr(assignment, "course", None)
         return getattr(course, "teacher", None)
     return request_user
+
+
+def _balance(wallet):
+    """What the door compares with: spendable credit (total less what other
+    jobs hold) when credit holds are on (plan 08 §3.2), the total otherwise.
+    While draining the flag is on, so spendable too (B1b-9 Q9-2)."""
+    if credit_holds.holds_enabled():
+        return credit_holds.spendable_credits(wallet)
+    return wallet.total_remaining_credits()
+
+
+def _refusal_response(request_user, refusal):
+    if request_user.user_type == UserTypes.STUDENT:
+        message = STUDENT_UPLOAD_NOT_PROCESSED
+    else:
+        message = credit_refusal_message(refusal)
+    return Response(
+        {"error": message, "code": "insufficient_credits"},
+        status=status.HTTP_402_PAYMENT_REQUIRED,
+    )
 
 
 def _estimate_for(uploaded_file, prompt):
@@ -80,7 +108,9 @@ def _estimate_for(uploaded_file, prompt):
         uploaded_file.seek(0)
 
 
-def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, prompt):
+def upload_refusal_if_unaffordable(
+    request_user, assignment, uploaded_files, prompt, estimates_out=None
+):
     """None when every file may be queued; otherwise the 402 Response, with
     the sentence the caller may read: the fixed one for a student, the usual
     generic credit message for a teacher. Nothing is queued by this function."""
@@ -90,9 +120,11 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
     wallet = getattr(billed, "credit_wallet", None)
     if wallet is None:
         return None
-    balance = wallet.total_remaining_credits()
-    for uploaded_file in uploaded_files:
+    balance = _balance(wallet)
+    for index, uploaded_file in enumerate(uploaded_files):
         estimate = _estimate_for(uploaded_file, prompt)
+        if estimates_out is not None:
+            estimates_out[index] = estimate
         if estimate is None or balance >= estimate:
             continue
         refusal = InsufficientCreditsError(
@@ -100,18 +132,11 @@ def upload_refusal_if_unaffordable(request_user, assignment, uploaded_files, pro
             individual=is_individual_teacher(billed),
         )
         log_refusal(logger, "Upload door", refusal)
-        if request_user.user_type == UserTypes.STUDENT:
-            message = STUDENT_UPLOAD_NOT_PROCESSED
-        else:
-            message = credit_refusal_message(refusal)
-        return Response(
-            {"error": message, "code": "insufficient_credits"},
-            status=status.HTTP_402_PAYMENT_REQUIRED,
-        )
+        return _refusal_response(request_user, refusal)
     return None
 
 
-def parked_files(request_user, assignment, uploaded_files, prompt):
+def parked_files(request_user, assignment, uploaded_files, prompt, estimates_out=None):
     """H-223: {index: the refusal} for each file of a teacher's batch that
     does not fit, walking the files in upload order with a running balance
     (a file that fits takes its estimate off what is left). Empty when every
@@ -124,12 +149,14 @@ def parked_files(request_user, assignment, uploaded_files, prompt):
     wallet = getattr(billed, "credit_wallet", None)
     if wallet is None:
         return {}
-    left = wallet.total_remaining_credits()
+    left = _balance(wallet)
     parked = {}
     for index, uploaded_file in enumerate(uploaded_files):
         if not isinstance(uploaded_file, UploadedFile):
             continue  # its own item in the route (FR-A-07)
         estimate = _estimate_for(uploaded_file, prompt)
+        if estimates_out is not None:
+            estimates_out[index] = estimate
         if estimate is None:
             continue
         if estimate <= left:
@@ -152,3 +179,132 @@ def batch_refusal_response(billed_user):
         {"error": credit_refusal_message(refusal), "code": "insufficient_credits"},
         status=status.HTTP_402_PAYMENT_REQUIRED,
     )
+
+
+def launch_at_door(launch, task_callable, processing_task, *args, **kwargs):
+    """Launch a door file's task and return the task id the response carries.
+
+    Flag off: today's direct call. Flag on (plan 08 M5, NOTES §15g): the
+    Celery id is chosen now and written on the row, and the message goes out
+    only when the transaction commits, so no worker starts before the hold
+    exists. `launch` is the caller's own launch_processing_task, so tests
+    that patch it by name still apply; partial binds this file's arguments.
+    While draining (B1b-9) the door holds nothing, so it launches as flag off."""
+    if not credit_holds.holds_for_new_work():
+        return launch(task_callable, processing_task, *args, **kwargs).id
+    celery_task_id = str(uuid.uuid4())
+    attach_celery_task(processing_task.id, celery_task_id)
+    send = partial(
+        launch,
+        task_callable,
+        processing_task,
+        *args,
+        _celery_task_id=celery_task_id,
+        **kwargs,
+    )
+    if connection.in_atomic_block:
+        # Under an outer transaction the message goes at its commit, where an
+        # error would stop the later files' callbacks (NOTES §15g addendum).
+        transaction.on_commit(_DoorLaunchOnCommit(send, processing_task.id))
+    else:
+        # Autocommit: on_commit runs it now, and a broker failure still
+        # reaches the view (503), as in 327ce23c.
+        transaction.on_commit(send)
+    return celery_task_id
+
+
+class _DoorLaunchOnCommit:
+    """A door file's on-commit send under an outer atomic. Its own failure
+    is settled here and logged without its text (H-208), and nothing is
+    re-raised, so the other files' callbacks still run. It does not assume
+    launch_processing_task already accounted for the failure."""
+
+    def __init__(self, send, processing_task_id):
+        self.send = send
+        self.processing_task_id = processing_task_id
+
+    def __call__(self):
+        try:
+            self.send()
+        except Exception as exc:
+            self._settle_failure(exc)
+            logger.error(
+                "Door launch for task %s failed on commit: %s",
+                self.processing_task_id,
+                describe_error_for_log(exc),
+            )
+
+    def _settle_failure(self, exc):
+        row = (
+            BackgroundProcessingTask.objects.select_related("job")
+            .filter(pk=self.processing_task_id)
+            .first()
+        )
+        if row is None:
+            return
+        if row.finished_at is None and row.status != BackgroundTaskStatus.FAILURE:
+            mark_processing_task_failure(row.id, exc)
+        if row.job_id is not None and row.hold_state == HoldState.HELD:
+            credit_holds.fail_item(row.job, item=row)
+
+
+class DoorHoldRefused(Exception):
+    """A door hold did not fit, raised inside the request's transaction so
+    the queued row rolls back; `response` is the usual 402."""
+
+    def __init__(self, response):
+        super().__init__("door hold refused")
+        self.response = response
+
+
+class DoorHold:
+    """Epic B1a (plan 08 §3.2, E-7): one request's UPLOAD job, opened at the
+    first file it holds. A no-op while credit holds are off, for a super
+    admin, without a wallet, or for a file the door could not estimate."""
+
+    def __init__(self, request_user, assignment, total_items):
+        self.request_user = request_user
+        self.assignment = assignment
+        self.total_items = max(total_items, 1)
+        self.job = None
+        self.billed = None
+        # B1b-9: no new door job while draining.
+        self.active = credit_holds.holds_for_new_work() and not (
+            request_user.is_real_super_admin()
+        )
+        if self.active:
+            self.billed = _billed_user(request_user, assignment)
+            if getattr(self.billed, "credit_wallet", None) is None:
+                self.active = False
+
+    def hold(self, row, estimate):
+        """True when the file may be launched."""
+        if not self.active or not estimate:
+            return True
+        if self.job is None:
+            self.job = credit_holds.open_door_job(
+                billed_user=self.billed,
+                requested_by=self.request_user,
+                total_items=self.total_items,
+                assignment=self.assignment,
+            )
+        return credit_holds.hold_door_item(self.job, row, estimate)
+
+    def seal(self):
+        """The request has held every file it will: the door job may now
+        close at its last item (door-close fix, 2026-11-12)."""
+        if self.job is not None:
+            from billing.batch_queue import seal_door_job
+
+            seal_door_job(self.job)
+
+    def refusal(self, estimate):
+        error = InsufficientCreditsError(
+            f"Upload needs ~{estimate} credits, more than is free to hold",
+            individual=is_individual_teacher(self.billed),
+        )
+        log_refusal(logger, "Upload door (hold)", error)
+        return error
+
+    def refusal_response(self, estimate):
+        return _refusal_response(self.request_user, self.refusal(estimate))

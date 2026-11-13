@@ -1,0 +1,55 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "course": "course:Algebra",
+  "assignment_submitted": 0,
+  "assignment_not_submitted": 1,
+  "assignment_graded": 4,
+  "assignment_assigned": 6,
+  "completion_rate": 66.66666666666666,
+  "missing_or_overdue": 1,
+  "average_grade": 59.38,
+  "grade_trend": "improving",
+  "best_assignments": [
+   {
+    "assignment_id": "assignment:A0 Old",
+    "assignment_name": "A0 Old",
+    "score": 5.55,
+    "score_percentage": 55.5
+   },
+   {
+    "assignment_id": "assignment:A1 Exam",
+    "assignment_name": "A1 Exam",
+    "score": 92.0,
+    "score_percentage": 92.0
+   },
+   {
+    "assignment_id": "assignment:A3 NoPts",
+    "assignment_name": "A3 NoPts",
+    "score": 7.0,
+    "score_percentage": 70.0
+   }
+  ],
+  "worst_assignments": [
+   {
+    "assignment_id": "assignment:A0 Old",
+    "assignment_name": "A0 Old",
+    "score": 5.55,
+    "score_percentage": 55.5
+   },
+   {
+    "assignment_id": "assignment:A2 Quiz",
+    "assignment_name": "A2 Quiz",
+    "score": 1.0,
+    "score_percentage": 20.0
+   },
+   {
+    "assignment_id": "assignment:A3 NoPts",
+    "assignment_name": "A3 NoPts",
+    "score": 7.0,
+    "score_percentage": 70.0
+   }
+  ]
+ }
+}

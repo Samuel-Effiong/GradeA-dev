@@ -43,6 +43,7 @@ from users.models import UserTypes
 from . import intent_signals as signal_rules
 from . import lead_filters
 from .imports import stripe
+from .job_ref import ai_job_schema, with_ai_job_id
 from .models import (
     BetaProfile,
     BillingInterval,
@@ -2800,7 +2801,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "into the AI to answer complex business questions."
         ),
         request=CustomAIPrompt,
-        responses={200: CustomAIReply},
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,
@@ -2808,6 +2809,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         url_path="beta/custom-ai-prompt",
         throttle_classes=[CustomAIPromptThrottle],
     )
+    @with_ai_job_id
     def custom_ai_prompt(self, request, *args, **kwargs):
         serializer = CustomAIPrompt(data=request.data)
         serializer.is_valid(raise_exception=True)

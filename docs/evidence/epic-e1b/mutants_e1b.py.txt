@@ -1,0 +1,110 @@
+"""E1b mutation battery (plan 09 §5.2 M9-M12, plus M9b-d from the old H-5
+branch and X5 for the column-name finding). One planted bug each, the E1b
+tests run, the file restored from a saved copy and its sha256 checked.
+
+Usage: python mutants_e1b.py <worktree> <python> <logdir> [ids,comma,separated]
+"""
+
+import hashlib
+import subprocess
+import sys
+from pathlib import Path
+
+WT, PY, LOGDIR = Path(sys.argv[1]), sys.argv[2], Path(sys.argv[3])
+ONLY = set(sys.argv[4].split(",")) if len(sys.argv) > 4 else None
+LOGDIR.mkdir(parents=True, exist_ok=True)
+
+M = "classrooms/models.py"
+S = "classrooms/signals.py"
+E1 = [
+    "classrooms.tests_h5_full_clean_hot_path",
+    "classrooms.tests_e1_hot_path",
+]
+
+CLEAN = (
+    "            self.clean_fields(\n"
+    "                exclude=[\n"
+    "                    f.name for f in self._meta.fields if f.name not in update_fields\n"
+    "                ]\n"
+    "            )\n"
+)
+
+# (id, description, file, old, new, extra test labels, test that must fail)
+MUTANTS = [
+    ("M9", "the H-5 hot-path set gains enrollment_status",
+     M, '{"final_grade", "ai_summary", "ai_summary_generated_at"}',
+     '{"final_grade", "ai_summary", "ai_summary_generated_at", "enrollment_status"}',
+     [], "test_status_update_keeps_the_conflict_check"),
+    ("M9b", "the subset check becomes an intersection (old mutant b)",
+     M, "set(update_fields) <= self.HOT_PATH_FIELDS", "set(update_fields) & self.HOT_PATH_FIELDS",
+     [], "test_mixed_update_fields_keep_the_conflict_check"),
+    ("M9c", "the written fields are not validated (old mutant c)",
+     M, CLEAN, "            pass\n",
+     [], "test_an_out_of_range_final_grade_is_still_rejected"),
+    ("M9d", "the else branch skips full_clean (old mutant d)",
+     M, "        else:\n            self.full_clean()\n        super().save(*args, **kwargs)",
+     "        else:\n            pass\n        super().save(*args, **kwargs)",
+     [], "test_create_of_a_same_name_student_is_rejected"),
+    ("M10", "score dropped from the grade inputs",
+     S, '        "score",\n        "max_points",\n', '        "max_points",\n',
+     [], "test_each_grade_input_field_recalculates"),
+    ("M11", "the skip applied when update_fields is None",
+     S, "if update_fields is not None and not GRADE_INPUT_FIELDS.intersection(update_fields):",
+     "if not GRADE_INPUT_FIELDS.intersection(update_fields or ()):",
+     [], "test_a_save_without_update_fields_recalculates"),
+    ("M12", "the skip also applied in post_delete",
+     S, '    too, otherwise final_grade keeps counting work that no longer exists.\n    """\n',
+     '    too, otherwise final_grade keeps counting work that no longer exists.\n    """\n'
+     '    if not GRADE_INPUT_FIELDS.intersection(kwargs.get("update_fields") or ()):\n        return\n',
+     [], "test_a_delete_recalculates"),
+    ("X5", "column names (assignment_id, student_id) not treated as grade inputs",
+     S, '        "assignment_id",\n        "student_id",\n', "",
+     [], "test_a_grade_input_field_named_by_its_column_recalculates"),
+]
+
+def sha(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+summary = []
+for mid, desc, rel, old, new, extra, must_fail in MUTANTS:
+    if ONLY and mid not in ONLY:
+        continue
+    path = WT / rel
+    saved = path.read_bytes()
+    before = sha(path)
+    text = saved.decode()
+    if old is None:
+        mutated = text + new
+    else:
+        assert text.count(old) == 1, f"{mid}: {old!r} found {text.count(old)} times"
+        mutated = text.replace(old, new)
+    path.write_text(mutated)
+    try:
+        proc = subprocess.run(
+            [PY, "-W", "ignore", "manage.py", "test", *E1, *extra,
+             "--settings=settings_worktree", "--noinput", "--keepdb", "-v", "2"],
+            cwd=WT, capture_output=True, text=True,
+        )
+    finally:
+        path.write_bytes(saved)
+    after = sha(path)
+    assert before == after, f"{mid}: restore failed"
+    out = proc.stdout + proc.stderr
+    (LOGDIR / f"{mid}.log").write_text(out)
+    # The "FAIL:"/"ERROR:" headers, not "... FAIL" result lines: a test that
+    # logs while it runs splits its result line, and the result is missed.
+    red = sorted({
+        line.split()[1]
+        for line in out.splitlines()
+        if line.startswith(("FAIL: ", "ERROR: "))
+    })
+    ran = next((l for l in out.splitlines() if l.startswith("Ran ")), "?")
+    killed = must_fail in red
+    line = (f"{mid:4} {'KILLED' if killed else 'SURVIVED'}  {desc}\n"
+            f"     planted in {rel}; must fail: {must_fail}; {ran}\n"
+            f"     red: {' '.join(red) or '(none)'}\n"
+            f"     sha256 before=after={after}")
+    print(line, flush=True)
+    summary.append(line)
+(LOGDIR / "SUMMARY.txt").write_text("\n".join(summary) + "\n")

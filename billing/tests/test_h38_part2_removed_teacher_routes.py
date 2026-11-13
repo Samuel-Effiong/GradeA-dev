@@ -812,11 +812,13 @@ class ActiveTeacherCourseGuardRouteTests(TeacherRemovalBase):
         )
         with patch("students.views.launch_processing_task") as launch:
             launch.return_value.id = "celery-id"
-            response = self.client_t.post(
-                f"{API}/submissions/{assignment.id}/batch-upload",
-                {"answers": [pdf_upload()]},
-                format="multipart",
-            )
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.client_t.post(
+                    f"{API}/submissions/{assignment.id}/batch-upload",
+                    {"answers": [pdf_upload()]},
+                    format="multipart",
+                )
         note(
             "students/views.py:158 batch-upload (positive control - active teacher)",
             "WRITE",

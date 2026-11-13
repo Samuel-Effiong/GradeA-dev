@@ -1,0 +1,26 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "assignment": "assignment:A2 Quiz",
+  "title": "A2 Quiz",
+  "due_date": "2026-09-25T12:00:00Z",
+  "assignment_type": "OBJECTIVE",
+  "total_submissions": 5,
+  "unit": "Algebra - Equations",
+  "average_grade": 76.0,
+  "question_extraction_confidence": 80,
+  "ai_extraction_confidence": 77.0,
+  "ai_grading_confidence": 87.0,
+  "hardest_questions": [],
+  "easiest_questions": [],
+  "question_breakdown": [],
+  "question_difficulty": {
+   "status": "too_few_questions",
+   "students_analysed": 0,
+   "excluded_manual_grade_change": 0,
+   "minimum_students": 3,
+   "list_size": 0
+  }
+ }
+}

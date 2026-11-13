@@ -101,3 +101,92 @@ N2 labels:
 - **T trailers:** checked and reported to the SM.
 
 Ready for the SM's push to beta. After that comes the beta→staging merge. No push from Lane 2.
+
+## Beta → staging merge (2026-11-09)
+
+The SM pushed beta as a fast-forward: origin/beta = bcc50d83c (was 50183be49). Branch `task/staging-merge-h287` was made off a freshly fetched origin/staging 80839ac76, and `git merge --no-ff origin/beta` produced merge **c7827919b** with no conflicts: 13 files, +180. The only code file is classrooms/migrations/0017_session_is_active.py (+5 comment lines); the rest is docs/evidence/h287/. The worktree's DB is reused: the beta-schema clones test_h287_0017_marker_1/_2 were dropped first (0 connections), and the main test DB migrates under --keepdb.
+
+### Declared before running (counts from build_suite().countTestCases())
+
+- **S1 near apps**: `classrooms users AutoGrader.tests_migration_rollback_defaults`, --parallel 2. 1807 tests. Staging adds no skip points in these labels (checked against git diff origin/beta), so predict **Ran 1807, OK (skipped=4)**: the same 4 as N1/N1v.
+- **S2 guard sweep**, serial: all 67 labels of guards67.txt exist on staging. 5 are in classrooms/users and covered by S1; the other 62 run here. 1079 tests. Predict **Ran 1079, OK (skipped=1)** (ssrf).
+- **T trailers:** 0 in origin/staging..HEAD.
+
+S2 labels:
+
+    AutoGrader.tests_credscan
+    AutoGrader.tests_h271_static_files
+    AutoGrader.tests_network_guard
+    AutoGrader.tests_student_classmates_guard
+    AutoGrader.tests_student_feedback_guard
+    AutoGrader.tests_submission_audience_guard
+    ai_processor.tests_call_record_static
+    ai_processor.tests_h2_grading_benchmark_guard
+    ai_processor.tests_ssrf_guard
+    audit.tests_history_guard
+    audit.tests_route_coverage
+    audit.tests_h273_query_filters
+    billing.tests.test_license_admin_user_guard
+    billing.tests.test_qa_console_guardrail
+    billing.tests.test_qa_time_travel_guardrail
+    billing.tests.test_renewal_guards
+    students.tests_reading_label_static
+    students.tests_app_boundaries
+    students.tests_h279_regrade_pending_approval
+    students.tests_student_data_map
+    AutoGrader.tests_cache_invalidation_coverage
+    AutoGrader.tests_codederror_serialization
+    AutoGrader.tests_management_commands_are_commands
+    AutoGrader.tests_no_pii_in_logs
+    AutoGrader.tests_no_playwright_at_import
+    AutoGrader.tests_no_wildcard_invalidation
+    AutoGrader.tests_reason_codes
+    AutoGrader.tests_redis_test_isolation
+    ai_processor.tests_grading_run_pipeline
+    ai_processor.tests_h205_image_fallback
+    ai_processor.tests_metering_chokepoint
+    ai_processor.tests_provider_block
+    ai_processor.tests_reading_config
+    assignments.tests_schema_extension
+    billing.tests.test_wallet_save_guard
+    billing.tests.test_zero_credit_registry
+    students.tests_grading_label_written
+    students.tests_identity_reason_codes
+    AutoGrader.tests_h246_sentry_environment
+    AutoGrader.tests_log_scrubbing
+    AutoGrader.tests_sentry_scrubbing
+    AutoGrader.tests_sentry_sends_no_variables
+    AutoGrader.tests_h285_djoser_removed
+    AutoGrader.tests_pip_audit_gate
+    ai_processor.tests_h262_prod_image_dev_tools
+    ai_processor.tests_ai_call_trace
+    ai_processor.tests_grading_cache_key_v2
+    ai_processor.tests_grading_config
+    ai_processor.tests_grading_run_checker
+    assignments.tests_task_results_carry_no_text
+    billing.tests.test_allocation_anchor
+    billing.tests.test_h28_stripe_budget
+    billing.tests.test_holds_entry
+    billing.tests.test_holds_single_call
+    billing.tests.test_logs_carry_no_email
+    students.tests_answer_document_before_release
+    students.tests_grading_label_fields
+    students.tests_reading_label_columns
+    students.tests_step_label_words
+    billing.tests.test_live_qa_clock
+    billing.tests.test_price_drift_reconciliation
+    AutoGrader.tests_live_server_backlog_guard
+
+### First S1 attempt: interrupted by session restart, no result
+
+The first S1 run (2026-11-09) was cut off by a Claude session restart before it finished. Its log has no "Ran" or "OK" line. It is recorded as **interrupted by session restart, no result**, not as a pass or a fail. The partial log is kept as 04_staging_near_apps.interrupted.log.gz (sha256 of the uncompressed log: 2f5e6d316fa5fabab7d8e35f66128906c9902904624567df9e8cf261ef2d9241). S2 never started.
+
+### Rerun results (2026-11-10, exactly as declared, under flock)
+
+Before the rerun, the clones test_h287_0017_marker_1/_2 were dropped again (0 connections).
+
+- **S1** classrooms + users + AutoGrader.tests_migration_rollback_defaults, --parallel 2: **Ran 1807 tests, OK (skipped=4)**. As predicted.
+- **S2** 62-label serial guard sweep: **Ran 1079 tests, OK (skipped=1)**. As predicted.
+- **T trailers:** checked at commit (see the commit report to the SM).
+
+Logs: 04_staging_near_apps.log.gz, 05_staging_guard_sweep.log.gz. No push from Lane 2.

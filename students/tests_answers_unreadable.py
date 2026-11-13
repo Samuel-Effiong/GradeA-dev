@@ -52,6 +52,13 @@ import ai_processor.tests_reply_repeated_evaluation as paper
 from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from billing.refunds import record_billing_task_id
+from billing.testing.holds import (
+    ai_response,
+    assert_hold_ledger,
+    call_ai,
+    estimate_for,
+    fund,
+)
 from classrooms.tests_final_grade_zero_score import grading_result
 from students import exceptions, services
 from students.models import StudentSubmission
@@ -550,6 +557,9 @@ class TheWritersRefuseWhatTheBuilderRefusedForThem(AnswerDocumentBase):
     def test_the_edit_refuses_a_list_that_is_not_all_objects(self):
         self.assert_refused(self.edit, self.NOT_A_LIST_OF_OBJECTS)
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is TheEditsRefusalWithHolds below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     @patch("billing.services.SubscriptionService.refund_credits")
     def test_the_edits_refusal_refunds_the_charge(self, refund):
         """The refusal is raised inside the edit's refund scope, as the
@@ -584,6 +594,43 @@ class TheWritersRefuseWhatTheBuilderRefusedForThem(AnswerDocumentBase):
         self.assertEqual(self.stored_answers(), EXTRACTED["answers"])
         self.upload([])
         self.assertEqual(self.stored_answers(), [])
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class TheEditsRefusalWithHolds(AnswerDocumentBase):
+    """B1b-2 (NOTES §2.10) B3 twin of
+    TheWritersRefuseWhatTheBuilderRefusedForThem
+    .test_the_edits_refusal_refunds_the_charge: the extraction makes one real
+    billed call inside the edit's metered unit, then the edit refuses what
+    it returned. Nothing is charged, no refund row is written, the hold is
+    returned, and the stored answers are unchanged."""
+
+    def test_the_edits_refusal_charges_nothing_and_returns_the_hold(self):
+        fund(self.teacher, 10 * estimate_for())
+
+        def billed_then_return(*args, **kwargs):
+            call_ai(self.teacher)
+            return {"answers": [ONE_ANSWER, TELLTALE]}
+
+        with (
+            patch(
+                "ai_processor.services.can_user_access_ai", return_value=(True, None)
+            ),
+            patch.object(
+                AIProcessor, "_AIProcessor__ai_model", return_value=ai_response(1_000)
+            ),
+            patch(EXTRACTOR, side_effect=billed_then_return),
+        ):
+            with self.assertRaises(ValueError):
+                services.update_submission_from_raw_text(
+                    self.student, self.submission, "some text"
+                )
+
+        assert_hold_ledger(self, self.teacher, kept=[])
+        self.assertEqual(self.stored_answers(), EXTRACTED["answers"])
+
+    def stored_answers(self):
+        return StudentSubmission.objects.get(pk=self.submission.pk).answers
 
 
 OBJECTIVE_STEP_OFF = override_settings(GRADING_DETERMINISTIC_OBJECTIVE=False)

@@ -52,10 +52,11 @@ from AutoGrader.cache_generation import (
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.query_params import boolean_query_param
+from billing.job_ref import ai_job_schema, with_ai_job_id
 from billing.models import CONVERSION_FACTOR, CreditBucketType, CreditUsageLog
 from billing.refusals import PERMANENT_AI_REFUSALS, log_refusal, refusal_response
 from billing.services import FEATURE_TO_ANALYTICS_FIELD
-from classrooms.final_grade import final_grade_from
+from classrooms import grade_service
 from classrooms.models import (
     Course,
     EnrollmentStatusType,
@@ -190,6 +191,7 @@ def dashboard_context_section(title, build, *, user, task_type):
     return f"### {title}\n{body}"
 
 
+@with_ai_job_id
 def run_dashboard_ai_chat(
     request, prompt, *, assistant_type, role, context, feature, task_type
 ):
@@ -853,7 +855,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                     course__teacher__user_type=UserTypes.TEACHER,
                 )
                 .values("course__teacher__school_id")
-                .annotate(average=Avg("final_grade"))
+                .annotate(average=grade_service.mean_of_final_grades())
                 .order_by()
             }
 
@@ -957,7 +959,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
                 .values("course__teacher_id")
                 .annotate(
                     students=Count("student", distinct=True),
-                    average_grade=Avg("final_grade"),
+                    average_grade=grade_service.mean_of_final_grades(),
                 )
                 .order_by()
             }
@@ -1043,7 +1045,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
 
         if data is None:
             stats = StudentCourse.objects.active().aggregate(
-                avg_grade=Avg("final_grade"),
+                avg_grade=grade_service.mean_of_final_grades(),
                 total_enrollments=Count("id"),
                 total_assignments=Count("course__assignments", distinct=True),
             )
@@ -1162,7 +1164,7 @@ class SuperAdminDashboardView(viewsets.ViewSet):
         tags=["Super Admin"],
         summary="Get AI detailed information about analytics ",
         request=CustomAIPrompt,
-        responses={200: CustomAIReply},
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,
@@ -2354,7 +2356,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 distinct=True,
             ),
             avg_grade=Coalesce(
-                Avg(
+                grade_service.mean_of_final_grades(
                     "enrollments__final_grade",
                     filter=Q(
                         enrollments__enrollment_status__in=active_enrollment_statuses
@@ -2536,7 +2538,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                     submissions__graded_at__isnull=False, submissions__is_published=True
                 ),
             ),
-            avg_score=Avg(
+            avg_score=grade_service.mean_percentage(
                 "submissions__score_percentage",
                 filter=Q(
                     submissions__graded_at__isnull=False, submissions__is_published=True
@@ -2633,7 +2635,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 )
 
             stats = school_student_courses.aggregate(
-                avg_grade=Avg("final_grade"),
+                avg_grade=grade_service.mean_of_final_grades(),
                 total_enrollments=Count("id"),
                 a=Count(Case(When(final_grade__gte=90, then=Value(1)))),
                 b=Count(
@@ -2905,7 +2907,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
                 .annotate(
                     teacher_count=Count("teacher", distinct=True),
                     avg_grade=Coalesce(
-                        Avg(
+                        grade_service.mean_of_final_grades(
                             "enrollments__final_grade",
                             filter=~Q(enrollments__enrollment_status="WITHDRAWN"),
                         ),
@@ -2937,7 +2939,7 @@ class SchoolAdminDashboardView(viewsets.ViewSet):
         tags=["School Admin"],
         summary="Get AI detailed information about analytics ",
         request=CustomAIPrompt,
-        responses={200: CustomAIReply},
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,
@@ -3139,7 +3141,9 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             course_performance_raw = (
                 Course.objects.filter(teacher=teacher, session=session)
                 .annotate(
-                    avg_grade=Avg("assignments__submissions__score_percentage"),
+                    avg_grade=grade_service.mean_percentage(
+                        "assignments__submissions__score_percentage"
+                    ),
                     actual_subs=Count("assignments__submissions", distinct=True),
                     enrollment_count=Count("enrollments", distinct=True),
                     assignment_count=Count("assignments", distinct=True),
@@ -3267,10 +3271,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             .active()
             .select_related("student", "course")
             .annotate(
-                avg_grade_val=Avg(
-                    "student__submissions__score_percentage",
-                    filter=Q(student__submissions__assignment__course=F("course_id")),
-                ),
                 # H-237: the risk rate counts only submissions to
                 # published work that is due (expected_q).
                 risk_submitted_val=Count(
@@ -3316,19 +3316,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             course_total_assigned = course_totals.get(course.id, 0)
 
             graded = [s for s in student_course_subs if s.score_percentage is not None]
-            dated_scores = [
-                (
-                    s.submission_date,
-                    float(s.score_percentage),
-                    s.score,
-                    (
-                        s.max_points
-                        if s.max_points is not None
-                        else s.assignment.total_points
-                    ),
-                )
-                for s in graded
-            ]
+            dated_scores = [grade_service.risk_score_row(s) for s in graded]
 
             risk_result = self.risk_evaluator.evaluate(
                 RiskInputs(
@@ -3436,16 +3424,16 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             # Average grade by Assignment Type
             avg_grade_by_type = graded_submissions.values(
                 "assignment__assignment_type"
-            ).annotate(avg_score=Avg("score_percentage"))
+            ).annotate(avg_score=grade_service.mean_percentage())
 
             avg_grade_by_topic = graded_submissions.values(
                 "assignment__topic__name"
-            ).annotate(avg_score=Avg("score_percentage"))
+            ).annotate(avg_score=grade_service.mean_percentage())
 
             # Lowest Mastery Assignment
             lowest_assignment = (
                 graded_submissions.values("assignment__id", "assignment__title")
-                .annotate(avg_score=Avg("score_percentage"))
+                .annotate(avg_score=grade_service.mean_percentage())
                 .order_by("avg_score")  # Fixed: order by ascending for lowest mastery
                 .first()
             )
@@ -3628,20 +3616,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                     score__isnull=False, graded_at__isnull=False
                 ).select_related("student")
             )
-            average_grade = (
-                final_grade_from(
-                    (
-                        submission.score,
-                        (
-                            submission.max_points
-                            if submission.max_points is not None
-                            else assignment.total_points
-                        ),
-                    )
-                    for submission in graded
-                )
-                or 0
-            )
+            average_grade = grade_service.assignment_grade(graded, assignment) or 0
 
             avg_grading_confidence = (
                 average_confidence_from(submissions, "grading_confidence") or 0
@@ -3774,10 +3749,6 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 StudentCourse.objects.filter(course=course)
                 .select_related("student")
                 .annotate(
-                    avg_grade_val=Avg(
-                        "student__submissions__score_percentage",
-                        filter=Q(student__submissions__assignment__course=course),
-                    ),
                     submitted_count_val=Count(
                         "student__submissions",
                         filter=Q(student__submissions__assignment__course=course),
@@ -3830,19 +3801,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 best = max(graded, key=lambda s: s.score_percentage or 0, default=None)
                 worst = min(graded, key=lambda s: s.score_percentage or 0, default=None)
 
-                dated_scores = [
-                    (
-                        s.submission_date,
-                        float(s.score_percentage),
-                        s.score,
-                        (
-                            s.max_points
-                            if s.max_points is not None
-                            else s.assignment.total_points
-                        ),
-                    )
-                    for s in graded
-                ]
+                dated_scores = [grade_service.risk_score_row(s) for s in graded]
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=expected_assignment_count,
@@ -4066,19 +4025,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 graded = [
                     s for s in student_course_subs if s.score_percentage is not None
                 ]
-                dated_scores = [
-                    (
-                        s.submission_date,
-                        float(s.score_percentage),
-                        s.score,
-                        (
-                            s.max_points
-                            if s.max_points is not None
-                            else s.assignment.total_points
-                        ),
-                    )
-                    for s in graded
-                ]
+                dated_scores = [grade_service.risk_score_row(s) for s in graded]
                 risk_result = self.risk_evaluator.evaluate(
                     RiskInputs(
                         expected_assignment_count=expected_by_course.get(course.id, 0),
@@ -4122,6 +4069,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         tags=["Teacher Admin"],
         summary="Teacher AI Extraction and Grading Insights",
         request=CustomAIPrompt,
+        responses={200: ai_job_schema(CustomAIReply)},
     )
     @action(
         detail=False,
@@ -4328,7 +4276,9 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             )
 
             # 7. Average grade (course)
-            average_grade = released.aggregate(avg=Avg("score_percentage"))["avg"] or 0
+            average_grade = (
+                released.aggregate(avg=grade_service.mean_percentage())["avg"] or 0
+            )
 
             recent_scores = list(
                 released.order_by("-submission_date").values_list(
@@ -4576,12 +4526,16 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             for course in active_courses:
                 course_subs = course_submissions.get(course.id, [])
                 if course_subs:
-                    avg_pct = sum(float(s.score_percentage) for s in course_subs) / len(
-                        course_subs
+                    # Both unrounded, as before; rounded where shown below.
+                    avg_pct = grade_service.mean_of_values(
+                        [float(s.score_percentage) for s in course_subs], ndigits=None
                     )
-                    avg_score = sum(
-                        float(s.score) for s in course_subs if s.score is not None
-                    ) / len(course_subs)
+                    # Divides by every released row, scored or not, as before.
+                    avg_score = grade_service.mean_of_values(
+                        [float(s.score) for s in course_subs if s.score is not None],
+                        ndigits=None,
+                        count=len(course_subs),
+                    )
                     all_percentages.append(avg_pct)
                     all_scores.extend(
                         float(s.score) for s in course_subs if s.score is not None
@@ -4613,11 +4567,8 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             # so the letter grade and GPA shown together always agree with
             # each other and with the school's own GPA scale (see
             # get_letter_grade_from_gpa).
-            if all_percentages:
-                overall_percentage = round(
-                    sum(all_percentages) / len(all_percentages), 2
-                )
-            else:
+            overall_percentage = grade_service.mean_of_values(all_percentages)
+            if overall_percentage is None:
                 overall_percentage = 0.0
 
             overall_gpa = (

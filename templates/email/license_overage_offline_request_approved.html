@@ -81,7 +81,7 @@
         {% if skipped_allocations %}
         <div class="section">
             <div class="card-warning">
-                <p><strong>Not credited</strong> — these teachers are no longer active under the license and were skipped. Contact support if this needs manual follow-up.</p>
+                <p><strong>Not credited</strong> — {% if not_credited_text %}{{ not_credited_text }}{% else %}these teachers are no longer active under the license and were skipped. Contact support if this needs manual follow-up.{% endif %}</p>
                 <ul class="plain">
                     {% for row in skipped_allocations %}
                     <li>{{ row.teacher_id }} — {{ row.blocks }} block(s)</li>

@@ -1,9 +1,6 @@
 """
 User list sorting and filters (owner-approved 2026-11-11; SM -16 rulings
 D1-D7 on checkpoint e2a0a146a, docs/evidence/user-list-sorting/DESIGN.md).
-Beta port (brief 3, owner-approved for beta as a bug fix 2026-11-11;
-docs/evidence/user-list-beta/DESIGN.md): beta has no credit holds, so
-credits_left follows beta's own balance.
 
 GET /api/v1/users/ (super admin only) gains nine read-only values on the
 LIST response, nine ordering keys and eight filters:
@@ -12,9 +9,8 @@ LIST response, nine ordering keys and eight filters:
 - plan_tier, plan_category, plan_interval: the current plan, resolved as
   billing resolves it (license teacher > license admin > individual)
 - assignments_created, papers_graded: by course.teacher (D5)
-- credits_left: beta's CreditWallet.display_balance, i.e.
-  floor(total_remaining_credits() / CONVERSION_FACTOR), negatives included
-  (Q-B1, SM -16); null with no wallet (D4)
+- credits_left: billing's spendable_credits(wallet) // CONVERSION_FACTOR,
+  null with no wallet (D4)
 - credits_used: Sum(amount) of unrefunded CreditUsageLog // CONVERSION_FACTOR
 
 Every null sorts last in both directions (D4); id breaks every tie.
@@ -38,6 +34,7 @@ from rest_framework.test import APITestCase
 from rest_framework.throttling import SimpleRateThrottle
 
 from assignments.models import Assignment
+from billing.holds import spendable_credits
 from billing.models import (
     CONVERSION_FACTOR,
     BillingInterval,
@@ -189,9 +186,10 @@ class Base(APITestCase):
             next_credit_grant_at=self.now + timedelta(days=30),
         )
 
-    def wallet(self, user):
+    def wallet(self, user, reserved=0):
         wallet, _ = CreditWallet.objects.get_or_create(user=user)
         CreditBucket.objects.filter(wallet=wallet).delete()
+        CreditWallet.objects.filter(pk=wallet.pk).update(reserved_credits=reserved)
         wallet.refresh_from_db()
         return wallet
 
@@ -425,38 +423,35 @@ class CreditValueTests(Base):
 
 
 class CreditsLeftParityTests(Base):
-    """SQL credits_left == beta's CreditWallet.display_balance (Q-B1, SM
-    -16: floor, negatives included, no clamp)."""
+    """SQL credits_left == billing's spendable_credits(wallet) // 1000."""
 
-    FIXTURES: dict[str, list[dict[str, Any]]] = {
-        "no buckets": [],
-        "one live bucket": [{"total": 7_400}],
-        "partly used": [{"total": 7_400, "used": 2_100}],
-        "expired bucket": [{"total": 9_000, "expires_in": -1}],
-        "never expires": [{"total": 3_000, "expires_in": None}],
-        "overage bucket": [
-            {"total": 2_000},
-            {"total": 5_000, "kind": CreditBucketType.OVERAGE},
-        ],
-        "live, expired and used": [
-            {"total": 4_000, "used": 500},
-            {"total": 8_000, "expires_in": -2},
-            {"total": 1_999, "expires_in": None},
-        ],
-        "negative, -1500": [{"total": 1_000, "used": 2_500}],
-        "negative, exactly -1000": [{"total": 1_000, "used": 2_000}],
-        "negative, -1": [{"total": 1_000, "used": 1_001}],
-        "negative bucket under a positive one": [
-            {"total": 5_000},
-            {"total": 1_000, "used": 1_700},
-        ],
+    FIXTURES: dict[str, tuple[list[dict[str, Any]], int]] = {
+        "no buckets": ([], 0),
+        "one live bucket": ([{"total": 7_400}], 0),
+        "partly used": ([{"total": 7_400, "used": 2_100}], 0),
+        "expired bucket": ([{"total": 9_000, "expires_in": -1}], 0),
+        "never expires": ([{"total": 3_000, "expires_in": None}], 0),
+        "overage bucket": (
+            [{"total": 2_000}, {"total": 5_000, "kind": CreditBucketType.OVERAGE}],
+            0,
+        ),
+        "a hold": ([{"total": 10_000}], 4_300),
+        "a hold above the balance": ([{"total": 1_000}], 6_000),
+        "live, expired and used": (
+            [
+                {"total": 4_000, "used": 500},
+                {"total": 8_000, "expires_in": -2},
+                {"total": 1_999, "expires_in": None},
+            ],
+            999,
+        ),
     }
 
-    def test_each_fixture_matches_display_balance(self):
+    def test_each_fixture_matches_spendable_credits(self):
         users = {}
-        for label, buckets in self.FIXTURES.items():
+        for label, (buckets, reserved) in self.FIXTURES.items():
             user = self.person()
-            wallet = self.wallet(user)
+            wallet = self.wallet(user, reserved=reserved)
             for spec in buckets:
                 self.bucket(wallet, **spec)
             users[label] = (user, wallet)
@@ -464,30 +459,14 @@ class CreditsLeftParityTests(Base):
         listed = {str(r["id"]): r["credits_left"] for r in self.rows()}
         for label, (user, wallet) in users.items():
             with self.subTest(label):
-                self.assertEqual(listed[str(user.pk)], wallet.display_balance)
-
-    def test_negative_balances_floor_like_display_balance(self):
-        # Integer division would truncate toward zero (-1500 -> -1).
-        expected = {
-            (1_000, 2_500): -2,
-            (1_000, 2_000): -1,
-            (1_000, 1_001): -1,
-        }
-        users = {}
-        for (total, used), _ in expected.items():
-            user = self.person()
-            self.bucket(self.wallet(user), total, used=used)
-            users[(total, used)] = user
-
-        listed = {str(r["id"]): r["credits_left"] for r in self.rows()}
-        for key, value in expected.items():
-            with self.subTest(key):
-                self.assertEqual(listed[str(users[key].pk)], value)
+                expected = spendable_credits(wallet) // CONVERSION_FACTOR
+                self.assertEqual(listed[str(user.pk)], expected)
 
     def test_the_fixtures_are_not_all_zero(self):
         # Guard against a vacuous parity check.
         user = self.person()
-        self.bucket(self.wallet(user), 7_400, used=1_000)
+        wallet = self.wallet(user, reserved=1_000)
+        self.bucket(wallet, 7_400)
 
         self.assertEqual(self.row(user)["credits_left"], 6)
 
@@ -590,16 +569,13 @@ class OrderingTests(Base):
         self.assert_order("papers_graded", [zero, one, many])
 
     def test_credits_left(self):
-        rich, poor, spent, no_wallet, overdrawn = self.named("A", "B", "C", "D", "E")
+        rich, poor, held, no_wallet = self.named("A", "B", "C", "D")
         self.bucket(self.wallet(poor), 2_000)
         self.bucket(self.wallet(rich), 9_000)
-        self.bucket(self.wallet(spent), 9_000, used=4_000)
-        self.bucket(self.wallet(overdrawn), 1_000, used=2_500)
+        self.bucket(self.wallet(held, reserved=4_000), 9_000)
         CreditWallet.objects.filter(user=no_wallet).delete()
 
-        self.assert_order(
-            "credits_left", [overdrawn, poor, spent, rich], nulls=[no_wallet]
-        )
+        self.assert_order("credits_left", [poor, held, rich], nulls=[no_wallet])
 
     def test_credits_left_sorts_on_raw_credits(self):
         # 1_900 and 1_100 both show 1; the raw value still orders them.
@@ -750,7 +726,7 @@ class QueryCountTests(Base):
         plan = None
         for i in range(n):
             user = self.person(first_name=f"T{i:02d}")
-            self.bucket(self.wallet(user), 5_000, used=1_000)
+            self.bucket(self.wallet(user, reserved=100), 5_000, used=1_000)
             if plan is None:
                 plan = self.plan(PlanType.PRO, PlanTier.PRO)
             self.subscribe(user, plan)
@@ -938,10 +914,9 @@ class ListOnlyTests(Base):
             self.person(user_type=UserTypes.STUDENT),
             createsuperuser_account,
         )
-        # By name: on the base (red) users.views has no list_queryset.
-        name = "list_queryset"
-        built_by = getattr(users.views, name)
-        with patch.object(users.views, name, wraps=built_by) as built:
+        with patch.object(
+            users.views, "list_queryset", wraps=users.views.list_queryset
+        ) as built:
             for other in others:
                 with self.subTest(other.user_type, superuser=other.is_superuser):
                     cache.clear()

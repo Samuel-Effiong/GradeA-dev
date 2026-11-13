@@ -610,7 +610,7 @@ class TheRecheckAfterThePaymentTest(TestCase):
 @override_settings(**PINNED)
 class TheMarksAreMadeAtTheProviderCallTest(SimpleTestCase):
     def _call(self, provider, run=None, task_type="extract_answer"):
-        function = services.ai_processor.get_ai_model_function()
+        function = services.ai_processor._AIProcessor__ai_model  # type: ignore[attr-defined]
         scope = run.scope() if run is not None else nullcontext()
         with patch.object(services.ai_processor, "client", provider.client):
             with scope:

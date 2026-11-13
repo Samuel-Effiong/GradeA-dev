@@ -48,11 +48,12 @@ from billing.invoice_wording import invoice_description
 from classrooms.models import School
 from users.models import CustomUser
 
-from . import license_stripe_mutation
+from . import departed_share_refund, license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .imports import stripe
 from .license_service import (
     LicenseSubscriptionService,
+    _close_credit_requests,
     sync_teachers_under_license_to_mailerlite,
 )
 from .models import (
@@ -3042,6 +3043,17 @@ class StripeWebhookHandler:
 
     @staticmethod
     @transaction.atomic
+    def handle_checkout_expired(session):
+        """Epic B1c (plan 08 §3.8, review r1 B3): a credit request's
+        abandoned checkout. Every other flow is left as today. Not in
+        event_replay's AUTO_REPLAYABLE (STEP0_PLAN D3): the stale-APPROVED
+        sweep is the backstop."""
+        from . import credit_requests
+
+        credit_requests.on_checkout_expired(session)
+
+    @staticmethod
+    @transaction.atomic
     def handle_checkout_completed(session):
         metadata = session.get("metadata", {}) or {}
         flow = metadata.get("flow")
@@ -3409,6 +3421,15 @@ class StripeWebhookHandler:
                 session.get("id"),
             )
             return
+        # Epic B1c (r4 m-3, m3-a): a credit request's checkout that another
+        # purchase already answered, paid anyway: grant nothing and refund.
+        # Only SUPERSEDED with no grants (checked just above); FAILED keeps
+        # today's handling.
+        if intent.status == LicenseOveragePurchaseStatus.SUPERSEDED:
+            from . import credit_requests
+
+            credit_requests.refuse_superseded_payment(intent, session)
+            return
 
         payment_status = session.get("payment_status")
         if payment_status != "paid":
@@ -3457,6 +3478,15 @@ class StripeWebhookHandler:
             intent.status = LicenseOveragePurchaseStatus.FAILED
             intent.stripe_payment_intent_id = session.get("payment_intent")
             intent.failure_reason = "License no longer active at fulfillment time."
+            # Epic B1c: the license ended, so its credit request closes.
+            from . import credit_requests
+
+            credit_requests.on_purchase_fulfilled(
+                intent.credit_request_id or metadata.get("credit_request_id"),
+                granted_teacher_ids=[],
+                intent=intent,
+                close_reason=credit_requests.LICENSE_ENDED,
+            )
             intent.save(
                 update_fields=[
                     "status",
@@ -3541,7 +3571,23 @@ class StripeWebhookHandler:
         )
         intent.stripe_payment_intent_id = session.get("payment_intent")
         intent.completed_at = timezone.now()
-        if skipped:
+        # B1a 3b: with the switch on, a usd payment's skipped share is
+        # refunded after commit (billing/departed_share_refund.py).
+        refund_share = departed_share_refund.can_refund_automatically(
+            skipped, intent.stripe_payment_intent_id, session.get("currency", "usd")
+        )
+        share = departed_share_refund.share_cents(
+            skipped, intent.unit_price_cents_snapshot
+        )
+        if refund_share:
+            intent.failure_reason = departed_share_refund.text(
+                "purchase_note",
+                blocks=intent.total_blocks,
+                n=len(skipped),
+                skipped=skipped,
+                amount=departed_share_refund.format_amount(share),
+            )
+        elif skipped:
             intent.failure_reason = (
                 f"Paid for {intent.total_blocks} block(s) but {len(skipped)} "
                 f"teacher(s) were no longer active at fulfillment time and "
@@ -3573,10 +3619,28 @@ class StripeWebhookHandler:
                 f"Overage purchase — "
                 f"{intent.total_blocks * (intent.block_size_snapshot // CONVERSION_FACTOR):,} "
                 f"AI credit(s) across {len(intent.allocations)} teacher(s)"
-                + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                + (
+                    " "
+                    + departed_share_refund.text("history_suffix_card", n=len(skipped))
+                    if refund_share
+                    else (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                )
             ),
         )
         schedule_receipt_url_fill(billing_transaction)
+        # Epic B1c (plan 08 §3.8): the credit request this purchase answers,
+        # matched by its id, not only by the link (review r2 M-e).
+        from . import credit_requests
+
+        credit_requests.on_purchase_fulfilled(
+            intent.credit_request_id or metadata.get("credit_request_id"),
+            granted_teacher_ids=[d["teacher_id"] for d in fulfilled],
+            intent=intent,
+        )
+        if refund_share:
+            StripeWebhookHandler._refund_departed_share_on_commit(
+                intent, license_sub, len(skipped), share
+            )
 
         if skipped:
             logger.error(
@@ -3600,6 +3664,51 @@ class StripeWebhookHandler:
                 len(fulfilled),
                 license_sub.id,
             )
+
+    @staticmethod
+    def _refund_departed_share_on_commit(intent, license_sub, skipped_count, share):
+        """After commit: refund the skipped share, and tell the admin.
+        Nothing reaches Stripe inside the webhook's transaction.
+
+        H-300 road A: the purchase has committed by the time this runs, so a
+        failure here must not reach the handler, or the event is marked
+        FAILED with the grants made. Like the receipt hook
+        (billing/receipts.py): robust=True, and both tasks queued through
+        safe_delay; a refund that could not be queued is reported for
+        manual reconciliation (the refund task is safe to queue by hand)."""
+        from django.conf import settings
+
+        from AutoGrader.dispatch import safe_delay
+        from AutoGrader.tasks import send_email_task
+
+        from .tasks import refund_departed_teacher_share
+
+        intent_id = str(intent.id)
+        admin = license_sub.admin_user or intent.initiated_by
+        recipient = admin.email if admin else None
+
+        def _after_commit():
+            if safe_delay(refund_departed_teacher_share, intent_id, share) is None:
+                departed_share_refund._manual(
+                    "the departed-teacher share refund for overage intent %s "
+                    "(%s cents) could not be queued: broker unavailable.",
+                    intent_id,
+                    share,
+                )
+            if recipient:
+                safe_delay(
+                    send_email_task,
+                    subject=departed_share_refund.text("email_subject"),
+                    message=departed_share_refund.text(
+                        "email_body_card",
+                        n=skipped_count,
+                        amount=departed_share_refund.format_amount(share),
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[recipient],
+                )
+
+        transaction.on_commit(_after_commit, robust=True)
 
     @staticmethod
     def _handle_individual_upgrade_checkout_completed(session, metadata):
@@ -4625,6 +4734,7 @@ class StripeWebhookHandler:
 
             if deactivate:
                 sync_teachers_under_license_to_mailerlite(license_sub)
+                _close_credit_requests(license_sub)
 
     # ------------------------------------------------------------------
     # customer.subscription.deleted
@@ -4681,6 +4791,7 @@ class StripeWebhookHandler:
             license_sub.stripe_status = StripeSubscriptionStatus.CANCELED
             license_sub.save(update_fields=["is_active", "stripe_status", "updated_at"])
             sync_teachers_under_license_to_mailerlite(license_sub)
+            _close_credit_requests(license_sub)
 
     @staticmethod
     @transaction.atomic

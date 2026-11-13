@@ -35,7 +35,7 @@ from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.celery import app as celery_app
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
-from billing.refunds import billing_refund_scope
+from billing.holds import metered_unit
 from classrooms.models import teacher_course_access_q
 from classrooms.tasks import student_summary_async
 from users.models import CustomUser, UserTypes
@@ -1022,8 +1022,9 @@ def _run_grading_pipeline(user, submission, processing_task_id):
     # same run then gives the label that is saved with the grade.
     run = GradingRun.start()
 
-    with billing_refund_scope(
-        reason="grading run failed before the grade was persisted"
+    with metered_unit(
+        processing_task_id=processing_task_id,
+        reason="grading run failed before the grade was persisted",
     ):
         grading = ai_processor.extract_grade_with_retry(
             user,
@@ -1430,8 +1431,9 @@ def upload_answers_engine(
     # Before this, a mid-chunk failure kept the chunks already charged.
     # The notification below stays outside: a failed notice must never
     # refund a submission that was saved.
-    with billing_refund_scope(
-        reason="answer upload failed before the submission was persisted"
+    with metered_unit(
+        processing_task_id=processing_task_id,
+        reason="answer upload failed before the submission was persisted",
     ):
         reading_run = ReadingRun()
         student_submission = ai_processor.extract_answer_with_retry(
@@ -1774,8 +1776,9 @@ def update_submission_from_raw_text(
         {"type": "text", "text": raw_input},
     ]
 
-    with billing_refund_scope(
-        reason="submission edit failed before the new answers were persisted"
+    with metered_unit(
+        processing_task_id=processing_task_id,
+        reason="submission edit failed before the new answers were persisted",
     ):
         reading_run = ReadingRun()
         extracted = ai_processor.extract_answer_with_retry(

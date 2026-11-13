@@ -2,6 +2,9 @@ from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from .billing_transaction_views import BillingTransactionViewSet
+from .credit_request_views import CreditRequestViewSet
+from .estimate_views import BillingEstimateView
+from .job_views import AIJobDetailView
 from .license_overage_offline_views import LicenseOverageOfflineRequestViewSet
 from .license_views import LicenseSubscriptionViewSet, SchoolCreditAllocationViewSet
 from .payment_method_views import PaymentMethodViewSet
@@ -64,6 +67,10 @@ router.register(r"payment-methods", PaymentMethodViewSet, basename="payment-meth
 router.register(
     r"admin/credits", AdminCreditManagementViewSet, basename="admin-credits"
 )
+# Epic B1c (plan 08 §3.8); dark until CREDIT_REQUESTS_ENABLED.
+router.register(
+    r"billing/credit-requests", CreditRequestViewSet, basename="credit-request"
+)
 router.register(
     r"license-overage-offline-requests",
     LicenseOverageOfflineRequestViewSet,
@@ -72,6 +79,10 @@ router.register(
 
 
 urlpatterns = router.urls + [
+    path("billing/estimate", BillingEstimateView.as_view(), name="billing-estimate"),
+    path(
+        "billing/jobs/<uuid:pk>", AIJobDetailView.as_view(), name="billing-job-detail"
+    ),
     path("stripe/webhooks", stripe_webhook, name="stripe-webhook"),
     path("stripe/webhooks/thin", thin_webhook, name="stripe-webhook-thin"),
     path("qa/time-travel", BillingTimeTravelView.as_view(), name="qa-time-travel"),

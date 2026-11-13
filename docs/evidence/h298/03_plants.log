@@ -1,5 +1,0 @@
-P1 (assignments/signals.py): FAILED (errors=2) Ran 2 tests in 0.399s users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
-P2 (classrooms/signals.py): FAILED (errors=2) Ran 2 tests in 0.523s users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
-P3 (students/signals.py): OK Ran 2 tests in 0.643s  -> SURVIVED: submissions are deleted before their course and teacher, so that lookup cannot fail here; students/signals.py change reverted, not part of this fix
-P4 (AutoGrader/cache_generation.py): FAILED (errors=2) Ran 2 tests in 0.736s users.models.CustomUser.DoesNotExist: CustomUser matching query does not exist.
-restored: sha256 match

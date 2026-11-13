@@ -79,10 +79,12 @@ def pdf_bytes():
     return data
 
 
-def run_inline(task_callable, processing_task, *args, **kwargs):
-    """launch_processing_task, but running the real task in-process."""
+def run_inline(task_callable, processing_task, *args, _celery_task_id=None, **kwargs):
+    """launch_processing_task, but running the real task in-process. Like it
+    (students/task_tracking.py:85), a flag-on door's pre-assigned id is the
+    task's id and never goes into the task's kwargs (B1b-2, NOTES §2.8)."""
     kwargs["processing_task_id"] = str(processing_task.id)
-    celery_id = str(uuid.uuid4())
+    celery_id = _celery_task_id or str(uuid.uuid4())
     task_tracking.attach_celery_task(processing_task.id, celery_id)
     task_callable.apply(args=args, kwargs=kwargs, task_id=celery_id)
     return SimpleNamespace(id=celery_id)
@@ -243,7 +245,9 @@ class TheSessionResultsShape(BatchFixture, TestCase):
             SimpleUploadedFile("b.png", GARBAGE_PNG, content_type="image/png"),
         ]
         with self.extraction(["Pupil00 Enrolled"]):
-            response = self.batch_upload(files)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.batch_upload(files)
         self.assertEqual(response.status_code, 202, response.content[:400])
         data = self.session_results(response.json()["data"]["session_id"])
 
@@ -288,7 +292,9 @@ class TheSessionResultsShape(BatchFixture, TestCase):
             "students.services.ai_processor.extract_answer_with_retry",
             side_effect=RuntimeError("an unclassified fault"),
         ), patch.object(assignment_tasks.upload_answers_engine_async, "max_retries", 0):
-            response = self.batch_upload(files)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.batch_upload(files)
         data = self.session_results(response.json()["data"]["session_id"])
 
         [bad] = data["failure_list"]
@@ -301,12 +307,16 @@ class TheSessionResultsShape(BatchFixture, TestCase):
 
     def test_an_overwrite_is_lifted_into_the_item_result(self):
         with self.extraction(["Pupil00 Enrolled", "Pupil00 Enrolled"]):
-            self.batch_upload(
-                [SimpleUploadedFile("a.png", png_bytes(), content_type="image/png")]
-            )
-            response = self.batch_upload(
-                [SimpleUploadedFile("b.png", png_bytes(), content_type="image/png")]
-            )
+            # B1b-2 (NOTES §2.3 B2): each upload's on_commit launch runs before
+            # the next upload, as two committed requests do in production.
+            with self.captureOnCommitCallbacks(execute=True):
+                self.batch_upload(
+                    [SimpleUploadedFile("a.png", png_bytes(), content_type="image/png")]
+                )
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.batch_upload(
+                    [SimpleUploadedFile("b.png", png_bytes(), content_type="image/png")]
+                )
         data = self.session_results(response.json()["data"]["session_id"])
         [ok] = data["success_list"]
         self.assertIs(ok["replaced_existing"], True)
@@ -369,7 +379,9 @@ class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
         with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 2048), self.extraction(
             ["Pupil00 Enrolled", "Pupil01 Enrolled"]
         ):
-            response = self.batch_upload(files)
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.batch_upload(files)
 
         self.assertEqual(response.status_code, 202, response.content[:400])
         tasks = response.json()["data"]["tasks"]
@@ -399,11 +411,13 @@ class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
         with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 2048), patch(
             "assignments.views.launch_processing_task", side_effect=record
         ):
-            response = self.api.post(
-                reverse("assignment-upload-async"),
-                {"course": str(self.course.id), "assignments": files},
-                format="multipart",
-            )
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.api.post(
+                    reverse("assignment-upload-async"),
+                    {"course": str(self.course.id), "assignments": files},
+                    format="multipart",
+                )
 
         self.assertEqual(response.status_code, 202, response.content[:400])
         self.assertEqual(dispatched, ["a.png", "c.png"])
@@ -444,7 +458,9 @@ class TheLegacyGradingPathsAreTracked(BatchFixture, TestCase):
         )
 
     def test_a_scheduled_batch_creates_tracked_items(self):
-        with patch("assignments.tasks.launch_processing_task") as launch:
+        with patch(
+            "assignments.tasks.launch_processing_task"
+        ) as launch, self.captureOnCommitCallbacks(execute=True):
             launch.return_value = SimpleNamespace(id=str(uuid.uuid4()))
             assignment_tasks.grade_batch_async.apply(
                 args=(str(self.teacher.id), str(self.assignment.id))
@@ -457,7 +473,9 @@ class TheLegacyGradingPathsAreTracked(BatchFixture, TestCase):
         Assignment.objects.filter(pk=self.assignment.pk).update(
             auto_grade_on_due_date=True
         )
-        with patch("assignments.tasks.launch_processing_task") as launch:
+        with patch(
+            "assignments.tasks.launch_processing_task"
+        ) as launch, self.captureOnCommitCallbacks(execute=True):
             launch.return_value = SimpleNamespace(id=str(uuid.uuid4()))
             assignment_tasks.auto_grade_due_assignment.apply(
                 args=(str(self.assignment.id),)
@@ -560,7 +578,9 @@ class ThirtyFilesTwelveFailures(BatchFixture, TestCase):
         with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 8192), self.extraction(
             names
         ):
-            response = self.batch_upload([f for f, _, _ in plan])
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.batch_upload([f for f, _, _ in plan])
         self.assertEqual(response.status_code, 202, response.content[:400])
         data = self.session_results(response.json()["data"]["session_id"])
 

@@ -20,9 +20,11 @@ Three independent tasks — each with a single, well-defined responsibility:
 """
 
 import logging
+from datetime import timedelta
 from enum import Enum
 
 from celery import shared_task
+from django.conf import settings
 from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
@@ -210,6 +212,10 @@ def process_license_renewals(self):
                 license_sub.is_active = False
                 license_sub.save(update_fields=["is_active", "updated_at"])
                 sync_teachers_under_license_to_mailerlite(license_sub)
+                # Epic B1c (A4): the license ended; its requests close.
+                from .credit_requests import LICENSE_ENDED, close_open_requests
+
+                close_open_requests(license_sub, reason=LICENSE_ENDED)
                 deactivated_count += 1
                 logger.info(
                     "License %s deactivated (auto_renew=False).",
@@ -1789,3 +1795,164 @@ def replay_safe_failed_stripe_events(self):
         summary = "Stripe auto-replay: nothing eligible."
     logger.info(summary)
     return summary
+
+
+# ---------------------------------------------------------------------------
+# Epic B1a: credit holds (plan 08 §3.2)
+# ---------------------------------------------------------------------------
+
+#: The sweep runs every 5 minutes. The lock's worst-case life is max_hold +
+#: ttl (AutoGrader/beat_locks.py), and it must end before the next run:
+#: 3 min + 1 min < 5 min.
+HOLD_SWEEP_MAX_HOLD = timedelta(minutes=3)
+HOLD_SWEEP_LOCK_TTL = timedelta(minutes=1)
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=HOLD_SWEEP_MAX_HOLD, ttl=HOLD_SWEEP_LOCK_TTL)
+def sweep_stale_credit_holds(self):
+    """Return the holds of started items that can no longer be running, and
+    of jobs with no task row past their window (billing.holds). Does nothing
+    while BILLING_HOLDS_ENABLED is off."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    from .holds import sweep_stale_holds
+
+    result = sweep_stale_holds()
+    return (
+        f"Credit hold sweep: items={result['items_swept']} "
+        f"jobs={result['jobs_released']} credits={result['credits_returned']}"
+    )
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
+def check_credit_hold_invariants(self):
+    """Daily: compare every wallet's reserved_credits with its jobs, and each
+    job with its items. Reports only (credit_ledger_anomaly{kind=hold_drift});
+    never repairs. Read-only, so it is not behind the flag."""
+    from .holds import check_invariants
+
+    problems = check_invariants()
+    for problem in problems:
+        logger.error("Credit hold invariant: %s", problem)
+        audit_metrics.count("credit_ledger_anomaly", tags={"kind": "hold_drift"})
+    return f"Credit hold invariants: {len(problems)} problem(s)"
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.DAILY)
+def check_credit_estimate_drift(self):
+    """Monthly (B1b-4, plan 08 §3.6): replay the trailing 90 days of batches
+    against the estimate. Writes one EstimateDriftRun row every run; on drift
+    (coverage under 85% overall, or under 80% in a cell of at least 30
+    batches) it emits credit_estimate_drift and, once approved text #17 is
+    switched on, emails the super admin. Reports only: it never changes an
+    estimate or the cold-start factor."""
+    from .estimates import drift_check
+
+    result = drift_check()
+    return f"Credit estimate drift: drifted={result['drifted']}"
+
+
+#: A connection problem is retried with backoff (60s, 2m, 4m, 8m, 16m):
+#: about half an hour in all, well inside the 24 hours Stripe honours the
+#: refund's idempotency key for.
+DEPARTED_SHARE_REFUND_MAX_RETRIES = 5
+
+
+@shared_task(bind=True, max_retries=DEPARTED_SHARE_REFUND_MAX_RETRIES)
+def refund_departed_teacher_share(self, intent_id, share_cents):
+    """Refund a departed teacher's share of an overage purchase (B1a 3b).
+
+    Enqueued on commit by the checkout handler, never run inside the
+    webhook's transaction. Safe to run again: the refund is guarded by an
+    idempotency key and by a check of the payment's existing refunds
+    (billing/departed_share_refund.py).
+    """
+    from celery.exceptions import MaxRetriesExceededError
+
+    from .departed_share_refund import RetryableRefundError, issue_share_refund
+
+    try:
+        issue_share_refund(intent_id, share_cents)
+    except RetryableRefundError as exc:
+        try:
+            raise self.retry(exc=exc, countdown=60 * 2**self.request.retries) from exc
+        except MaxRetriesExceededError:
+            logger.error(
+                "MANUAL RECONCILIATION NEEDED: the departed-teacher share "
+                "refund for overage intent %s could not reach Stripe after %d "
+                "attempts (%s).",
+                intent_id,
+                DEPARTED_SHARE_REFUND_MAX_RETRIES + 1,
+                exc,
+            )
+
+
+# --------------------------------------------------------------------------
+# Epic B1b-6 (plan 08 §3.7): the batch queue
+# --------------------------------------------------------------------------
+
+QUEUE_SWEEP_MAX_HOLD = timedelta(minutes=3)
+QUEUE_SWEEP_LOCK_TTL = timedelta(minutes=1)
+
+
+def _draining():
+    from .holds import holds_draining
+
+    return holds_draining()
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
+def sweep_credit_requests(self):
+    """Epic B1c (plan 08 §3.8): credit requests back to waiting (expired or
+    unlinked checkout) and closed on loss of access. Nothing while
+    CREDIT_REQUESTS_ENABLED is off."""
+    from .credit_requests import enabled, sweep
+
+    if not enabled():
+        return "credit requests disabled"
+    return f"Credit requests swept: {sweep()}"
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
+def promote_queued_jobs(self):
+    """Promote queued batch jobs whose wallet can now hold papers (the
+    documented 5-minute bound). Does nothing while the flag is off, nor while
+    draining (B1b-9: promotion stops)."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    if _draining():
+        return "credit holds draining"
+    from .batch_queue import promote_all
+
+    return f"Queued batch jobs promoted: papers={promote_all()}"
+
+
+@shared_task(max_retries=0)
+def promote_queued_jobs_for_wallet(wallet_id):
+    """The credit-entry hook's task (plan §3.7): one wallet, on commit. Not
+    while draining (B1b-9)."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    if _draining():
+        return "credit holds draining"
+    from .batch_queue import promote_wallet
+
+    return f"Queued batch jobs promoted: papers={promote_wallet(wallet_id)}"
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=QUEUE_SWEEP_MAX_HOLD, ttl=QUEUE_SWEEP_LOCK_TTL)
+def expire_queued_jobs(self):
+    """The 48-hour warning and the expiry of queued batch jobs. Does
+    nothing while the flag is off."""
+    if not getattr(settings, "BILLING_HOLDS_ENABLED", False):
+        return "credit holds disabled"
+    from .batch_queue import expire_due
+
+    result = expire_due()
+    return f"Queued batch jobs: warned={result['warned']} expired={result['expired']}"

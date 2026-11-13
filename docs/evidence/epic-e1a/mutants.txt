@@ -1,0 +1,52 @@
+M1   KILLED  a second plain mean, Avg("submissions__score_percentage"), in a dashboard view
+     planted in dashboard/views.py; must fail: test_no_grade_maths_outside_the_service; Ran 51 tests in 25.337s
+     red: test_no_grade_maths_outside_the_service
+     sha256 before=after=e55e81f9a7b5b27c786423f68b48ca9fed4e9c2e24b91d9b367bf83e7b0985b5
+M2   KILLED  the weight fallback Coalesce inlined at a new site
+     planted in dashboard/views.py; must fail: test_no_grade_maths_outside_the_service; Ran 51 tests in 25.387s
+     red: test_no_grade_maths_outside_the_service
+     sha256 before=after=e55e81f9a7b5b27c786423f68b48ca9fed4e9c2e24b91d9b367bf83e7b0985b5
+M3   KILLED  a hand-rolled total_score / total_points loop
+     planted in dashboard/views.py; must fail: test_no_grade_maths_outside_the_service; Ran 51 tests in 27.013s
+     red: test_no_grade_maths_outside_the_service
+     sha256 before=after=e55e81f9a7b5b27c786423f68b48ca9fed4e9c2e24b91d9b367bf83e7b0985b5
+M4a  KILLED  weight_of stops falling back to total_points (H-33), in Python
+     planted in classrooms/grade_service.py; must fail: test_weight_of_matches_legacy_ternary; Ran 51 tests in 19.972s
+     red: test_cross_course_grade_matches_legacy_r3 test_released_course_grade_matches_legacy_r2 test_risk_score_row_matches_legacy_dated_score test_student_enrollment_list_released_grade test_teacher_all_students test_teacher_course_analytics test_teacher_course_students test_teacher_my_students test_teacher_overview test_weekly_course_summary_service test_weight_of_matches_legacy_ternary
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+M4b  KILLED  the SQL weight stops falling back to total_points (H-33)
+     planted in classrooms/grade_service.py; must fail: test_course_grade_matches_legacy_r1; Ran 51 tests in 22.918s
+     red: test_compute_final_grade_matches_legacy_r1 test_course_grade_matches_legacy_r1 test_graded_rows_matches_legacy_r1_rows test_risk_rows_matches_legacy_r5_r6 test_school_admin_course_overview_chart test_school_admin_course_performance test_school_admin_students test_school_admin_summary test_school_admin_weekly_summary_service test_super_admin_schools test_super_admin_students test_super_admin_teachers test_teacher_ai_context_service test_teacher_enrollment_list test_teacher_overview
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+M5   KILLED  counts_toward_grade drops is_published when released_only (H-130)
+     planted in classrooms/grade_service.py; must fail: test_released_course_grade_matches_legacy_r2; Ran 70 tests in 30.447s
+     red: test_a_number_cached_before_grading_is_the_number_after_it test_a_reader_the_serializer_cannot_identify_gets_the_students_figure test_an_unreleased_grade_does_not_move_a_number_already_shown test_counts_toward_grade test_graded_but_unreleased_work_reads_like_submitted_work_on_the_detail test_graded_but_unreleased_work_reads_like_submitted_work_on_the_list test_released_course_grade_matches_legacy_r2 test_releasing_a_whole_assignment_adds_it test_releasing_one_submission_adds_it test_student_enrollment_list_released_grade test_the_student_route_chooses_rows_as_the_stored_figure_does test_the_teacher_and_the_student_differ_only_while_something_is_held_back
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+M6   KILLED  rounding ROUND_HALF_UP -> ROUND_HALF_EVEN
+     planted in classrooms/grade_service.py; must fail: test_points_weighted_edges; Ran 51 tests in 25.501s
+     red: test_assignment_grade_matches_legacy_r4 test_compute_final_grade_matches_legacy_r1 test_course_grade_matches_legacy_r1 test_cross_course_grade_matches_legacy_r3 test_points_weighted_edges test_released_course_grade_matches_legacy_r2
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+M7   KILLED  clamp removed
+     planted in classrooms/grade_service.py; must fail: test_points_weighted_edges; Ran 51 tests in 26.013s
+     red: test_assignment_grade_matches_legacy_r4 test_compute_final_grade_matches_legacy_r1 test_course_grade_matches_legacy_r1 test_cross_course_grade_matches_legacy_r3 test_points_weighted_edges test_released_course_grade_matches_legacy_r2
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+M8   KILLED  mean_percentage becomes points-weighted (an accidental 'fix' of D1)
+     planted in classrooms/grade_service.py; must fail: test_teacher_course_analytics; Ran 51 tests in 35.933s
+     red: test_mean_percentage_matches_legacy_avg test_school_admin_teacher_detail test_school_admin_teachers test_school_admin_unit_performance test_school_admin_weekly_summary_service test_student_course_summary test_teacher_ai_context_service test_teacher_course_analytics test_teacher_overview test_teacher_performance_stats_and_rigor
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+X1   KILLED  mean_of_values rounds to 1dp instead of 2dp (M1-M5, M8 sites)
+     planted in classrooms/grade_service.py; must fail: test_mean_of_values_matches_legacy_rounded_mean; Ran 51 tests in 38.863s
+     red: test_mean_of_values_matches_legacy_rounded_mean test_student_overview test_student_weekly_summary_service test_teacher_ai_context_service test_weekly_course_summary_service
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+X2   KILLED  mean_of_values ignores count (student overview avg_score, M7)
+     planted in classrooms/grade_service.py; must fail: test_unrounded_means_match_legacy_overview; Ran 51 tests in 39.353s
+     red: test_unrounded_means_match_legacy_overview
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+X3   KILLED  risk_score_row drops the weight (W1-W5)
+     planted in classrooms/grade_service.py; must fail: test_risk_score_row_matches_legacy_dated_score; Ran 51 tests in 34.222s
+     red: test_risk_score_row_matches_legacy_dated_score test_teacher_all_students test_teacher_course_analytics test_teacher_course_students test_teacher_my_students test_teacher_overview test_weekly_course_summary_service
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680
+X4   KILLED  graded_rows drops the points > 0 filter (R1)
+     planted in classrooms/grade_service.py; must fail: test_graded_rows_matches_legacy_r1_rows; Ran 51 tests in 34.356s
+     red: test_graded_rows_matches_legacy_r1_rows
+     sha256 before=after=88c9baeb78a73ef68a682306ab0f3971ef0750fcd919033efc5922d818083680

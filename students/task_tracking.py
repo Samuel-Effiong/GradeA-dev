@@ -82,21 +82,55 @@ def attach_celery_task(processing_task_id, celery_task_id):
     )
 
 
-def launch_processing_task(task_callable, processing_task, *args, **kwargs):
+def launch_processing_task(
+    task_callable, processing_task, *args, _celery_task_id=None, **kwargs
+):
+    """Dispatch the task for `processing_task`.
+
+    `_celery_task_id` (Epic B1a, flag-on door launches only) is the Celery id
+    the door already wrote on the row and returned to the client; it goes to
+    apply_async, never into the task's kwargs. Without it the dispatch is
+    today's delay()."""
     kwargs["processing_task_id"] = str(processing_task.id)
     try:
-        async_result = task_callable.delay(*args, **kwargs)
+        if _celery_task_id is None:
+            async_result = task_callable.delay(*args, **kwargs)
+        else:
+            async_result = task_callable.apply_async(
+                args=args, kwargs=kwargs, task_id=_celery_task_id
+            )
     except BROKER_UNAVAILABLE_ERRORS as exc:
         # The broker (Redis) is unreachable. This is not the task failing -
         # it never got dispatched - so the caller gets a clean, typed error
         # instead of a raw connection traceback surfacing as a generic 500.
         mark_processing_task_failure(processing_task.id, exc)
+        if _celery_task_id is not None:
+            _return_door_hold(processing_task.id)
         raise ProcessingTemporarilyUnavailable() from exc
     except Exception as exc:
         mark_processing_task_failure(processing_task.id, exc)
+        if _celery_task_id is not None:
+            _return_door_hold(processing_task.id)
         raise
     attach_celery_task(processing_task.id, async_result.id)
     return async_result
+
+
+def _return_door_hold(processing_task_id):
+    """Epic B1a (NOTES §15g): a door file whose message never went out gives
+    its hold back; no sweep or backstop covers an unstarted item yet."""
+    from billing import holds as credit_holds
+    from billing.models import HoldState
+
+    row = (
+        BackgroundProcessingTask.objects.filter(
+            pk=processing_task_id, hold_state=HoldState.HELD, job__isnull=False
+        )
+        .select_related("job")
+        .first()
+    )
+    if row is not None:
+        credit_holds.fail_item(row.job, item=row)
 
 
 def get_processing_task(task_id, requested_by=None):
@@ -233,14 +267,53 @@ def mark_processing_task_started(processing_task_id, meta=None):
     )
 
 
+def _discard_kept_file(processing_task):
+    """Epic B1b-5 (Q3b, Q5): an upload item that succeeded or was cancelled
+    no longer needs its kept file. Upload task types only: no query for any
+    other task."""
+    from .kept_uploads import discard
+
+    discard(processing_task)
+
+
+def _release_unused_hold(processing_task):
+    """Epic B1b-6 (D6-c, NOTES §6.3): a held batch paper that ends before its
+    metered unit returns its hold once. No query unless the row is HELD."""
+    from billing.models import HoldState
+
+    if (
+        processing_task is None
+        or processing_task.job_id is None
+        or processing_task.hold_state != HoldState.HELD
+    ):
+        return
+    from billing.batch_queue import release_unused_item_hold
+
+    release_unused_item_hold(processing_task)
+
+
+def _close_cancelled_queue(processing_task):
+    """Epic B1b-8 (SM Q8-6): a cancel that leaves a queued batch with nothing
+    to run closes it, so no expiry email is sent for it. No query unless the
+    row has a job."""
+    if processing_task is None or processing_task.job_id is None:
+        return
+    from billing.batch_queue import close_if_nothing_waits
+
+    close_if_nothing_waits(processing_task)
+
+
 def mark_processing_task_success(processing_task_id, meta=None):
-    return update_processing_task(
+    processing_task = update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.SUCCESS,
         meta=meta,
         finished=True,
         error="",
     )
+    _discard_kept_file(processing_task)
+    _release_unused_hold(processing_task)
+    return processing_task
 
 
 def mark_processing_task_failure(
@@ -265,7 +338,7 @@ def mark_processing_task_failure(
             describe_error_for_log(error),
         )
 
-    return update_processing_task(
+    processing_task = update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.FAILURE,
         meta=meta,
@@ -275,6 +348,27 @@ def mark_processing_task_failure(
         # stores none and reads as error_class SYSTEM (session-results).
         reason_code=failure_reason_code(error),
     )
+    _discard_refused_kept_file(processing_task)
+    _release_unused_hold(processing_task)
+    return processing_task
+
+
+def _discard_refused_kept_file(processing_task):
+    """Epic B1b-6a (SM, NOTES §6.0): a refused upload can never be retried,
+    so its kept file goes, as on cancel. A code a kept file can retry
+    keeps it, and so does an unclassified failure (code "")."""
+    from .kept_uploads import KEEPABLE_TYPES
+
+    if (
+        processing_task is None
+        or processing_task.task_type not in KEEPABLE_TYPES
+        or not processing_task.reason_code
+    ):
+        return
+    from .item_retry import upload_code_retryable
+
+    if not upload_code_retryable(processing_task.reason_code):
+        _discard_kept_file(processing_task)
 
 
 def failure_reason_code(error):
@@ -297,12 +391,15 @@ def record_refused_item(*, requested_by, task_type, error, **fields):
 
 
 def mark_processing_task_cancelled(processing_task_id, meta=None):
-    return update_processing_task(
+    processing_task = update_processing_task(
         processing_task_id,
         status=BackgroundTaskStatus.CANCELLED,
         meta=meta,
         finished=True,
     )
+    _discard_kept_file(processing_task)
+    _release_unused_hold(processing_task)
+    return processing_task
 
 
 def ensure_task_not_cancelled(processing_task_id, *, message=None):
@@ -437,6 +534,8 @@ def cancel_processing_task(processing_task):
 
         processing_task.save(update_fields=update_fields)
         cleanup_cancelled_task_artifacts(processing_task)
+        _release_unused_hold(processing_task)
+        _close_cancelled_queue(processing_task)
 
     if processing_task.celery_task_id:
         # The revoke is an accelerator, not the cancellation itself: the

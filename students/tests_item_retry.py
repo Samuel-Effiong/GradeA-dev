@@ -281,10 +281,11 @@ class TheRefusalSurvivesSerialization(TestCase):
     pickle and the json backend's cls(*args) rebuild."""
 
     def test_pickle_and_args_rebuild_keep_code_params_and_message(self):
-        from students.item_retry import REUPLOAD, ItemNotRetryable
+        # B1b-8 (Q8-1): REUPLOAD became NOT_SAVED (#16b) and text 2.
+        from students.item_retry import NOT_SAVED, ItemNotRetryable
 
         refusal = ItemNotRetryable(
-            params={"resolution": "replace_file"}, display={"why": REUPLOAD}
+            params={"resolution": "replace_file"}, display={"why": NOT_SAVED}
         )
         for rebuilt in (
             pickle.loads(pickle.dumps(refusal)),
@@ -293,7 +294,7 @@ class TheRefusalSurvivesSerialization(TestCase):
             with self.subTest(via=type(rebuilt).__name__):
                 self.assertEqual(rebuilt.reason_code, "NOT_RETRYABLE")
                 self.assertEqual(rebuilt.params, {"resolution": "replace_file"})
-                self.assertEqual(str(rebuilt), REUPLOAD)
+                self.assertEqual(str(rebuilt), NOT_SAVED)
 
 
 class RetryFailed(RetryFixture, TestCase):

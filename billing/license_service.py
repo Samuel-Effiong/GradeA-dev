@@ -16,7 +16,8 @@ Key principles:
 """
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 from typing import Any, Dict, List, Optional
 
 from dateutil.relativedelta import relativedelta  # type: ignore
@@ -44,7 +45,7 @@ from users.models import CustomUser, RegistrationMethod, UserTypes
 from users.services import generate_temporary_password
 from users.utils import is_business_email, is_exempt_email_domain
 
-from . import license_stripe_mutation
+from . import departed_share_refund, license_stripe_mutation
 from .billing_transaction_service import BillingTransactionService
 from .context import clear_license_invitation_context, set_license_invitation_context
 from .imports import stripe
@@ -83,6 +84,16 @@ from .refresh_timing import next_monthly_grant, refresh_due_by
 logger = logging.getLogger(__name__)
 
 _DEFAULT_LICENSE_BILLING_METHOD: str = str(LicenseBillingMethod.STRIPE)
+
+
+def _close_credit_requests(license_sub: LicenseSubscription) -> None:
+    """Epic B1c (STEP0_PLAN A2, A4, A5, A7): the license ended, so every open
+    credit request on it closes, in the caller's transaction."""
+    from . import credit_requests
+
+    credit_requests.close_open_requests(
+        license_sub, reason=credit_requests.LICENSE_ENDED
+    )
 
 
 def sync_teachers_under_license_to_mailerlite(license_sub: LicenseSubscription) -> None:
@@ -1111,6 +1122,7 @@ class LicenseSubscriptionService:
 
             existing_license.is_active = False
             existing_license.save(update_fields=["is_active", "updated_at"])
+            _close_credit_requests(existing_license)
 
         # 3. Create the LicenseSubscription
         license_sub = LicenseSubscription.objects.create(
@@ -2000,6 +2012,13 @@ class LicenseSubscriptionService:
 
         safe_delay(sync_user_to_mailerlite, str(teacher.id))
 
+        # Epic B1c (A1): the teacher's open credit request closes.
+        from . import credit_requests
+
+        credit_requests.close_open_requests(
+            license_sub, teacher=teacher, reason=credit_requests.TEACHER_LEFT
+        )
+
         # 2. Expire all active credit buckets for this teacher - through the
         # ledger (Epic A S3, G7 / D4), exactly as the Beat cleanup records a
         # normal expiry: an EXPIRE row per bucket with credits left, so the
@@ -2086,6 +2105,7 @@ class LicenseSubscriptionService:
             license_sub.is_active = False
             license_sub.save(update_fields=["is_active", "updated_at"])
             sync_teachers_under_license_to_mailerlite(license_sub)
+            _close_credit_requests(license_sub)
             return
 
         # Get all active allocations
@@ -2205,6 +2225,7 @@ class LicenseSubscriptionService:
             license_sub.is_active = False
             license_sub.save(update_fields=["is_active", "updated_at"])
             sync_teachers_under_license_to_mailerlite(license_sub)
+            _close_credit_requests(license_sub)
             raise RuntimeError(
                 f"License {license_sub.id} renewal failed for all teachers."
             )
@@ -2370,6 +2391,7 @@ class LicenseSubscriptionService:
                         update_fields=["is_active", "auto_renew", "updated_at"]
                     )
                     sync_teachers_under_license_to_mailerlite(licence)
+                    _close_credit_requests(licence)
                     record_cancellation(
                         licence, "Teachers lose access immediately (OFFLINE billing)."
                     )
@@ -2980,6 +3002,7 @@ class LicenseSubscriptionService:
         success_url: Optional[str] = None,
         cancel_url: Optional[str] = None,
         payment_method: str = "stripe",
+        credit_request_id=None,
     ) -> dict:
         """
         SINGLE entry point for purchasing/granting teacher overage blocks
@@ -3061,12 +3084,20 @@ class LicenseSubscriptionService:
 
             if is_super:
                 return LicenseSubscriptionService._grant_overage_offline(
-                    license_sub, requesting_user, total_blocks, allocations
+                    license_sub,
+                    requesting_user,
+                    total_blocks,
+                    allocations,
+                    credit_request_id=credit_request_id,
                 )
 
             if payment_method == "offline_request":
                 return LicenseSubscriptionService.request_overage_offline(
-                    license_sub, requesting_user, total_blocks, allocations
+                    license_sub,
+                    requesting_user,
+                    total_blocks,
+                    allocations,
+                    credit_request_id=credit_request_id,
                 )
 
             if not success_url or not cancel_url:
@@ -3081,6 +3112,7 @@ class LicenseSubscriptionService:
                 allocations,
                 success_url,
                 cancel_url,
+                credit_request_id=credit_request_id,
             )
         finally:
             cache.delete(lock_key)
@@ -3172,6 +3204,7 @@ class LicenseSubscriptionService:
         performed_by,
         total_blocks: int,
         allocations: dict,
+        credit_request_id=None,
     ) -> dict:
         """
         Super-admin path: grants overage blocks to teachers immediately,
@@ -3258,6 +3291,14 @@ class LicenseSubscriptionService:
             occurred_at=timezone.now(),
         )
 
+        # Epic B1c: a credit request answered by a super admin's grant.
+        from . import credit_requests
+
+        credit_requests.on_purchase_fulfilled(
+            credit_request_id,
+            granted_teacher_ids=[d["teacher_id"] for d in granted_details],
+            actor=performed_by,
+        )
         logger.info(
             "Superadmin %s granted %d overage block(s) across %d teacher(s) "
             "under license %s (offline, no Stripe charge).",
@@ -3281,6 +3322,7 @@ class LicenseSubscriptionService:
         allocations: dict,
         success_url: str,
         cancel_url: str,
+        credit_request_id=None,
     ) -> dict:
         """
         School-admin path: creates a Stripe Checkout Session (mode=
@@ -3320,8 +3362,17 @@ class LicenseSubscriptionService:
             unit_price_cents_snapshot=plan.overage_block_price,
             amount_cents=amount_cents,
             status=LicenseOveragePurchaseStatus.PENDING,
+            credit_request_id=credit_request_id,
         )
-
+        metadata = {
+            "flow": "license_overage_purchase_checkout",
+            "license_id": str(license_sub.id),
+            "intent_id": str(intent.id),
+        }
+        if credit_request_id:
+            # Epic B1c (review r2 M-e): fulfilment finds the request even if
+            # approve never linked it.
+            metadata["credit_request_id"] = str(credit_request_id)
         try:
             session = stripe.checkout.Session.create(
                 customer=customer_id,
@@ -3334,11 +3385,7 @@ class LicenseSubscriptionService:
                 ],
                 success_url=success_url,
                 cancel_url=cancel_url,
-                metadata={
-                    "flow": "license_overage_purchase_checkout",
-                    "license_id": str(license_sub.id),
-                    "intent_id": str(intent.id),
-                },
+                metadata=metadata,
             )
         except stripe.error.StripeError as exc:
             # Nothing was charged. Mark the intent FAILED so it doesn't
@@ -3360,7 +3407,21 @@ class LicenseSubscriptionService:
         # even if the process crashes right here, the webhook can still
         # find and fulfill this intent via metadata alone.
         intent.stripe_checkout_session_id = session.id
-        intent.save(update_fields=["stripe_checkout_session_id", "updated_at"])
+        # Epic B1c (review r2 TTL): the stale-APPROVED sweep's clock is the
+        # session's own expiry, not an assumed 24 hours.
+        expires_at = getattr(session, "expires_at", None)
+        intent.session_expires_at = (
+            datetime.fromtimestamp(int(expires_at), tz=dt_timezone.utc)
+            if expires_at
+            else None
+        )
+        intent.save(
+            update_fields=[
+                "stripe_checkout_session_id",
+                "session_expires_at",
+                "updated_at",
+            ]
+        )
 
         logger.info(
             "Created license overage checkout session %s for license %s "
@@ -3393,6 +3454,7 @@ class LicenseSubscriptionService:
         requesting_user,
         total_blocks: int,
         allocations: dict,
+        credit_request_id=None,
     ) -> dict:
         """
         School-admin path (payment_method="offline_request"): records a
@@ -3419,6 +3481,7 @@ class LicenseSubscriptionService:
             block_size_snapshot=plan.overage_block_size,
             unit_price_cents_snapshot=plan.overage_block_price,
             amount_cents_quoted=amount_cents_quoted,
+            credit_request_id=credit_request_id,
         )
 
         logger.info(
@@ -3509,6 +3572,16 @@ class LicenseSubscriptionService:
                     "attempt: license %s is no longer active.",
                     request_obj.id,
                     license_sub.id,
+                )
+                # Epic B1c: the license ended, so its credit request closes.
+                from . import credit_requests
+
+                credit_requests.on_purchase_fulfilled(
+                    request_obj.credit_request_id,
+                    granted_teacher_ids=[],
+                    offline_request=request_obj,
+                    actor=performed_by,
+                    close_reason=credit_requests.LICENSE_ENDED,
                 )
                 LicenseSubscriptionService._notify_school_admin_offline_overage_rejected(
                     request_obj
@@ -3602,6 +3675,26 @@ class LicenseSubscriptionService:
                 performed_by=performed_by,
             )
             request_obj.license_billing_record = billing_record
+            # B1a 3b: with the switch on, the skipped share is recorded as
+            # owed back, for the super admin to refund by hand.
+            refund_due = departed_share_refund.enabled() and bool(skipped)
+            if refund_due:
+                LicenseBillingRecord.objects.create(
+                    license_subscription=license_sub,
+                    record_type=LicenseBillingRecordType.OFFLINE_OVERAGE_REFUND_DUE,
+                    amount_paid_cents=None,
+                    payment_reference=payment_reference,
+                    payment_method_label=payment_method_label,
+                    notes=departed_share_refund.text(
+                        "offline_record_notes",
+                        amount=departed_share_refund.format_amount(
+                            LicenseSubscriptionService._offline_share_owed(
+                                request_obj, skipped
+                            )
+                        ),
+                    ),
+                    performed_by=performed_by,
+                )
             request_obj.save(
                 update_fields=[
                     "status",
@@ -3630,7 +3723,18 @@ class LicenseSubscriptionService:
                     f"Offline overage request approved — "
                     f"{request_obj.total_blocks * (request_obj.block_size_snapshot // CONVERSION_FACTOR):,} "
                     f"AI credit(s) across {len(request_obj.allocations)} teacher(s)"
-                    + (f" ({len(skipped)} skipped, needs review)" if skipped else "")
+                    + (
+                        " "
+                        + departed_share_refund.text(
+                            "history_suffix_offline", n=len(skipped)
+                        )
+                        if refund_due
+                        else (
+                            f" ({len(skipped)} skipped, needs review)"
+                            if skipped
+                            else ""
+                        )
+                    )
                 ),
                 occurred_at=timezone.now(),
             )
@@ -3646,10 +3750,19 @@ class LicenseSubscriptionService:
                 license_sub.id,
             )
 
+            # Epic B1c: the credit request this answers, granted (or closed
+            # if its teacher was skipped).
+            from . import credit_requests
+
+            credit_requests.on_purchase_fulfilled(
+                request_obj.credit_request_id,
+                granted_teacher_ids=[d["teacher_id"] for d in fulfilled],
+                offline_request=request_obj,
+                actor=performed_by,
+            )
             LicenseSubscriptionService._notify_school_admin_offline_overage_approved(
                 request_obj
             )
-
             return request_obj
         finally:
             cache.delete(lock_key)
@@ -3693,6 +3806,10 @@ class LicenseSubscriptionService:
             performed_by.id,
             rejection_reason,
         )
+        # Epic B1c (review r2 M-d): its credit request waits again.
+        from . import credit_requests
+
+        credit_requests.on_offline_rejected(request_obj)
 
         LicenseSubscriptionService._notify_school_admin_offline_overage_rejected(
             request_obj
@@ -3768,6 +3885,15 @@ class LicenseSubscriptionService:
         transaction.on_commit(_dispatch)
 
     @staticmethod
+    def _offline_share_owed(request_obj, skipped) -> int:
+        """The skipped teachers' share of an offline payment, never more
+        than what was confirmed as paid."""
+        share = departed_share_refund.share_cents(
+            skipped, request_obj.unit_price_cents_snapshot
+        )
+        return min(share, int(request_obj.amount_confirmed_cents or 0))
+
+    @staticmethod
     def _notify_school_admin_offline_overage_approved(
         request_obj: LicenseOverageOfflineRequest,
     ) -> None:
@@ -3788,6 +3914,15 @@ class LicenseSubscriptionService:
             "current_year": timezone.now().year,
             "support_email": settings.SUPPORT_EMAIL,
         }
+        skipped = request_obj.skipped_allocations or []
+        if departed_share_refund.enabled() and skipped:
+            # B1a 3b: the not-credited sentence says the share is owed back.
+            context["not_credited_text"] = departed_share_refund.text(
+                "approval_email_not_credited",
+                amount=departed_share_refund.format_amount(
+                    LicenseSubscriptionService._offline_share_owed(request_obj, skipped)
+                ),
+            )
         recipient_email = requested_by.email if requested_by else None
 
         def _dispatch():

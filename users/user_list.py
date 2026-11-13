@@ -15,7 +15,6 @@ from functools import partial
 
 from django.db.models import (
     Case,
-    DecimalField,
     F,
     Func,
     IntegerField,
@@ -26,7 +25,7 @@ from django.db.models import (
     Value,
     When,
 )
-from django.db.models.functions import Cast, Coalesce, Floor
+from django.db.models.functions import Coalesce, Greatest
 from django.utils import timezone
 
 from assignments.models import Assignment
@@ -188,37 +187,31 @@ def _expressions():
             ),
             (),
         ),
-        # Beta: CreditWallet.total_remaining_credits(), the live buckets'
-        # sum, unclamped (beta has no credit holds). Null with no wallet (D4).
+        # billing.holds.spendable_credits: max(0, live buckets - holds).
+        # Null with no wallet (D4).
         "credits_left_raw": (
             lambda: Case(
                 When(credit_wallet__isnull=True, then=Value(None)),
-                default=Coalesce(
-                    _total(
-                        CreditBucket.objects.filter(live, wallet__user=OuterRef("pk")),
-                        "SUM",
-                        F("total_credits") - F("used_credits"),
-                    ),
-                    0,
+                default=Greatest(
+                    Value(0),
+                    Coalesce(
+                        _total(
+                            CreditBucket.objects.filter(
+                                live, wallet__user=OuterRef("pk")
+                            ),
+                            "SUM",
+                            F("total_credits") - F("used_credits"),
+                        ),
+                        0,
+                    )
+                    - F("credit_wallet__reserved_credits"),
                 ),
                 output_field=IntegerField(),
             ),
             (),
         ),
-        # CreditWallet.display_balance: math.floor(total / 1000). A floor,
-        # not integer division, which truncates a negative balance toward
-        # zero (Q-B1, SM -16).
         "credits_left": (
-            lambda: Cast(
-                Floor(
-                    Cast(
-                        F("credits_left_raw"),
-                        DecimalField(max_digits=30, decimal_places=0),
-                    )
-                    / Value(CONVERSION_FACTOR)
-                ),
-                IntegerField(),
-            ),
+            lambda: F("credits_left_raw") / Value(CONVERSION_FACTOR),
             ("credits_left_raw",),
         ),
         # The dashboard's usage: all time, net of refunds. A user's charges

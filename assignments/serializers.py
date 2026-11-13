@@ -21,6 +21,7 @@ from students.feedback_projection import (
 )
 from students.flag_serializers import UPLOAD_MISMATCH_HELP, ReviewFlagSerializer
 from students.models import StudentSubmission
+from tags.assignment_field import AssignmentTagsFieldMixin
 from users.models import UserTypes
 
 from .models import (  # Rubric
@@ -300,7 +301,7 @@ class AssignmentSerializer(serializers.ModelSerializer):
         return obj.submissions.count()
 
 
-class AssignmentListSerializer(serializers.ModelSerializer):
+class AssignmentListSerializer(AssignmentTagsFieldMixin, serializers.ModelSerializer):
     submission_count = serializers.SerializerMethodField()
     is_grading_scheduled = serializers.SerializerMethodField()
 
@@ -439,7 +440,7 @@ class AssignmentListStudentSerializer(serializers.ModelSerializer):
         return 3
 
 
-class AssignmentDetailSerializer(serializers.ModelSerializer):
+class AssignmentDetailSerializer(AssignmentTagsFieldMixin, serializers.ModelSerializer):
     student_submissions = serializers.SerializerMethodField()
     raw_input = serializers.SerializerMethodField()
     is_grading_scheduled = serializers.SerializerMethodField()

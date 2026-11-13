@@ -37,7 +37,13 @@ from rest_framework.response import Response
 from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from assignments.exceptions import FileUnreadableError
-from assignments.upload_door import batch_refusal_response, parked_files
+from assignments.upload_door import (
+    DoorHold,
+    batch_refusal_response,
+    launch_at_door,
+    parked_files,
+)
+from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -47,6 +53,7 @@ from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
+from billing.job_ref import ai_job_schema, settled_job_id, tracking, with_ai_job_id
 from classrooms.models import (
     COURSE_ACCESS_ENROLLMENT_STATUSES,
     Topic,
@@ -57,12 +64,15 @@ from classrooms.models import (
 from classrooms.permissions import IsTeacher, IsTeacherOrReadOnly
 from classrooms.serializers import TopicSerializer
 from students.grading_gates import ensure_gradable
+from students.kept_uploads import DoorFile
 from students.models import BackgroundTaskType, BatchUploadSession, BatchUploadType
 from students.task_tracking import (
     create_processing_task,
     launch_processing_task,
+    mark_processing_task_failure,
     record_refused_item,
 )
+from tags.assignment_field import prefetch_tags
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
@@ -101,9 +111,10 @@ from .services import (
     ai_assignment_content_only,
     number_questions_in_order,
 )
+from .tasks import grade_engine_async  # noqa: F401 (tests patch it here)
 from .tasks import (  # grade_all_submissions,
+    _dispatch_tracked_grading,
     extract_assignment_background_task,
-    grade_engine_async,
     update_assignment_background_task,
     upload_assignment_async,
 )
@@ -208,7 +219,7 @@ def _not_graded_entries(submissions):
         request=AssignmentTextSerializer,
         responses={
             202: OpenApiResponse(
-                response=AssignmentListSerializer,
+                response=ai_job_schema(AssignmentListSerializer),
                 description="Assignment created successfully",
             ),
             400: OpenApiResponse(
@@ -277,7 +288,7 @@ def _not_graded_entries(submissions):
         description="Update an existing assignment.",
         request=AssignmentTextSerializer,
         responses={
-            200: AssignmentListSerializer,
+            200: ai_job_schema(AssignmentListSerializer),
             400: OpenApiResponse(description="Invalid input"),
             # 401: OpenApiResponse(description="Authentication credentials were not provided"),
             # 403: OpenApiResponse(description="You do not have permission to perform this action"),
@@ -349,7 +360,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # trips on a default page. distinct=True because the filter
             # backend can join (?course__session=...), and a join would
             # otherwise multiply the count.
-            return (
+            # prefetch_tags: Epic C1's `tags` field, only while the flag is
+            # on (one query for the page, none per row).
+            return prefetch_tags(
                 Assignment.objects.select_related("course__teacher")
                 .annotate(
                     annotated_submission_count=Count("submissions", distinct=True)
@@ -406,6 +419,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return super().get_serializer_class()
 
     @transaction.atomic
+    @with_ai_job_id
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -598,6 +612,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             assignment.was_overridden = True
             assignment.overridden_at = timezone.now()
 
+    @with_ai_job_id
     def partial_update(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = self.get_serializer(
@@ -954,20 +969,23 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 continue
 
             try:
-                outcome = upload_assignment_file(
-                    request.user,
-                    uploaded_file,
-                    prompt_text,
-                    course=course,
-                    topic=topic,
-                    sha256=sha256_of_uploaded_file(uploaded_file),
-                )
+                # B1b-7 D7-e: one job per file, so each item names its own.
+                with tracking() as jobs:
+                    outcome = upload_assignment_file(
+                        request.user,
+                        uploaded_file,
+                        prompt_text,
+                        course=course,
+                        topic=topic,
+                        sha256=sha256_of_uploaded_file(uploaded_file),
+                    )
 
                 successful.append(
                     {
                         "file_name": file_name,
                         "assignment": AssignmentListSerializer(outcome.assignment).data,
                         "already_uploaded": outcome.already_uploaded,
+                        "ai_job_id": settled_job_id(jobs),
                     }
                 )
 
@@ -1091,19 +1109,19 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files were uploaded. Please try again")
 
-        prompt_text = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
+        # B1b-5 (SM Q2): shared with the retry of a stopped item.
+        prompt_text = BATCH_UPLOAD_PROMPT
 
         # H-180 / H-223: before the session or any task exists, the door
         # walks the files with a running balance. A file that does not fit
         # is parked as its own item below; only when no file fits is the
         # batch refused. A file that is not an upload or is too large is
         # left to the loop below, which refuses it as its own item.
-        parked = parked_files(request.user, None, files, prompt_text)
+        estimates = {}
+        parked = parked_files(
+            request.user, None, files, prompt_text, estimates_out=estimates
+        )
+        door = DoorHold(request.user, None, len(files) - len(parked))
         if parked and len(parked) == len(files):
             # A teacher-only route: the batch is billed to the caller.
             return batch_refusal_response(request.user)
@@ -1168,19 +1186,40 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 continue
 
-            file_payload = AssignmentProcessingService.build_async_upload_payload(
-                uploaded_file
-            )
+            # Epic B1b-5 (08b §3.2): the file is kept first; its row (with
+            # the topic a retry needs, SM Q2) is written with the item.
+            door_file = DoorFile(uploaded_file)
 
-            processing_task = create_processing_task(
-                requested_by=request.user,
-                task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
-                batch_session=session,
-                file_name=uploaded_file.name,
-                meta={"step": "Queued for batch assignment extraction"},
-                item_index=item_index,
-            )
-            task = launch_processing_task(
+            with transaction.atomic():
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
+                    batch_session=session,
+                    file_name=uploaded_file.name,
+                    meta={"step": "Queued for batch assignment extraction"},
+                    item_index=item_index,
+                )
+                door_file.attach(
+                    processing_task,
+                    relaunch={"topic_id": str(topic.id) if topic else None},
+                )
+            file_payload = door_file.payload()
+            if not door.hold(processing_task, estimates.get(item_index - 1)):
+                # Epic B1a: the file's hold lost a race for the free balance.
+                mark_processing_task_failure(
+                    processing_task.id,
+                    door.refusal(estimates.get(item_index - 1)),
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": processing_task.id,
+                    }
+                )
+                continue
+            task_id = launch_at_door(
+                launch_processing_task,
                 upload_assignment_async,
                 processing_task,
                 user_id=str(request.user.id),
@@ -1194,10 +1233,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             tasks_data.append(
                 {
                     "file_name": uploaded_file.name,
-                    "task_id": task.id,
+                    "task_id": task_id,
                     "item_id": processing_task.id,
                 }
             )
+        # Door-close fix: every file this request will hold is attached.
+        door.seal()
 
         data = {
             "session_id": session.id,
@@ -1385,7 +1426,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         """,
         request=AssignmentGeneratorSerializer,
         responses={
-            201: GeneratedAssignmentSerializer,
+            201: ai_job_schema(GeneratedAssignmentSerializer),
             400: OpenApiResponse(
                 description="Bad request - invalid data",
             ),
@@ -1409,6 +1450,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         url_path=r"generate/(?P<course_id>[-\w]+)",
         url_name="generate",
     )
+    @with_ai_job_id
     def generate_assignment_from_prompt(self, request, course_id, *args, **kwargs):
         """
         Generate a new assignment draft based on text prompts.
@@ -1779,46 +1821,23 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             task_type=BatchUploadType.GRADE,
             total_files=ungraded_submissions.count(),
         )
-        tasks_data = []
-
-        for item_index, submission in enumerate(ungraded_submissions, start=1):
-            processing_task = create_processing_task(
-                requested_by=request.user,
-                task_type=BackgroundTaskType.BATCH_SUBMISSION_GRADING,
-                batch_session=session,
-                assignment=assignment,
-                submission=submission,
-                file_name=f"Submission for {submission.student.get_full_name()}",
-                meta={"step": "Queued for batch grading"},
-                item_index=item_index,
-            )
-            task = launch_processing_task(
-                grade_engine_async,
-                processing_task,
-                str(request.user.id),
-                str(submission.id),
-                batch_id=session.id,
-            )
-            emit(
-                AuditAction.GRADING_REQUESTED,
-                actor=request.user,
-                request=request,
-                target_type="StudentSubmission",
-                target_id=submission.id,
-                outcome=AuditOutcome.SUCCESS,
-                metadata={
-                    "assignment_id": str(assignment.id),
-                    "submission_id": str(submission.id),
-                    "task_id": str(processing_task.id),
-                    "task_type": BackgroundTaskType.BATCH_SUBMISSION_GRADING,
-                },
-            )
-            tasks_data.append(
-                {
-                    "file_name": f"Submission for {submission.student.get_full_name()}",
-                    "task_id": task.id,
-                }
-            )
+        # Epic B1b-6 (08b §1.4): the one dispatch path. With the flag on, a
+        # paper waiting for credits has no message yet: task_id null (D6-d).
+        pairs = _dispatch_tracked_grading(
+            request.user,
+            assignment,
+            ungraded_submissions,
+            session,
+            request=request,
+            batch_id=session.id,
+        )
+        tasks_data = [
+            {
+                "file_name": processing_task.file_name,
+                "task_id": task.id if task is not None else None,
+            }
+            for processing_task, task in pairs
+        ]
 
         data = {
             "session_id": session.id,

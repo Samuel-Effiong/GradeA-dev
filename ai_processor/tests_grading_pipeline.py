@@ -45,6 +45,7 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
+from billing.testing.holds import assert_hold_ledger
 from users.models import CustomUser, UserTypes
 
 
@@ -290,6 +291,9 @@ class FailedGradingRunRefundsEveryChargeTest(GradingPipelineTestBase):
             "refunded, not left consumed",
         )
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is GradingRunWithHoldsTest.test_a_successful_run_is_charged_once_at_settle below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_successful_run_keeps_every_charge(self):
         teacher = self._make_teacher_with_credits()
         wallet = teacher.credit_wallet
@@ -325,6 +329,9 @@ class PerAttemptRefundSemanticsTest(GradingPipelineTestBase):
     loop instead of one grade_student_submission call), this test is the
     one that should change."""
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is GradingRunWithHoldsTest.test_a_failed_attempt_is_never_charged_the_successful_one_is below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_failed_attempt_is_refunded_successful_attempt_is_kept(self):
         # A rubric small enough to take the single-pass (non-batched) path,
         # so exactly one execute_graded_task call happens per attempt.
@@ -383,3 +390,81 @@ class PerAttemptRefundSemanticsTest(GradingPipelineTestBase):
         # Attempt 1's charge (200 tokens -> refunded), attempt 2's kept.
         self.assertTrue(logs[0].is_refunded)
         self.assertFalse(logs[1].is_refunded)
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class GradingRunWithHoldsTest(GradingPipelineTestBase):
+    """B1b-2 (NOTES §2.10) B3 twins of
+    FailedGradingRunRefundsEveryChargeTest.test_successful_run_keeps_every_charge
+    and PerAttemptRefundSemanticsTest.test_failed_attempt_is_refunded_successful_
+    attempt_is_kept. With holds, a grading run (one grade_student_submission
+    call) is one metered unit: its calls are held as they go and charged
+    once, at settle; a failed attempt is never charged."""
+
+    def test_a_successful_run_is_charged_once_at_settle(self):
+        teacher = self._make_teacher_with_credits()
+        wallet = teacher.credit_wallet
+        starting_balance = wallet.total_remaining_credits()
+        calls = {"n": 0}
+
+        def fake_model(*args, **kwargs):
+            # By call order: the flag-off test's usage-log count stays 0
+            # until settle with holds on.
+            calls["n"] += 1
+            content = (
+                _batch_evaluations_json(calls["n"])
+                if calls["n"] <= _NUM_BATCHES
+                else SUMMARY_JSON
+            )
+            return make_ai_response(tokens=500, content=content)
+
+        with patch.object(
+            AIProcessor, "_AIProcessor__ai_model", side_effect=fake_model
+        ):
+            ai_processor.grade_student_submission(teacher, RUBRIC_12Q, ANSWERS_12Q)
+
+        self.assertGreater(calls["n"], 1)
+        wallet.refresh_from_db()
+        self.assertLess(wallet.total_remaining_credits(), starting_balance)
+        assert_hold_ledger(self, teacher, kept_count=1)
+
+    def test_a_failed_attempt_is_never_charged_the_successful_one_is(self):
+        small_rubric = json.dumps(
+            [{"question_number": 1, "question_text": "Q1?", "points": 10}]
+        )
+        small_answers = json.dumps(
+            [{"question_number": 1, "answer_html": "An answer."}]
+        )
+        teacher = self._make_teacher_with_credits()
+        calls = {"n": 0}
+
+        def fake_model(*args, **kwargs):
+            calls["n"] += 1
+            if calls["n"] == 1:
+                return make_ai_response(tokens=200, content="not valid json")
+            return make_ai_response(
+                tokens=300,
+                content=json.dumps(
+                    {
+                        "question_evaluations": [
+                            {
+                                "question_number": 1,
+                                "score_awarded": 10,
+                                "evidence_quotes": ["An answer"],
+                            }
+                        ],
+                    }
+                ),
+            )
+
+        with patch.object(
+            AIProcessor, "_AIProcessor__ai_model", side_effect=fake_model
+        ):
+            result = ai_processor.extract_grade_with_retry(
+                teacher, small_rubric, small_answers, max_retries=3
+            )
+
+        self.assertEqual(result["grading_summary"]["total_score"], 10)
+        self.assertEqual(calls["n"], 2)
+        # One charge (attempt 2's settle); attempt 1 was never charged.
+        assert_hold_ledger(self, teacher, kept_count=1)

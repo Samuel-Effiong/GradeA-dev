@@ -48,6 +48,16 @@ EVERY_5_MIN_TASK = "billing.tasks.escalate_stale_licence_stripe_intents"
 EPIC_ONLY_GUARDED_BEAT_TASKS = {
     "audit.tasks.sweep_audit_retention",
     "audit.tasks.sweep_audit_pii_short_retention",
+    # Epic B1a (plan 08 §3.2): credit holds.
+    "billing.tasks.sweep_stale_credit_holds",
+    "billing.tasks.check_credit_hold_invariants",
+    # Epic B1b-4 (plan 08 §3.6): the monthly estimate drift check.
+    "billing.tasks.check_credit_estimate_drift",
+    # Epic B1b-5 (08b §3.2): the hourly purge of kept upload files.
+    "students.tasks.purge_kept_uploads",
+    # Epic B1b-6 (plan 08 §3.7): the batch queue's promotion and expiry.
+    "billing.tasks.promote_queued_jobs",
+    "billing.tasks.expire_queued_jobs",
 }
 
 

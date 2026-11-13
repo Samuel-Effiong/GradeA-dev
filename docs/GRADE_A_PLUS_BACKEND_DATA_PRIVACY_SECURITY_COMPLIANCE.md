@@ -290,7 +290,9 @@ The backend never turns certificate checking off for any of these connections.
 | Profile pictures | Stored by Cloudinary, encrypted on disk | AES-256 (Cloudinary's statement) | Cloudinary |
 | Error reports | Stored by Sentry, encrypted on disk, in the United States | Sentry's statement; SOC 2 and ISO 27001 audited | Sentry |
 | Source code | Encrypted on disk by GitHub | GitHub's statement | GitHub |
-| Uploaded papers | Not stored. Each file is read in a temporary folder and the folder is deleted when the reading is done | — | The backend |
+| Uploaded papers | Kept privately by Cloudinary and encrypted, for up to 30 days, so we can try again if something goes wrong. Deleted as soon as the paper is processed. | AES-256 (Cloudinary's statement) | Cloudinary |
+
+When a teacher or student uploads answers or an assignment, we keep the file privately with our storage provider, Cloudinary, for up to 30 days. This lets us try again if something goes wrong, without asking anyone to upload it again. We delete the file as soon as it has been processed, or after 30 days at the latest.
 
 ### Where the data lives
 
@@ -371,7 +373,7 @@ Grade A Plus is built for schools in the United States. This section names the l
 | Stripe (payments) | PCI DSS Service Provider Level 1; SOC 1 and SOC 2 Type II | The card industry's highest level; audited every year |
 | OpenRouter (AI gateway) | SOC 2 Type 2 | Independently examined security controls; penetration-tested |
 | Sentry (error reports) | SOC 2 Type II; ISO 27001 | Independently examined and certified to the international information-security standard |
-| Cloudinary (profile pictures) | SOC 2 Type II; ISO 27001 family | As above |
+| Cloudinary (profile pictures, uploaded papers) | SOC 2 Type II; ISO 27001 family | As above |
 | MailerLite (email) | ISO/IEC 27001:2022 | Certified to the international information-security standard; hosted in the EU |
 | MailerSend (email) | Hosted in an ISO 27001-certified data centre in the EU | The certificate is the data centre's |
 | GitHub (source code) | SOC 2; ISO 27001 | Independently examined and certified |
@@ -388,6 +390,7 @@ We use a small number of well-known companies. Each receives only what it needs 
 | Sending email | MailerSend, MailerLite | Email addresses and the messages we send | European Union |
 | Sign in with Google | Google | Only what is needed to confirm who is signing in | United States |
 | Profile pictures | Cloudinary | Pictures users choose to upload | United States |
+| Uploaded papers | Cloudinary | Answer and assignment files that teachers and students upload, kept until processed or for at most 30 days | United States |
 | Error reports | Sentry | Technical details of faults, with personal details left out | United States |
 | Hosting | Railway | Runs the backend and its database | United States |
 | Source code | GitHub | The backend's code, never any school data | United States |
@@ -503,7 +506,7 @@ This appendix is for a school's IT or legal staff who want to check a statement.
 | Student email and location never in the activity record | `audit/emitter.py` lines 515-531; `audit/models.py` lines 93-105 (database constraint `audit_student_no_pii_ck`) |
 | Activity record retention 12 months / 3 years / 90 days | `audit/tasks.py` lines 25-94; `settings.py` lines 1078-1088 |
 | Upload caps: 50 MB, real PDF, 300 pages, 50 million pixels | `AutoGrader/uploads.py` line 37; `ai_processor/services.py` lines 5999 and 6048-6071; `assignments/services.py` line 208 |
-| Uploaded file deleted after reading | `ai_processor/services.py` lines 6080-6120 |
+| Uploaded file kept until success or 30 days | `students/kept_files.py`, `students/kept_uploads.py`, `students/tasks.py` (purge) |
 | Scripts stripped from AI text | `assignments/services.py` lines 657-680 (`bleach` allow-list) |
 | Fetching web pages safely (private addresses refused, 5 redirects, 2 MB) | `ai_processor/tools.py` lines 27-208 |
 | No database command built from typed text | Django ORM throughout; no `.raw()`, `.extra()` or `RawSQL` in application code |

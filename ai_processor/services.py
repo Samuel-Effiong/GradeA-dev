@@ -29,6 +29,7 @@ from PIL import Image
 
 from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
 from audit.emitter import resolve_trace_id
+from billing import holds as credit_holds
 from billing.access_control import (
     NO_CREDITS_REMAINING_REASON,
     TRIAL_CREDITS_EXHAUSTED_REASON,
@@ -37,8 +38,10 @@ from billing.access_control import (
     can_user_access_ai,
 )
 from billing.errors import InsufficientCreditsError, is_individual_teacher
-from billing.refunds import billing_refund_scope, record_billing_task_id
+from billing.holds import metered_unit
+from billing.refunds import record_billing_task_id
 from billing.services import AnalyticsService
+from billing.zero_credit import MODEL_CALL, assert_not_zero_credit
 from classrooms.models import StudentCourse
 from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
@@ -1272,9 +1275,6 @@ class AIProcessor:
                 latency_ms=int((time.monotonic() - started) * 1000),
                 outcome=outcome,
             )
-
-    def get_ai_model_function(self):
-        return self.__ai_model
 
     def extract_assignment(self, user, text):
         system_prompt = ASSIGNMENT_EXTRACTION_PROMPT
@@ -4636,7 +4636,9 @@ Do not include any explanatory text before or after the JSON
         of extract_grade_with_retry's loop is billed and refunded
         independently.
         """
-        with billing_refund_scope(reason="grading run failed"):
+        with metered_unit(
+            processing_task_id=processing_task_id, reason="grading run failed"
+        ):
             result = self._grade_student_submission_impl(
                 user=user,
                 rubric_json=rubric_json,
@@ -5503,6 +5505,7 @@ Now, respond to the following teacher's instruction using the rules above
         the call itself. `prompt_version` is required (S5, NFR-OBS-04): every
         AI path names the prompt it sent (e.g. `GRADING_ASSIGNMENT_PROMPT.
         version`), so any result can be traced to the exact prompt text."""
+        assert_not_zero_credit(MODEL_CALL)
         if not prompt_version:
             raise ValueError("execute_graded_task requires a prompt_version")
 
@@ -5643,40 +5646,64 @@ Now, respond to the following teacher's instruction using the rules above
         )
         call_record.note_estimate(estimated_cost)
 
-        balance = wallet.total_remaining_credits()
+        # B1b-9: the flag-off check also runs while draining (no held unit
+        # open); it then reads spendable (Q9-2, SM ruling).
+        if credit_holds.call_runs_without_hold():
+            balance = credit_holds.flag_off_balance(wallet)
 
-        if balance < estimated_cost:
-            raise InsufficientCreditsError(
-                f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
-                f"Please refill your wallet to continue",
-                individual=is_individual_teacher(target_teacher),
-            )
+            if balance < estimated_cost:
+                raise InsufficientCreditsError(
+                    f"Task requires ~{estimated_cost} credits, but you only have {balance} credits. "
+                    f"Please refill your wallet to continue",
+                    individual=is_individual_teacher(target_teacher),
+                )
 
-        if balance <= 0:
-            raise InsufficientCreditsError(
-                "Refill your wallet to continue",
-                individual=is_individual_teacher(target_teacher),
-            )
+            if balance <= 0:
+                raise InsufficientCreditsError(
+                    "Refill your wallet to continue",
+                    individual=is_individual_teacher(target_teacher),
+                )
 
         ensure_task_not_cancelled(processing_task_id)
-        task_id = str(uuid.uuid4())
-        call_record.note_task_id(task_id)
-        response = self.__ai_model(
-            system_prompt,
-            user_prompt,
-            messages,
-            tool_schemas,
-            respond_format,
-            response_schema,
-            sub_models=sub_models,
-            override_model=override_model,
-            prompt_version=prompt_version,
-            task_type=task_type,
+        # Epic B1a (plan 08 §3.3, NOTES §15i): flag on, the call's hold is
+        # taken here, before the provider is reached (or refused); its usage
+        # id is the settlement's, noted below. None with the flag off.
+        hold = credit_holds.hold_for_call(
+            wallet=wallet, target_teacher=target_teacher, estimate=estimated_cost
         )
-        note_if_reply_cut_off(response, task_type)
+        task_id = str(uuid.uuid4()) if hold is None else hold.usage_id
+        call_record.note_task_id(task_id)
+        try:
+            response = self.__ai_model(
+                system_prompt,
+                user_prompt,
+                messages,
+                tool_schemas,
+                respond_format,
+                response_schema,
+                sub_models=sub_models,
+                override_model=override_model,
+                prompt_version=prompt_version,
+                task_type=task_type,
+            )
+            note_if_reply_cut_off(response, task_type)
+        except BaseException:
+            credit_holds.abandon_call(hold)
+            raise
 
         call_record.note_response(response)
         resolved_course = assignment.course if assignment else course
+
+        if hold is not None:
+            hold.finish(
+                response.usage.total_tokens,
+                feature=feature,
+                task_type=task_type,
+                course=resolved_course,
+                school=getattr(target_teacher, "school", None),
+                before_charge=lambda: ensure_task_not_cancelled(processing_task_id),
+            )
+            return response
 
         with transaction.atomic():
             ensure_task_not_cancelled(processing_task_id)

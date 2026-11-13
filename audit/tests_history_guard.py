@@ -41,6 +41,10 @@ def tracked_field_names():
 
 # (file, enclosing function) -> why this bulk write needs no history.
 ALLOWED = {
+    ("billing/credit_requests.py", "_move"): (
+        "Epic B1c CreditRequest status moves (untracked model); every move "
+        "is audited as CREDIT_REQUEST_CREATE/DECIDE"
+    ),
     ("audit/history.py", "record_bulk"): (
         "the helper itself: it reads before, updates and emits the history"
     ),

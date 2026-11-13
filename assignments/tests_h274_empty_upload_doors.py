@@ -129,13 +129,15 @@ class TheAsyncTeacherUploadIsNeverHalfQueued(BatchFixture, TestCase):
         return BackgroundProcessingTask.objects.get(file_name=name)
 
     def test_one_empty_file_fails_as_its_item_and_the_rest_are_queued(self):
-        response = self.post(
-            [
-                SimpleUploadedFile("a.png", png_bytes(), content_type="image/png"),
-                _empty("blank.pdf"),
-                SimpleUploadedFile("c.png", png_bytes(), content_type="image/png"),
-            ]
-        )
+        # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.post(
+                [
+                    SimpleUploadedFile("a.png", png_bytes(), content_type="image/png"),
+                    _empty("blank.pdf"),
+                    SimpleUploadedFile("c.png", png_bytes(), content_type="image/png"),
+                ]
+            )
 
         self.assertEqual(response.status_code, 202, response.content[:400])
         self.assertEqual(self.dispatched, ["a.png", "c.png"])

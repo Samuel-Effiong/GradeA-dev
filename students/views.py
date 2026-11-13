@@ -53,10 +53,14 @@ from assignments.tasks import (
     upload_answers_engine_async,
 )
 from assignments.upload_door import (
+    DoorHold,
+    DoorHoldRefused,
     batch_refusal_response,
+    launch_at_door,
     parked_files,
     upload_refusal_if_unaffordable,
 )
+from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
 from audit import history
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
@@ -66,6 +70,7 @@ from AutoGrader.pagination import StandardPageNumberPagination
 from AutoGrader.reason_codes import CodedError, coded_response
 from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
 from billing.errors import InsufficientCreditsError
+from billing.job_ref import ai_job_schema, with_ai_job_id
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
 from classrooms.permissions import IsStudent, IsTeacher
 from users.mixins import UserCacheMixin
@@ -82,6 +87,7 @@ from .exceptions import (
 )
 from .feedback_projection import grading_result_for_formatter
 from .grading_gates import ensure_gradable
+from .kept_uploads import DoorFile
 from .models import (
     BackgroundTaskType,
     BatchUploadSession,
@@ -125,6 +131,7 @@ from .signals import invalidate_submission_caches
 from .task_tracking import (
     create_processing_task,
     launch_processing_task,
+    mark_processing_task_failure,
     record_refused_item,
 )
 
@@ -259,7 +266,7 @@ def _assignment_taught_by(assignment_id, teacher):
         description="Update a student submission.",
         request=StudentSubmissionUpdateSerializer,
         responses={
-            200: StudentSubmissionListSerializer,
+            200: ai_job_schema(StudentSubmissionListSerializer, staff_only=True),
             400: OpenApiResponse(description="Invalid input"),
             404: OpenApiResponse(description="Student submission not found"),
         },
@@ -730,15 +737,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # H-180: refuse here, before anything is queued, an upload the
         # teacher's wallet cannot pay for (the gate in the task would refuse
         # it and the student's file would be lost).
+        estimates = {}
         refusal = upload_refusal_if_unaffordable(
-            request.user, assignment, [uploaded_file], prompt
+            request.user, assignment, [uploaded_file], prompt, estimates_out=estimates
         )
         if refusal is not None:
             return refusal
 
-        file_payload = AssignmentProcessingService.build_async_upload_payload(
-            uploaded_file
-        )
+        # Epic B1b-5 (08b §3.2): the file is kept before its item exists, and
+        # the task gets its id (with storage down, the bytes, as before).
+        door_file = DoorFile(uploaded_file)
 
         # One queued extraction per (student, assignment) at a time. The
         # student's own user row is the lock, so two simultaneous requests
@@ -757,10 +765,26 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     file_name=uploaded_file.name,
                     meta={"step": "Queued for answer extraction"},
                 )
+                door_file.attach(processing_task)
+                # Epic B1a: the file's hold, in this transaction. A refused
+                # hold rolls the row back; nothing is launched.
+                door = DoorHold(request.user, assignment, 1)
+                if not door.hold(processing_task, estimates.get(0)):
+                    raise DoorHoldRefused(door.refusal_response(estimates.get(0)))
         except SUBMISSION_CLOSED_ERRORS as exc:
+            door_file.discard()
             return _submission_closed_response(exc)
+        except DoorHoldRefused as refused:
+            door_file.discard()
+            return refused.response
+        except BaseException:
+            # B1b-5: the item never committed, so its kept file goes now.
+            door_file.discard()
+            raise
+        file_payload = door_file.payload()
 
-        task = launch_processing_task(
+        task_id = launch_at_door(
+            launch_processing_task,
             upload_answers_engine_async,
             processing_task,
             str(assignment.id),
@@ -768,7 +792,6 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             prompt,
             str(request.user.id),
         )
-        task_id = task.id
 
         emit(
             AuditAction.SUBMISSION_UPLOAD,
@@ -790,6 +813,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
         return Response(serializer.data, status=HTTP_200_OK)
 
+    @with_ai_job_id(staff_only=True)
     def partial_update(self, request, *args, **kwargs):
         """
         Synchronous raw-text edit: re-extracts answers inside the request.
@@ -905,7 +929,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         tags=["07 Student Submissions"],
         request=None,
         responses={
-            HTTP_200_OK: StudentSubmissionDetailSerializer,
+            HTTP_200_OK: ai_job_schema(StudentSubmissionDetailSerializer),
         },
     )
     @action(
@@ -914,6 +938,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         permission_classes=[IsAuthenticated, IsTeacher, HasCreditBalance],
         url_path="grade",
     )
+    @with_ai_job_id
     def grade(self, request, pk=None):
         # get_object() runs get_queryset() (which scopes teachers to their
         # own courses) plus check_object_permissions — using the manager
@@ -1457,19 +1482,18 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         if not files:
             raise ParseError("No files uploaded. Please try again.")
 
-        prompt = """
-            Analyze the image of an educational assignment and return a JSON
-
-            IMPORTANT: Return only valid JSON matching the required structure.
-            Do not include any explanatory text before or after the JSON
-            """
+        # B1b-5 (SM Q2): shared with the retry of a stopped item.
+        prompt = BATCH_UPLOAD_PROMPT
 
         # H-180 / H-223: before the session or any task exists, the door
         # walks the files with a running balance. A file that does not fit
         # is parked as its own item below; only when no file fits is the
         # batch refused. A file too large to read counts as "cannot say"
         # (it is that file's own item below, FR-A-07).
-        parked = parked_files(request.user, assignment, files, prompt)
+        estimates = {}
+        parked = parked_files(
+            request.user, assignment, files, prompt, estimates_out=estimates
+        )
         if parked and len(parked) == len(files):
             # A teacher-only route: the batch is billed to the caller.
             return batch_refusal_response(request.user)
@@ -1480,6 +1504,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             task_type=BatchUploadType.SUBMISSION,
             total_files=len(files),
         )
+        door = DoorHold(request.user, assignment, len(files) - len(parked))
 
         tasks_data = []
         task_ids = []
@@ -1539,24 +1564,41 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 continue
 
-            # Read raw file bytes cheaply here; heavy rasterization/compression
-            # happens inside the Celery task, not on the request thread.
-            file_payload = AssignmentProcessingService.build_async_upload_payload(
-                uploaded_file
-            )
+            # Epic B1b-5 (08b §3.2): the file is kept first (heavy
+            # rasterization still happens in the task); its row is written
+            # with the item, in one transaction.
+            door_file = DoorFile(uploaded_file)
 
             # Trigger individual async tasks for each paper
             # This allows parallel processing in Celery
-            processing_task = create_processing_task(
-                requested_by=request.user,
-                task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
-                batch_session=session,
-                assignment=assignment,
-                file_name=uploaded_file.name,
-                meta={"step": "Queued for batch answer extraction"},
-                item_index=item_index,
-            )
-            task = launch_processing_task(
+            with transaction.atomic():
+                processing_task = create_processing_task(
+                    requested_by=request.user,
+                    task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
+                    batch_session=session,
+                    assignment=assignment,
+                    file_name=uploaded_file.name,
+                    meta={"step": "Queued for batch answer extraction"},
+                    item_index=item_index,
+                )
+                door_file.attach(processing_task)
+            file_payload = door_file.payload()
+            if not door.hold(processing_task, estimates.get(item_index - 1)):
+                # Epic B1a: the file's hold lost a race for the free balance.
+                mark_processing_task_failure(
+                    processing_task.id,
+                    door.refusal(estimates.get(item_index - 1)),
+                )
+                tasks_data.append(
+                    {
+                        "file_name": uploaded_file.name,
+                        "task_id": None,
+                        "item_id": processing_task.id,
+                    }
+                )
+                continue
+            task_id = launch_at_door(
+                launch_processing_task,
                 upload_answers_engine_async,
                 processing_task,
                 str(assignment.id),
@@ -1569,11 +1611,13 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             tasks_data.append(
                 {
                     "file_name": uploaded_file.name,
-                    "task_id": task.id,
+                    "task_id": task_id,
                     "item_id": processing_task.id,
                 }
             )
-            task_ids.append(task.id)
+            task_ids.append(task_id)
+        # Door-close fix: every file this request will hold is attached.
+        door.seal()
 
         emit(
             AuditAction.SUBMISSION_UPLOAD,

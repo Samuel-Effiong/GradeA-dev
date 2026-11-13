@@ -33,7 +33,7 @@ from unittest.mock import MagicMock, patch
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import DatabaseError, connection
-from django.test import TransactionTestCase
+from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -55,6 +55,7 @@ from billing.models import (
     SubscriptionPlan,
     UserSubscription,
 )
+from billing.testing.holds import assert_hold_ledger
 from classrooms.models import Course, Session
 from users.models import CustomUser, UserTypes
 
@@ -403,6 +404,9 @@ class FailedFilesAreRefundedTest(BatchUploadBillingFixture):
         )
         self.assertEqual(charges(self.teacher), ([1100, 3300], []))
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is in UploadBillingWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_an_unusable_provider_response_is_charged_then_refunded_in_full(self):
         """The call succeeds and is billed, but its output is not JSON:
         extraction retries it, billing every attempt, then gives up. Every
@@ -421,6 +425,9 @@ class FailedFilesAreRefundedTest(BatchUploadBillingFixture):
         self.assertEqual(credits_used(self.teacher), 1100)
         self.assert_no_open_claims()
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is in UploadBillingWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_a_failed_save_refunds_the_file_and_it_can_be_retried(self):
         real_save = AssignmentSerializer.save
         saves = []
@@ -573,6 +580,9 @@ class LeftoverClaimsTest(BatchUploadBillingFixture):
         self.assertEqual(stale_after.status, COMPLETED)
         self.assertNotEqual(stale_after.claim_token, stale.claim_token)
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is in UploadBillingWithHoldsTest below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_a_claim_taken_over_mid_extraction_does_not_save_a_second_copy(self):
         """A request whose claim was declared stale and taken over while it
         was still extracting must roll its save back and refund, not leave a
@@ -593,6 +603,77 @@ class LeftoverClaimsTest(BatchUploadBillingFixture):
         self.assertFalse(Assignment.objects.filter(course=self.course).exists())
         self.assertEqual(charges(self.teacher), ([], [1100]))
         # The newer claimant's row is left alone for it to finish.
+        self.assertTrue(
+            AssignmentUploadFingerprint.objects.filter(
+                course=self.course, status=PROCESSING
+            ).exists()
+        )
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class UploadBillingWithHoldsTest(BatchUploadBillingFixture):
+    """B1b-2 (NOTES §2.10) B3 twins of FailedFilesAreRefundedTest's two
+    listed tests and LeftoverClaimsTest's: the same uploads with holds on.
+    Each file is its own metered unit, so a file that fails is never
+    charged (no refund row), the one that succeeds is charged once at
+    settle, and no hold is left reserved."""
+
+    def test_an_unusable_provider_response_charges_nothing_for_that_file(self):
+        self.provider.behaviour[GOOD_FILES["c.png"]] = lambda width: ai_response(
+            TOKENS[width], "this is not JSON"
+        )
+
+        successful, failed = self.outcomes(self.upload(["a.png", "c.png"]))
+
+        self.assertEqual([e["file_name"] for e in failed], ["c.png"])
+        self.assertGreater(self.provider.calls_for("c.png"), 0)
+        assert_hold_ledger(self, self.teacher, kept=[1100])
+        self.assertEqual(credits_used(self.teacher), 1100)
+        self.assert_no_open_claims()
+
+    def test_a_failed_save_charges_nothing_and_it_can_be_retried(self):
+        real_save = AssignmentSerializer.save
+        saves = []
+
+        def second_save_fails(serializer, **kwargs):
+            saves.append(serializer)
+            if len(saves) == 2:
+                raise DatabaseError("simulated write failure")
+            return real_save(serializer, **kwargs)
+
+        with patch.object(
+            AssignmentSerializer, "save", autospec=True, side_effect=second_save_fails
+        ):
+            successful, failed = self.outcomes(self.upload(["a.png", "c.png"]))
+
+        self.assertEqual([e["file_name"] for e in successful], ["a.png"])
+        self.assertEqual([e["file_name"] for e in failed], ["c.png"])
+        assert_hold_ledger(self, self.teacher, kept=[1100])
+        self.assertEqual(credits_used(self.teacher), 1100)
+        self.assertEqual(Assignment.objects.filter(course=self.course).count(), 1)
+        self.assert_no_open_claims()
+
+        successful, failed = self.outcomes(self.upload(["a.png", "c.png"]))
+
+        self.assertEqual(failed, [])
+        assert_hold_ledger(self, self.teacher, kept=[1100, 3300])
+        self.assertEqual(Assignment.objects.filter(course=self.course).count(), 2)
+
+    def test_a_claim_taken_over_mid_extraction_charges_nothing(self):
+        def taken_over_meanwhile(width):
+            AssignmentUploadFingerprint.objects.filter(course=self.course).update(
+                claim_token=uuid.uuid4()
+            )
+            return ai_response(TOKENS[width])
+
+        self.provider.behaviour[GOOD_FILES["a.png"]] = taken_over_meanwhile
+
+        response = self.upload(["a.png"])
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn(IN_PROGRESS_MESSAGE, response.json()["message"])
+        self.assertFalse(Assignment.objects.filter(course=self.course).exists())
+        assert_hold_ledger(self, self.teacher, kept=[])
         self.assertTrue(
             AssignmentUploadFingerprint.objects.filter(
                 course=self.course, status=PROCESSING

@@ -11,7 +11,7 @@ FR-A-07 S7c: credits running out mid-batch (08a §4.5, §5).
   resumable.
 * Resume: after a top-up, retry-failed with the code retries the grade items
   in place; the completed items are untouched. Upload items are
-  re-uploaded (F4).
+  retried in place from their kept file (F4, B1b-5).
 * No billing migration: the mark is a nullable column on the batch session.
 """
 
@@ -55,9 +55,11 @@ def png_bytes():
     return buffer.getvalue()
 
 
-def run_inline(task_callable, processing_task, *args, **kwargs):
+def run_inline(task_callable, processing_task, *args, _celery_task_id=None, **kwargs):
+    # Like launch_processing_task (students/task_tracking.py:85): a flag-on
+    # door's pre-assigned id is the task's id, never a task kwarg (B1b-2).
     kwargs["processing_task_id"] = str(processing_task.id)
-    celery_id = str(uuid.uuid4())
+    celery_id = _celery_task_id or str(uuid.uuid4())
     task_tracking.attach_celery_task(processing_task.id, celery_id)
     task_callable.apply(args=args, kwargs=kwargs, task_id=celery_id)
     return SimpleNamespace(id=celery_id)
@@ -412,15 +414,19 @@ class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
         target.start()
         self.addCleanup(target.stop)
 
-    def test_the_rest_stops_uncharged_and_resumes_by_re_upload(self):
+    def test_the_rest_stops_uncharged_and_resumes_by_retry(self):
         calls = []
+        # B1b-5 (F4): "refuse" is the empty wallet; a top-up clears it.
+        state = {"refuse": True, "done": 0}
 
         def extract(*args, **kwargs):
             calls.append(1)
-            if len(calls) > 1:
+            if state["refuse"] and len(calls) > 1:
                 raise InsufficientCreditsError("balance 0 < estimate 900")
+            name = f"Pupil{state['done']} S7c"
+            state["done"] += 1
             return {
-                "student_name": "Pupil0 S7c",
+                "student_name": name,
                 "answers": [{"question_number": 1, "answer_html": "<p>4</p>"}],
             }
 
@@ -432,14 +438,16 @@ class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
             "students.services.ai_processor.extract_answer_with_retry",
             side_effect=extract,
         ):
-            response = self.api.post(
-                reverse(
-                    "student-submission-batch-upload",
-                    kwargs={"assignment_id": str(self.assignment.id)},
-                ),
-                {"answers": files},
-                format="multipart",
-            )
+            # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
+            with self.captureOnCommitCallbacks(execute=True):
+                response = self.api.post(
+                    reverse(
+                        "student-submission-batch-upload",
+                        kwargs={"assignment_id": str(self.assignment.id)},
+                    ),
+                    {"answers": files},
+                    format="multipart",
+                )
 
         self.assertEqual(response.status_code, 202, response.content[:400])
         # p3 never reached the extraction: short-circuited, uncharged.
@@ -453,16 +461,28 @@ class AnUploadBatchThatRunsOutOfCredits(MidBatchFixture, TestCase):
         )
         self.assertEqual(data["stopped_at_item"], 2)
 
-        # F4: an upload item is re-uploaded, never retried in place.
+        # B1b-5 (F4): the file was kept at the door, so after a top-up the
+        # stopped item is retried in place from it: no re-upload.
         failed = data["failure_list"][0]
-        retry = self.api.post(
-            reverse(
-                "task-retry-item",
-                kwargs={"session_id": session_id, "item_id": failed["item_id"]},
+        state["refuse"] = False
+        with patch(
+            "students.services.ai_processor.extract_answer_with_retry",
+            side_effect=extract,
+        ), patch(
+            "students.item_retry.launch_processing_task", side_effect=run_inline
+        ), self.captureOnCommitCallbacks(
+            execute=True
+        ):
+            retry = self.api.post(
+                reverse(
+                    "task-retry-item",
+                    kwargs={"session_id": session_id, "item_id": failed["item_id"]},
+                )
             )
-        )
-        self.assertEqual(retry.status_code, 409)
+        self.assertEqual(retry.status_code, 202, retry.content[:400])
+        data = self.session_results(session_id)
+        self.assertEqual(data["success_count"], 2)
         self.assertEqual(
-            retry.json()["error"]["field_errors"]["params"]["resolution"],
-            "replace_file",
+            [(e["item_index"], e["reason_code"]) for e in data["failure_list"]],
+            [(3, MID)],
         )

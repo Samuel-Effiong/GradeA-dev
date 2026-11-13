@@ -17,6 +17,8 @@ failed call is never charged).
 
 from unittest.mock import patch
 
+from django.test import override_settings
+
 from ai_processor.benchmark.answers import SCENARIOS_BY_ID
 from ai_processor.benchmark.answers.harness import rasterize
 from ai_processor.benchmark.answers.provider import (
@@ -24,10 +26,18 @@ from ai_processor.benchmark.answers.provider import (
     ProviderBehaviour,
     timeout_error,
 )
-from ai_processor.exceptions import REFUNDED, ProviderFailureError
+from ai_processor.exceptions import NOT_CHARGED, REFUNDED, ProviderFailureError
+from ai_processor.services import AIProcessor
 from assignments.tests_cache_matrix_g3 import question
 from billing.models import CreditLedger, CreditWallet
 from billing.refunds import record_billing_task_id
+from billing.testing.holds import (
+    ai_response,
+    assert_hold_ledger,
+    estimate_for,
+    fund,
+    real_billed_call,
+)
 from students import services as student_services
 from students.models import StudentSubmission
 from students.tests_s6d_rubric_gate import RubricGateTestCase
@@ -67,6 +77,9 @@ class ExtractionRefundTests(RubricGateTestCase):
 
         return call
 
+    # B1b-2 (NOTES §2.3 B3): the flag-off refund scope, pinned; its flag-on
+    # twin is ExtractionWithHoldsTests below.
+    @override_settings(BILLING_HOLDS_ENABLED=False)
     def test_a_mid_chunk_failure_nets_the_ledger_to_zero(self):
         def fail_the_second_chunk(recorded):
             if recorded.pages_sent[:1] == (CHUNK_TWO_FIRST_PAGE,):
@@ -125,3 +138,72 @@ class ExtractionRefundTests(RubricGateTestCase):
 
         self.assertGreaterEqual(len(self.charges), 2)
         self.assertEqual(self.used_credits(), used_before + CHARGE * len(self.charges))
+
+
+@override_settings(BILLING_HOLDS_ENABLED=True)
+class ExtractionWithHoldsTests(RubricGateTestCase):
+    """B1b-2 (NOTES §2.10) B3 twin of
+    ExtractionRefundTests.test_a_mid_chunk_failure_nets_the_ledger_to_zero:
+    the same six-page upload, chunk 1 answered (and billed through the real
+    execute_graded_task, under the upload's metered unit) on every attempt,
+    chunk 2 timing out. Nothing is charged, no refund row is written, the
+    holds are returned, and the message says no credits were charged."""
+
+    def setUp(self):
+        super().setUp()
+        self.assignment = self.world([question()])[0]
+        StudentSubmission.objects.filter(assignment=self.assignment).delete()
+        self.wallet = fund(self.teacher, 10 * estimate_for())
+        self.billed = 0
+
+    def used_credits(self):
+        return sum(b.used_credits for b in self.wallet.buckets.all())
+
+    def billing(self, provider):
+        """A call that succeeds makes one real billed call; one that raises
+        is never billed (as execute_graded_task behaves)."""
+
+        def call(*args, **kwargs):
+            result = provider(*args, **kwargs)
+            real_billed_call(self.teacher)
+            self.billed += 1
+            return result
+
+        return call
+
+    def test_a_mid_chunk_failure_charges_nothing_and_returns_the_holds(self):
+        def fail_the_second_chunk(recorded):
+            if recorded.pages_sent[:1] == (CHUNK_TWO_FIRST_PAGE,):
+                raise timeout_error()
+
+        provider = FakeProvider(
+            SIX_PAGES, ProviderBehaviour(on_call=fail_the_second_chunk)
+        )
+        used_before = self.used_credits()
+
+        with patch(
+            "ai_processor.services.can_user_access_ai", return_value=(True, None)
+        ), patch.object(
+            AIProcessor, "_AIProcessor__ai_model", return_value=ai_response(1_000)
+        ), patch.object(
+            student_services.ai_processor,
+            "execute_graded_task",
+            self.billing(provider),
+        ):
+            with self.assertRaises(ProviderFailureError) as caught:
+                student_services.upload_answers_engine(
+                    self.assignment,
+                    rasterize(SIX_PAGES),
+                    self.teacher,
+                    is_proxy_upload=True,
+                    file_name="p07.pdf",
+                )
+
+        # Not vacuous: chunk 1 really made a billed call on each attempt.
+        self.assertEqual(self.billed, 3)
+        self.assertEqual(self.used_credits(), used_before)
+        assert_hold_ledger(self, self.teacher, kept=[])
+        self.assertEqual(caught.exception.params, {"credit_clause": NOT_CHARGED})
+        self.assertFalse(
+            StudentSubmission.objects.filter(assignment=self.assignment).exists()
+        )

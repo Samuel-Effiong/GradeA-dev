@@ -132,19 +132,21 @@ class CreditsLeftTests(UsageBase):
         super().setUp()
         self.nowallet = self.person()
         CreditWallet.objects.filter(user=self.nowallet).delete()
-        self.negative = self.with_left(0, used=500)  # raw -500, listed -1
+        # Raw -500; staging lists 0 (credits left never go below 0 here).
+        self.negative = self.with_left(0, used=500)
         self.zero = self.with_left(1_000, used=1_000)
         self.three = self.with_left(3_500)  # listed 3
         self.people = [self.nowallet, self.negative, self.zero, self.three]
 
     def test_the_list_values_are_what_the_filters_use(self):
         self.assertIsNone(self.row(self.nowallet)["credits_left"])
-        self.assertEqual(self.row(self.negative)["credits_left"], -1)
+        self.assertEqual(self.row(self.negative)["credits_left"], 0)
         self.assertEqual(self.row(self.three)["credits_left"], 3)
 
     def test_min_is_inclusive_and_leaves_out_no_wallet(self):
         self.assertEqual(
-            self.listed(self.people, credits_left_min=0), {self.zero, self.three}
+            self.listed(self.people, credits_left_min=0),
+            {self.negative, self.zero, self.three},
         )
         self.assertEqual(self.listed(self.people, credits_left_min=3), {self.three})
         self.assertEqual(

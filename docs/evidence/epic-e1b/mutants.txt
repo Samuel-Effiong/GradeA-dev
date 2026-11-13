@@ -1,0 +1,32 @@
+M9   KILLED  the H-5 hot-path set gains enrollment_status
+     planted in classrooms/models.py; must fail: test_status_update_keeps_the_conflict_check; Ran 24 tests in 21.210s
+     red: test_mixed_update_fields_keep_the_conflict_check test_status_update_keeps_the_conflict_check
+     sha256 before=after=0a0b5db11902ea1b7bd131a59ee8d705d9193c7d75306c8cbf1e40b6353a267b
+M9b  KILLED  the subset check becomes an intersection (old mutant b)
+     planted in classrooms/models.py; must fail: test_mixed_update_fields_keep_the_conflict_check; Ran 24 tests in 20.306s
+     red: test_mixed_update_fields_keep_the_conflict_check
+     sha256 before=after=0a0b5db11902ea1b7bd131a59ee8d705d9193c7d75306c8cbf1e40b6353a267b
+M9c  KILLED  the written fields are not validated (old mutant c)
+     planted in classrooms/models.py; must fail: test_an_out_of_range_final_grade_is_still_rejected; Ran 24 tests in 18.345s
+     red: test_an_out_of_range_final_grade_is_still_rejected
+     sha256 before=after=0a0b5db11902ea1b7bd131a59ee8d705d9193c7d75306c8cbf1e40b6353a267b
+M9d  KILLED  the else branch skips full_clean (old mutant d)
+     planted in classrooms/models.py; must fail: test_create_of_a_same_name_student_is_rejected; Ran 24 tests in 19.898s
+     red: test_create_of_a_same_name_student_is_rejected test_invite_service_rejects_a_same_name_existing_student test_mixed_update_fields_keep_the_conflict_check test_plain_save_of_a_new_same_name_enrollment_is_rejected test_reactivate_is_rejected_when_a_same_name_student_is_now_enrolled test_status_update_keeps_the_conflict_check
+     sha256 before=after=0a0b5db11902ea1b7bd131a59ee8d705d9193c7d75306c8cbf1e40b6353a267b
+M10  KILLED  score dropped from the grade inputs
+     planted in classrooms/signals.py; must fail: test_each_grade_input_field_recalculates; Ran 24 tests in 17.892s
+     red: test_a_grade_input_field_among_others_recalculates test_each_grade_input_field_recalculates test_the_grade_still_follows_a_score_change
+     sha256 before=after=80d3275d2b024ae05b7770e5a0d8584f629d9ccc849dba1f72457e848f1e5a55
+M11  KILLED  the skip applied when update_fields is None
+     planted in classrooms/signals.py; must fail: test_a_save_without_update_fields_recalculates; Ran 24 tests in 4.856s
+     red: test_a_save_without_update_fields_recalculates test_lock_hold_under_concurrent_grading test_the_stored_grade_converges
+     sha256 before=after=80d3275d2b024ae05b7770e5a0d8584f629d9ccc849dba1f72457e848f1e5a55
+M12  KILLED  the skip also applied in post_delete
+     planted in classrooms/signals.py; must fail: test_a_delete_recalculates; Ran 24 tests in 19.928s
+     red: test_a_delete_recalculates
+     sha256 before=after=80d3275d2b024ae05b7770e5a0d8584f629d9ccc849dba1f72457e848f1e5a55
+X5   KILLED  column names (assignment_id, student_id) not treated as grade inputs
+     planted in classrooms/signals.py; must fail: test_a_grade_input_field_named_by_its_column_recalculates; Ran 24 tests in 17.750s
+     red: test_a_grade_input_field_named_by_its_column_recalculates
+     sha256 before=after=80d3275d2b024ae05b7770e5a0d8584f629d9ccc849dba1f72457e848f1e5a55

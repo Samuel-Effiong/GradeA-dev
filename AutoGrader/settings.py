@@ -19,6 +19,7 @@ from pathlib import Path
 
 import dj_database_url
 from celery.schedules import crontab
+from django.core.exceptions import ImproperlyConfigured
 from environ import Env
 
 env = Env()
@@ -388,6 +389,7 @@ INSTALLED_APPS = [
     "dashboard",
     "billing",
     "audit",
+    "tags",
     "django_celery_results",
     "django_celery_beat",
     # Third-party packages
@@ -693,6 +695,23 @@ AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
 # processes. The account's own privacy settings are separate.
 AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
 
+# Epic B1: credit holds, metered units, batch jobs and queue.
+BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)
+# B1b-9 (08b §6.3): the drain before the flag is turned off. While on, new
+# work makes no hold, job or queue entry (it runs the flag-off path) and what
+# is already held runs to its end; run `billing_holds_drain`. Set it the same
+# on web, worker and Beat. On with the flag off is the emergency state only
+# (`billing_holds_drain --flag-off-emergency`); it logs a warning at start-up.
+BILLING_HOLDS_DRAINING = env.bool("BILLING_HOLDS_DRAINING", default=False)
+
+# Epic B1c (plan 08 §3.8, §5): the credit-request API and its Beat sweep.
+# The purchase hooks (GRANTED, SUPERSEDED refusal, close on loss of access)
+# act only on rows the API made, so they run whatever this says.
+# Owner 2026-11-12: comes on with BILLING_HOLDS_ENABLED unless set on its own.
+CREDIT_REQUESTS_ENABLED = env.bool(
+    "CREDIT_REQUESTS_ENABLED", default=BILLING_HOLDS_ENABLED
+)
+
 # H-256: how long one request to the AI provider may wait for each read before
 # it is given up (the connect wait is fixed at 10 s in ai_processor/services.py).
 # The SDK tries a request three times (max_retries=2), so a provider that
@@ -934,6 +953,44 @@ CELERY_BEAT_SCHEDULE = {
     "process-license-renewals": {
         "task": "billing.tasks.process_license_renewals",
         "schedule": crontab(minute=0, hour=0),
+    },
+    # Epic B1a (plan 08 §3.2): return stale credit holds. Does nothing while
+    # BILLING_HOLDS_ENABLED is off.
+    "sweep-stale-credit-holds": {
+        "task": "billing.tasks.sweep_stale_credit_holds",
+        "schedule": 300.0,
+    },
+    # Epic B1b-6 (plan 08 §3.7): promote queued batch jobs, and warn and
+    # expire them. Do nothing while BILLING_HOLDS_ENABLED is off.
+    "promote-queued-batch-jobs": {
+        "task": "billing.tasks.promote_queued_jobs",
+        "schedule": 300.0,
+    },
+    "expire-queued-batch-jobs": {
+        "task": "billing.tasks.expire_queued_jobs",
+        "schedule": 300.0,
+    },
+    # Epic B1c (plan 08 §3.8): credit requests back to waiting (expired or
+    # unlinked checkout) and closed on loss of access. Does nothing while
+    # CREDIT_REQUESTS_ENABLED is off.
+    "sweep-credit-requests": {
+        "task": "billing.tasks.sweep_credit_requests",
+        "schedule": 300.0,
+    },
+    # Epic B1a: wallet and per-item hold invariants. Reports only.
+    "check-credit-hold-invariants-daily": {
+        "task": "billing.tasks.check_credit_hold_invariants",
+        "schedule": crontab(minute=30, hour=5),
+    },
+    # Epic B1b-4 (plan 08 §3.6): monthly estimate drift check. Reports only.
+    "check-credit-estimate-drift-monthly": {
+        "task": "billing.tasks.check_credit_estimate_drift",
+        "schedule": crontab(minute=0, hour=6, day_of_month=1),
+    },
+    # Epic B1b-5 (08b §3.2): delete kept upload files past their kept_until.
+    "purge-kept-uploads-hourly": {
+        "task": "students.tasks.purge_kept_uploads",
+        "schedule": crontab(minute=15),
     },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
@@ -1491,6 +1548,15 @@ FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 # turn it back off. See docs/ops/rate-limiting.md.
 EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
 
+# Epic C1: teacher tags (plan 11 §3.4). Off by default: the tag routes then
+# answer exactly as an unknown URL does, and assignment responses carry no
+# `tags` field. The backfill command does not depend on it.
+TAGS_ENABLED = env.bool("TAGS_ENABLED", default=False)
+
+# NFR-CMP-04: a student's data export (and, later, erasure). Off by default:
+# the routes then answer exactly as an unknown URL does.
+STUDENT_DATA_TOOLS_ENABLED = env.bool("STUDENT_DATA_TOOLS_ENABLED", default=False)
+
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
 MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")
@@ -1602,6 +1668,45 @@ BENCHMARK_ARCHIVE_PREFIX = env.str(
 _RUNNING_TESTS = "test" in sys.argv or "pytest" in sys.modules
 BENCHMARK_ARCHIVE_ENABLED = env.bool(
     "BENCHMARK_ARCHIVE_ENABLED", default=not _RUNNING_TESTS
+)
+
+# Epic B1b-5 (08b §2.1; the SM brought it forward from B1b-6, Q1): how many
+# days a kept upload file is kept, and (from B1b-6) how long a queued batch
+# waits, and the day count in the approved texts (B1b-8). One value for web,
+# worker and beat, set at the platform's shared level. Not a whole number
+# from 1 to 365: start-up stops, so a typo never becomes 0 days or a huge
+# number. Parsed here, not in a project module: settings.py must load as a
+# bare file (AutoGrader/tests_h271_static_files.py; SM ruling, NOTES §5.13).
+_QUEUE_LIFETIME_DEFAULT_DAYS = 30
+_QUEUE_LIFETIME_MIN_DAYS = 1
+_QUEUE_LIFETIME_MAX_DAYS = 365
+
+
+def _parse_queue_lifetime_days(raw):
+    """The setting from its raw environment value (None when unset)."""
+    if raw is None:
+        return _QUEUE_LIFETIME_DEFAULT_DAYS
+    text = str(raw).strip()
+    if (
+        text.isdigit()
+        and _QUEUE_LIFETIME_MIN_DAYS <= int(text) <= _QUEUE_LIFETIME_MAX_DAYS
+    ):
+        return int(text)
+    raise ImproperlyConfigured(
+        f"QUEUE_LIFETIME_DAYS must be a whole number of days from "
+        f"{_QUEUE_LIFETIME_MIN_DAYS} to {_QUEUE_LIFETIME_MAX_DAYS}, got {raw!r}."
+    )
+
+
+QUEUE_LIFETIME_DAYS = _parse_queue_lifetime_days(
+    env.str("QUEUE_LIFETIME_DAYS", default=None)
+)
+
+# Epic B1b-5 (08b §3.2): where kept upload files live. "cloudinary" (private
+# raw assets, students/kept_files.py) everywhere but tests, which use an
+# in-memory store for the same reason uploading is off above.
+KEPT_UPLOADS_BACKEND = env.str(
+    "KEPT_UPLOADS_BACKEND", default="memory" if _RUNNING_TESTS else "cloudinary"
 )
 
 # Email domain for users the live-QA suite creates. Defaults to a

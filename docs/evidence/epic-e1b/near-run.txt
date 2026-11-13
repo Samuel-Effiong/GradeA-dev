@@ -1,0 +1,15 @@
+== 07-near-run-fb8adf068.log: classrooms students dashboard assignments, --parallel 4, under flock ~/.machine-fullsuite.lock
+Ran 3013 tests in 275.534s
+OK (skipped=63)
+
+== 08-skip-probe.log: the Chromium/PDF modules at -v 2 (why 63 skips, not E1a's 16)
+Ran 197 tests in 46.291s
+OK (skipped=41)
+     14 skipped 'Headless Chromium is not available in this environment.'
+     12 skipped 'Headless Chromium not available'
+      9 skipped 'Headless Chromium is not available in this environment - install it with `playwright install chromium` to run these tests.'
+      4 skipped 'Headless Chromium not available in this environment - install it with `playwright install chromium` to run these tests.'
+      1 skipped 'set RUN_LOAD_TESTS=1 to build the 6,000-student school'
+      1 skipped 'Real AI call is opt-in and billed: set RUN_REAL_AI=1'
+
+ls ~/.cache/ms-playwright -> No such file or directory (playwright: 'playwright install')

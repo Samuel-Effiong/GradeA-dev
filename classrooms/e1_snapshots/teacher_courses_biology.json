@@ -1,0 +1,47 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "workflow": {
+   "total_assignments_assigned": 3,
+   "total_draft_assignments": 0,
+   "total_enrolled_students": 3,
+   "total_at_risk_students": 3,
+   "total_assignments_submitted": 6,
+   "total_assignments_graded": 6
+  },
+  "performance": {
+   "average_assignment_grade_by_type": [
+    {
+     "assignment__assignment_type": "ESSAY",
+     "avg_score": 73.33333333333333
+    },
+    {
+     "assignment__assignment_type": "OBJECTIVE",
+     "avg_score": 15.833333333333334
+    }
+   ],
+   "average_assignment_grade_by_topic": [
+    {
+     "assignment__topic__name": "Cells",
+     "avg_score": 51.5
+    },
+    {
+     "assignment__topic__name": null,
+     "avg_score": 10.0
+    }
+   ],
+   "lowest_mastery_assignment": {
+    "assignment__id": "assignment:B3 Undated",
+    "assignment__title": "B3 Undated",
+    "avg_score": 10.0
+   },
+   "course_performance_trend": "declining"
+  },
+  "ai_trust": {
+   "average_ai_extraction_confidence": 80.0,
+   "average_ai_grading_confidence": 75.33,
+   "low_confidence_rate": 44.44
+  }
+ }
+}

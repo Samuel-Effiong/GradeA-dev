@@ -149,13 +149,15 @@ class CreditsLeftFilterTests(UsageBase):
     def setUp(self):
         super().setUp()
         self.nowallet = self.lead(left=None)
-        self.negative = self.lead(left=-500)  # floor -1
+        # Staging: 0 (credits left never go below 0 here, holds aware).
+        self.negative = self.lead(left=-500)
         self.zero = self.lead(left=0)
         self.three = self.lead(left=3_500)  # 3
 
     def test_min_is_inclusive_and_leaves_out_no_wallet(self):
         self.assertEqual(
-            self.kept(credits_left_min=0), {self.zero.email, self.three.email}
+            self.kept(credits_left_min=0),
+            {self.negative.email, self.zero.email, self.three.email},
         )
         self.assertEqual(self.kept(credits_left_min=3), {self.three.email})
         self.assertEqual(

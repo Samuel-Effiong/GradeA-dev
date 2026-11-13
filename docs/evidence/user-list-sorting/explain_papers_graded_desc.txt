@@ -1,0 +1,381 @@
+Limit  (cost=6293.97..10206.06 rows=25 width=1840) (actual time=9.033..10.139 rows=25.00 loops=1)
+  Buffers: shared hit=2889
+  ->  Result  (cost=6293.97..319260.94 rows=2000 width=1840) (actual time=9.032..10.135 rows=25.00 loops=1)
+        Buffers: shared hit=2889
+        ->  Sort  (cost=6293.97..6298.97 rows=2000 width=1578) (actual time=8.894..8.902 rows=25.00 loops=1)
+              Sort Key: (COALESCE((SubPlan 17), '0'::bigint)) DESC NULLS LAST, users_customuser.id
+              Sort Method: top-N heapsort  Memory: 35kB
+              Buffers: shared hit=2087
+              ->  Hash Left Join  (cost=81.01..6237.53 rows=2000 width=1578) (actual time=1.010..6.867 rows=2000.00 loops=1)
+                    Hash Cond: (users_customuser.id = users_settings.user_id)
+                    Buffers: shared hit=2087
+                    ->  Hash Left Join  (cost=77.00..153.26 rows=2000 width=1464) (actual time=0.985..2.418 rows=2000.00 loops=1)
+                          Hash Cond: (users_customuser.id = billing_creditwallet.user_id)
+                          Buffers: shared hit=83
+                          ->  Seq Scan on users_customuser  (cost=0.00..71.00 rows=2000 width=879) (actual time=0.015..0.658 rows=2000.00 loops=1)
+                                Buffers: shared hit=51
+                          ->  Hash  (cost=52.00..52.00 rows=2000 width=585) (actual time=0.963..0.964 rows=2000.00 loops=1)
+                                Buckets: 2048  Batches: 1  Memory Usage: 220kB
+                                Buffers: shared hit=32
+                                ->  Seq Scan on billing_creditwallet  (cost=0.00..52.00 rows=2000 width=585) (actual time=0.006..0.396 rows=2000.00 loops=1)
+                                      Buffers: shared hit=32
+                    ->  Hash  (cost=4.00..4.00 rows=1 width=98) (actual time=0.008..0.009 rows=0.00 loops=1)
+                          Buckets: 1024  Batches: 1  Memory Usage: 8kB
+                          Buffers: shared hit=4
+                          ->  Seq Scan on users_settings  (cost=0.00..4.00 rows=1 width=98) (actual time=0.008..0.008 rows=0.00 loops=1)
+                                Buffers: shared hit=4
+                    SubPlan 17
+                      ->  Limit  (cost=3.03..3.04 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=2000)
+                            Buffers: shared hit=2000
+                            ->  Aggregate  (cost=3.03..3.04 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=2000)
+                                  Buffers: shared hit=2000
+                                  ->  Nested Loop  (cost=0.00..3.03 rows=1 width=16) (actual time=0.001..0.001 rows=0.00 loops=2000)
+                                        Join Filter: (u1_9.course_id = u2.id)
+                                        Buffers: shared hit=2000
+                                        ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=2000)
+                                              Join Filter: (u0_16.assignment_id = u1_9.id)
+                                              Buffers: shared hit=2000
+                                              ->  Seq Scan on students_studentsubmission u0_16  (cost=0.00..1.00 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=2000)
+                                                    Filter: (ai_graded_at IS NOT NULL)
+                                                    Buffers: shared hit=2000
+                                              ->  Seq Scan on assignments_assignment u1_9  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                        ->  Seq Scan on classrooms_course u2  (cost=0.00..1.00 rows=1 width=16) (never executed)
+                                              Filter: (teacher_id = users_customuser.id)
+        SubPlan 1
+          ->  Limit  (cost=2.02..2.03 rows=1 width=32) (actual time=0.003..0.003 rows=0.00 loops=25)
+                Buffers: shared hit=25
+                ->  Sort  (cost=2.02..2.03 rows=1 width=32) (actual time=0.002..0.002 rows=0.00 loops=25)
+                      Sort Key: u0.id
+                      Sort Method: quicksort  Memory: 25kB
+                      Buffers: shared hit=25
+                      ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (u0.license_subscription_id = u1.id)
+                            Buffers: shared hit=25
+                            ->  Seq Scan on billing_schoolcreditallocation u0  (cost=0.00..1.00 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: (is_active AND (NOT is_admin_allocation) AND (user_id = users_customuser.id))
+                                  Buffers: shared hit=25
+                            ->  Seq Scan on billing_licensesubscription u1  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                  Filter: is_active
+        SubPlan 2
+          ->  Limit  (cost=2.02..2.03 rows=1 width=32) (actual time=0.002..0.002 rows=0.00 loops=25)
+                Buffers: shared hit=25
+                ->  Sort  (cost=2.02..2.03 rows=1 width=32) (actual time=0.002..0.002 rows=0.00 loops=25)
+                      Sort Key: u0_1.id
+                      Sort Method: quicksort  Memory: 25kB
+                      Buffers: shared hit=25
+                      ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (u0_1.license_subscription_id = u1_1.id)
+                            Buffers: shared hit=25
+                            ->  Seq Scan on billing_schoolcreditallocation u0_1  (cost=0.00..1.00 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: (is_active AND is_admin_allocation AND (user_id = users_customuser.id))
+                                  Buffers: shared hit=25
+                            ->  Seq Scan on billing_licensesubscription u1_1  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                  Filter: is_active
+        SubPlan 3
+          ->  Limit  (cost=2.01..2.01 rows=1 width=32) (actual time=0.002..0.002 rows=0.00 loops=25)
+                Buffers: shared hit=50
+                ->  Sort  (cost=2.01..2.01 rows=1 width=32) (actual time=0.002..0.002 rows=0.00 loops=25)
+                      Sort Key: u0_2.id
+                      Sort Method: quicksort  Memory: 25kB
+                      Buffers: shared hit=50
+                      ->  Seq Scan on billing_usersubscription u0_2  (cost=0.00..2.00 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Filter: (is_active AND (user_id = users_customuser.id))
+                            Buffers: shared hit=50
+        SubPlan 7
+          ->  Limit  (cost=7.08..7.08 rows=1 width=116) (actual time=0.002..0.002 rows=0.00 loops=25)
+                Buffers: shared hit=25
+                InitPlan 4
+                  ->  Limit  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                              Sort Key: u0_3.id
+                              ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (never executed)
+                                    Join Filter: (u0_3.license_subscription_id = u1_2.id)
+                                    ->  Seq Scan on billing_schoolcreditallocation u0_3  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: (is_active AND (NOT is_admin_allocation) AND (user_id = users_customuser.id))
+                                    ->  Seq Scan on billing_licensesubscription u1_2  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: is_active
+                InitPlan 5
+                  ->  Limit  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                              Sort Key: u0_4.id
+                              ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (never executed)
+                                    Join Filter: (u0_4.license_subscription_id = u1_3.id)
+                                    ->  Seq Scan on billing_schoolcreditallocation u0_4  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: (is_active AND is_admin_allocation AND (user_id = users_customuser.id))
+                                    ->  Seq Scan on billing_licensesubscription u1_3  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: is_active
+                InitPlan 6
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=32) (never executed)
+                              Sort Key: u0_5.id
+                              ->  Seq Scan on billing_usersubscription u0_5  (cost=0.00..2.00 rows=1 width=32) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Sort  (cost=1.01..1.01 rows=1 width=116) (actual time=0.002..0.002 rows=0.00 loops=25)
+                      Sort Key: u0_6.category, u0_6.tier
+                      Sort Method: quicksort  Memory: 25kB
+                      Buffers: shared hit=25
+                      ->  Seq Scan on billing_subscriptionplan u0_6  (cost=0.00..1.00 rows=1 width=116) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Filter: (id = COALESCE((InitPlan 4).col1, (InitPlan 5).col1, (InitPlan 6).col1))
+                            Buffers: shared hit=25
+        SubPlan 11
+          ->  Limit  (cost=7.08..7.08 rows=1 width=116) (actual time=0.002..0.002 rows=0.00 loops=25)
+                Buffers: shared hit=25
+                InitPlan 8
+                  ->  Limit  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                              Sort Key: u0_7.id
+                              ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (never executed)
+                                    Join Filter: (u0_7.license_subscription_id = u1_4.id)
+                                    ->  Seq Scan on billing_schoolcreditallocation u0_7  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: (is_active AND (NOT is_admin_allocation) AND (user_id = users_customuser.id))
+                                    ->  Seq Scan on billing_licensesubscription u1_4  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: is_active
+                InitPlan 9
+                  ->  Limit  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                              Sort Key: u0_8.id
+                              ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (never executed)
+                                    Join Filter: (u0_8.license_subscription_id = u1_5.id)
+                                    ->  Seq Scan on billing_schoolcreditallocation u0_8  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: (is_active AND is_admin_allocation AND (user_id = users_customuser.id))
+                                    ->  Seq Scan on billing_licensesubscription u1_5  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: is_active
+                InitPlan 10
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=32) (never executed)
+                              Sort Key: u0_9.id
+                              ->  Seq Scan on billing_usersubscription u0_9  (cost=0.00..2.00 rows=1 width=32) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Sort  (cost=1.01..1.01 rows=1 width=116) (actual time=0.001..0.001 rows=0.00 loops=25)
+                      Sort Key: u0_10.category, u0_10.tier
+                      Sort Method: quicksort  Memory: 25kB
+                      Buffers: shared hit=25
+                      ->  Seq Scan on billing_subscriptionplan u0_10  (cost=0.00..1.00 rows=1 width=116) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Filter: (id = COALESCE((InitPlan 8).col1, (InitPlan 9).col1, (InitPlan 10).col1))
+                            Buffers: shared hit=25
+        SubPlan 15
+          ->  Limit  (cost=7.08..7.08 rows=1 width=174) (actual time=0.002..0.002 rows=0.00 loops=25)
+                Buffers: shared hit=25
+                InitPlan 12
+                  ->  Limit  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                              Sort Key: u0_11.id
+                              ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (never executed)
+                                    Join Filter: (u0_11.license_subscription_id = u1_6.id)
+                                    ->  Seq Scan on billing_schoolcreditallocation u0_11  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: (is_active AND (NOT is_admin_allocation) AND (user_id = users_customuser.id))
+                                    ->  Seq Scan on billing_licensesubscription u1_6  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: is_active
+                InitPlan 13
+                  ->  Limit  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.02..2.03 rows=1 width=32) (never executed)
+                              Sort Key: u0_12.id
+                              ->  Nested Loop  (cost=0.00..2.01 rows=1 width=32) (never executed)
+                                    Join Filter: (u0_12.license_subscription_id = u1_7.id)
+                                    ->  Seq Scan on billing_schoolcreditallocation u0_12  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: (is_active AND is_admin_allocation AND (user_id = users_customuser.id))
+                                    ->  Seq Scan on billing_licensesubscription u1_7  (cost=0.00..1.00 rows=1 width=32) (never executed)
+                                          Filter: is_active
+                InitPlan 14
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=32) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=32) (never executed)
+                              Sort Key: u0_13.id
+                              ->  Seq Scan on billing_usersubscription u0_13  (cost=0.00..2.00 rows=1 width=32) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Sort  (cost=1.01..1.01 rows=1 width=174) (actual time=0.001..0.001 rows=0.00 loops=25)
+                      Sort Key: u0_14.category, u0_14.tier
+                      Sort Method: quicksort  Memory: 25kB
+                      Buffers: shared hit=25
+                      ->  Seq Scan on billing_subscriptionplan u0_14  (cost=0.00..1.00 rows=1 width=174) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Filter: (id = COALESCE((InitPlan 12).col1, (InitPlan 13).col1, (InitPlan 14).col1))
+                            Buffers: shared hit=25
+        SubPlan 16
+          ->  Limit  (cost=2.02..2.02 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=25
+                ->  Aggregate  (cost=2.02..2.02 rows=1 width=8) (actual time=0.001..0.001 rows=1.00 loops=25)
+                      Buffers: shared hit=25
+                      ->  Nested Loop  (cost=0.00..2.01 rows=1 width=16) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (u0_15.course_id = u1_8.id)
+                            Buffers: shared hit=25
+                            ->  Seq Scan on assignments_assignment u0_15  (cost=0.00..1.00 rows=1 width=32) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Buffers: shared hit=25
+                            ->  Seq Scan on classrooms_course u1_8  (cost=0.00..1.00 rows=1 width=16) (never executed)
+                                  Filter: (teacher_id = users_customuser.id)
+        SubPlan 18
+          ->  Limit  (cost=23.00..23.01 rows=1 width=8) (actual time=0.009..0.009 rows=1.00 loops=25)
+                Buffers: shared hit=151
+                ->  Aggregate  (cost=23.00..23.01 rows=1 width=8) (actual time=0.009..0.009 rows=1.00 loops=25)
+                      Buffers: shared hit=151
+                      ->  Nested Loop  (cost=4.58..22.99 rows=2 width=8) (actual time=0.007..0.008 rows=2.00 loops=25)
+                            Buffers: shared hit=151
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet u1_10  (cost=0.28..8.29 rows=1 width=16) (actual time=0.002..0.002 rows=1.00 loops=25)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 25
+                                  Buffers: shared hit=75
+                            ->  Bitmap Heap Scan on billing_creditbucket u0_17  (cost=4.31..14.68 rows=2 width=24) (actual time=0.004..0.004 rows=2.00 loops=25)
+                                  Recheck Cond: (wallet_id = u1_10.id)
+                                  Filter: ((expires_at IS NULL) OR (expires_at > '2026-11-11 12:02:44.46857+00'::timestamp with time zone))
+                                  Rows Removed by Filter: 1
+                                  Heap Blocks: exact=26
+                                  Buffers: shared hit=76
+                                  ->  Bitmap Index Scan on billing_creditbucket_wallet_id_a701c289  (cost=0.00..4.30 rows=3 width=0) (actual time=0.002..0.002 rows=3.00 loops=25)
+                                        Index Cond: (wallet_id = u1_10.id)
+                                        Index Searches: 25
+                                        Buffers: shared hit=50
+        SubPlan 19
+          ->  Limit  (cost=23.00..23.01 rows=1 width=8) (actual time=0.006..0.006 rows=1.00 loops=25)
+                Buffers: shared hit=151
+                ->  Aggregate  (cost=23.00..23.01 rows=1 width=8) (actual time=0.006..0.006 rows=1.00 loops=25)
+                      Buffers: shared hit=151
+                      ->  Nested Loop  (cost=4.58..22.99 rows=2 width=8) (actual time=0.004..0.005 rows=2.00 loops=25)
+                            Buffers: shared hit=151
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet u1_11  (cost=0.28..8.29 rows=1 width=16) (actual time=0.001..0.001 rows=1.00 loops=25)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 25
+                                  Buffers: shared hit=75
+                            ->  Bitmap Heap Scan on billing_creditbucket u0_18  (cost=4.31..14.68 rows=2 width=24) (actual time=0.002..0.002 rows=2.00 loops=25)
+                                  Recheck Cond: (wallet_id = u1_11.id)
+                                  Filter: ((expires_at IS NULL) OR (expires_at > '2026-11-11 12:02:44.46857+00'::timestamp with time zone))
+                                  Rows Removed by Filter: 1
+                                  Heap Blocks: exact=26
+                                  Buffers: shared hit=76
+                                  ->  Bitmap Index Scan on billing_creditbucket_wallet_id_a701c289  (cost=0.00..4.30 rows=3 width=0) (actual time=0.001..0.001 rows=3.00 loops=25)
+                                        Index Cond: (wallet_id = u1_11.id)
+                                        Index Searches: 25
+                                        Buffers: shared hit=50
+        SubPlan 20
+          ->  Limit  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=50
+                ->  Aggregate  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                      Buffers: shared hit=50
+                      ->  Nested Loop  (cost=0.28..10.31 rows=1 width=4) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (u0_19.wallet_id = u1_12.id)
+                            Buffers: shared hit=50
+                            ->  Seq Scan on billing_creditusagelog u0_19  (cost=0.00..2.00 rows=1 width=20) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: (NOT is_refunded)
+                                  Buffers: shared hit=50
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet u1_12  (cost=0.28..8.29 rows=1 width=16) (never executed)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 0
+        SubPlan 21
+          ->  Limit  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=50
+                ->  Aggregate  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                      Buffers: shared hit=50
+                      ->  Nested Loop  (cost=0.28..10.31 rows=1 width=4) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (u0_20.wallet_id = u1_13.id)
+                            Buffers: shared hit=50
+                            ->  Seq Scan on billing_creditusagelog u0_20  (cost=0.00..2.00 rows=1 width=20) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: (NOT is_refunded)
+                                  Buffers: shared hit=50
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet u1_13  (cost=0.28..8.29 rows=1 width=16) (never executed)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 0
+        SubPlan 24
+          ->  Limit  (cost=14.34..14.35 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=50
+                InitPlan 22
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_21.id
+                              ->  Seq Scan on billing_usersubscription u0_21  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                InitPlan 23
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_22.id
+                              ->  Seq Scan on billing_usersubscription u0_22  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Aggregate  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                      Buffers: shared hit=50
+                      ->  Nested Loop  (cost=0.28..10.31 rows=1 width=4) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (v0.wallet_id = v1.id)
+                            Buffers: shared hit=50
+                            ->  Seq Scan on billing_creditusagelog v0  (cost=0.00..2.00 rows=1 width=20) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: ((created_at >= (InitPlan 22).col1) AND (created_at <= (InitPlan 23).col1) AND ((feature)::text = 'Assignment Extraction'::text))
+                                  Buffers: shared hit=50
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet v1  (cost=0.28..8.29 rows=1 width=16) (never executed)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 0
+        SubPlan 27
+          ->  Limit  (cost=14.34..14.35 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=50
+                InitPlan 25
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_23.id
+                              ->  Seq Scan on billing_usersubscription u0_23  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                InitPlan 26
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_24.id
+                              ->  Seq Scan on billing_usersubscription u0_24  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Aggregate  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                      Buffers: shared hit=50
+                      ->  Nested Loop  (cost=0.28..10.31 rows=1 width=4) (actual time=0.001..0.002 rows=0.00 loops=25)
+                            Join Filter: (v0_1.wallet_id = v1_1.id)
+                            Buffers: shared hit=50
+                            ->  Seq Scan on billing_creditusagelog v0_1  (cost=0.00..2.00 rows=1 width=20) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: ((created_at >= (InitPlan 25).col1) AND (created_at <= (InitPlan 26).col1) AND ((feature)::text = 'Answer Extraction'::text))
+                                  Buffers: shared hit=50
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet v1_1  (cost=0.28..8.29 rows=1 width=16) (never executed)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 0
+        SubPlan 30
+          ->  Limit  (cost=14.34..14.35 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=50
+                InitPlan 28
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_25.id
+                              ->  Seq Scan on billing_usersubscription u0_25  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                InitPlan 29
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_26.id
+                              ->  Seq Scan on billing_usersubscription u0_26  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Aggregate  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                      Buffers: shared hit=50
+                      ->  Nested Loop  (cost=0.28..10.31 rows=1 width=4) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (v0_2.wallet_id = v1_2.id)
+                            Buffers: shared hit=50
+                            ->  Seq Scan on billing_creditusagelog v0_2  (cost=0.00..2.00 rows=1 width=20) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: ((created_at >= (InitPlan 28).col1) AND (created_at <= (InitPlan 29).col1) AND ((feature)::text = 'Grading Assignment'::text))
+                                  Buffers: shared hit=50
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet v1_2  (cost=0.28..8.29 rows=1 width=16) (never executed)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 0
+        SubPlan 33
+          ->  Limit  (cost=14.34..14.35 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                Buffers: shared hit=50
+                InitPlan 31
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_27.id
+                              ->  Seq Scan on billing_usersubscription u0_27  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                InitPlan 32
+                  ->  Limit  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                        ->  Sort  (cost=2.01..2.01 rows=1 width=24) (never executed)
+                              Sort Key: u0_28.id
+                              ->  Seq Scan on billing_usersubscription u0_28  (cost=0.00..2.00 rows=1 width=24) (never executed)
+                                    Filter: (is_active AND (user_id = users_customuser.id))
+                ->  Aggregate  (cost=10.31..10.32 rows=1 width=8) (actual time=0.002..0.002 rows=1.00 loops=25)
+                      Buffers: shared hit=50
+                      ->  Nested Loop  (cost=0.28..10.31 rows=1 width=4) (actual time=0.001..0.001 rows=0.00 loops=25)
+                            Join Filter: (v0_3.wallet_id = v1_3.id)
+                            Buffers: shared hit=50
+                            ->  Seq Scan on billing_creditusagelog v0_3  (cost=0.00..2.00 rows=1 width=20) (actual time=0.001..0.001 rows=0.00 loops=25)
+                                  Filter: ((created_at >= (InitPlan 31).col1) AND (created_at <= (InitPlan 32).col1) AND ((feature)::text = 'Assignment Generation'::text))
+                                  Buffers: shared hit=50
+                            ->  Index Scan using billing_creditwallet_user_id_key on billing_creditwallet v1_3  (cost=0.28..8.29 rows=1 width=16) (never executed)
+                                  Index Cond: (user_id = users_customuser.id)
+                                  Index Searches: 0
+Planning:
+  Buffers: shared hit=44
+Planning Time: 4.319 ms
+Execution Time: 10.408 ms

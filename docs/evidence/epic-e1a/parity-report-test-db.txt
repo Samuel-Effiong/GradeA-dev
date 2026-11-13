@@ -1,0 +1,11 @@
+Grade parity: old code compared with the grade service
+R1  Stored final grade (per enrollment): 72 compared, 0 differences
+R2  Final grade a student sees (per enrollment): 72 compared, 0 differences
+R3  Grade across a teacher's courses (per student): 38 compared, 0 differences
+R4  Assignment average (per assignment): 32 compared, 0 differences
+RR  At-risk inputs (per submission): 78 compared, 0 differences
+RS  Weight of each submission (per submission): 88 compared, 0 differences
+PM  Plain average of percentages (per course and assignment): 52 compared, 0 differences
+FG  Average of final grades (per course): 20 compared, 0 differences
+
+RESULT: every figure matches (0 differences)

@@ -1,0 +1,36 @@
+502c422e4 Epic E1a: classrooms/grade_service.py, one module for every grade figure
+4ddc95291 E1a move R1: compute_final_grade through grade_service.course_grade
+f8aac9a26 E1a move R2: a student's released final grade through grade_service
+4c00a98aa E1a move R3: my-students cross-course grade through grade_service
+2fca37166 E1a move W5: my-students risk rows through grade_service.risk_score_row
+da42420f1 E1a move: the risk evaluator's average through grade_service.points_weighted
+a77302ec5 E1a move R4: one assignment's average through grade_service.assignment_grade
+7f20fa016 E1a move W1: teacher at-risk rows through grade_service.risk_score_row
+0687619b8 E1a move W2: teacher course-students risk rows through grade_service.risk_score_row
+0e15debe4 E1a move W3: teacher all-students risk rows through grade_service.risk_score_row
+f1d8cf678 E1a: delete the dead avg_grade_val annotation in teacher at-risk (P3)
+3ff3e40a0 E1a: delete the dead avg_grade_val annotation in teacher course students (P5)
+b5cafb354 E1a move P1: school unit performance average through grade_service.mean_percentage
+f6211d438 E1a move P2: teacher overview course average through grade_service.mean_percentage
+630a2a920 E1a move P4: teacher course analytics averages through grade_service.mean_percentage
+8c3d1642c E1a move P6: student course summary average through grade_service.mean_percentage
+62ceb8354 E1a move F1: super-admin per-school average final grade through grade_service
+8cdcaf65b E1a move F2: super-admin per-teacher average final grade through grade_service
+286c44fa0 E1a move F3: super-admin student average final grade through grade_service
+b104a158a E1a move F4: school course performance average final grade through grade_service
+1733fd762 E1a move F5: school students average final grade through grade_service
+9512b9735 E1a move F6: school course overview chart average final grade through grade_service
+d895e9d33 E1a move M6/M7: student overview per-course means through grade_service.mean_of_values
+49c4741c9 E1a move M8: student overview overall percentage through grade_service.mean_of_values
+3f6e7401d E1a move W4: weekly course summary risk rows through grade_service.risk_score_row
+19f381d82 E1a move M1: weekly student summary average through grade_service.mean_of_values
+2fe93f4f1 E1a move M2: weekly course summary average through grade_service.mean_of_values
+8ed3a8b92 E1a move M3: weekly course summary recent average through grade_service.mean_of_values
+548cb51e4 E1a move M4: weekly course summary previous average through grade_service.mean_of_values
+8aa4f1c00 E1a move P7: AI-context assignment average through grade_service.mean_percentage
+8c3713eec E1a move R5: AI-context risk rows weight through grade_service.risk_rows
+fbe1a54d8 E1a move R6: school weekly at-risk rows weight through grade_service.risk_rows
+fcfc52dd6 E1a move M5: AI-context course average score through grade_service.mean_of_values
+60aa8ef09 E1a move P8: rigor average percentage through grade_service.mean_percentage
+113d57f95 E1a: delete classrooms/final_grade.py; every grade figure now goes through grade_service
+1e28a9952 E1a: grade_parity_report, the read-only parity run (plan 09 §4.2)

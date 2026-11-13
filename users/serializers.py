@@ -722,6 +722,14 @@ class TaskStatusSerializer(serializers.Serializer):
     additional_ids = serializers.DictField(
         child=serializers.CharField(), allow_null=True
     )
+    # B1b-8 (SM Q8-2): until when an upload's file is kept for a retry
+    # (approved hint #16); null when none is kept.
+    kept_until = serializers.DateTimeField(
+        allow_null=True,
+        read_only=True,
+        help_text="Until when the upload's file is kept for a retry (null if "
+        "none). Left out when a student makes the request.",
+    )
 
 
 class BatchSessionResultTaskEntrySerializer(serializers.Serializer):

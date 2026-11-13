@@ -248,7 +248,10 @@ class ClosedVocabulariesTest(TestCase):
             set(ErrorClass.values),
             {"USER", "VALIDATION", "PROVIDER", "MODEL", "SYSTEM"},
         )
-        self.assertEqual(set(RetentionClass.values), {"GENERAL", "STUDENT_RECORD"})
+        # FINANCIAL: Epic B1a (plan 08 §4), credit events kept 7 years.
+        self.assertEqual(
+            set(RetentionClass.values), {"GENERAL", "STUDENT_RECORD", "FINANCIAL"}
+        )
 
     def test_every_role_a_user_can_have_maps_to_an_actor_role(self):
         self.assertTrue(set(UserTypes.values) <= set(ActorRole.values))
