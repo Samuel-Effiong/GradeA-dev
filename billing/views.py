@@ -2746,6 +2746,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 "is_power_grader": profile.is_power_grader,
                 "frequent_user": profile.frequent_user,
             },
+            # The lead row's other fields, the same user-list values (S11).
+            **{name: wallet[name] for name in lead_filters.ROW_FIELDS},
         }
 
         # 2. Daily Consumption (Last 60 Days)

@@ -254,3 +254,101 @@ class SwaggerExamplesShowEveryFieldTests(UsageBase):
                 row["metrics"]["primary_use_case"],
                 "Grading" if row["flags"]["is_power_grader"] else "Creation",
             )
+
+
+class LeadDetailFieldsTests(UsageBase):
+    """GET intent-signal-detail/<user_id> shows the lead row's plan and usage
+    fields (S11): same names, types, nulls and values, in the row's order,
+    after flags and before daily_usage."""
+
+    full: CustomUser
+    bare: CustomUser
+
+    def build(self):
+        return LeadUsageFieldsTests.build(self)  # type: ignore[arg-type]
+
+    def detail(self, user):
+        response = self.client.get(
+            reverse("analytics-intent-signal-detail", kwargs={"user_id": user.pk})
+        )
+        self.assertEqual(response.status_code, 200, response.content[:300])
+        body = response.json()
+        return body.get("data", body)
+
+    def row(self, user):
+        found = [r for r in self.leads(page_size=100) if r["email"] == user.email]
+        self.assertEqual(len(found), 1)
+        return found[0]
+
+    def test_a_teacher_with_a_plan_and_usage(self):
+        self.build()
+        detail = self.detail(self.full)
+        self.assertEqual(detail["plan_tier"], "PRO")
+        self.assertEqual(detail["plan_category"], "INDIVIDUAL")
+        self.assertEqual(detail["plan_interval"], "ANNUAL")
+        self.assertEqual(detail["credits_left"], 7)
+        self.assertEqual(detail["papers_graded"], 2)
+        self.assertEqual(detail["assignments_created"], 3)
+        self.assertTrue(detail["activated_at"].startswith("2026-06-11T12:00:00"))
+        self.assertEqual(detail["metrics"]["credit_usage"], 3)
+
+    def test_a_teacher_with_no_plan_and_no_wallet(self):
+        self.build()
+        detail = self.detail(self.bare)
+        for name in ("plan_tier", "plan_category", "plan_interval", "credits_left",
+                     "activated_at"):  # fmt: skip
+            with self.subTest(name):
+                self.assertIsNone(detail[name])
+        self.assertEqual(detail["papers_graded"], 0)
+        self.assertEqual(detail["assignments_created"], 0)
+        self.assertNotIn("credits_used", detail)
+
+    def test_the_values_equal_the_leads_row_and_the_users_list(self):
+        self.build()
+        cache.clear()
+        listed = self.client.get(reverse("user-list"), {"page_size": 100}).json()
+        listed = listed.get("results", listed.get("data", {}).get("results", []))
+        by_email = {u["email"]: u for u in listed}
+        for user in (self.full, self.bare):
+            detail, row = self.detail(user), self.row(user)
+            for name in NEW:
+                with self.subTest(user=user.email, field=name):
+                    self.assertEqual(detail[name], row[name])
+                    self.assertEqual(detail[name], by_email[user.email][name])
+            self.assertEqual(detail["metrics"], row["metrics"])
+
+    def test_the_keys_and_their_order_are_the_serializers(self):
+        from billing.serializers import (
+            BetaUserDetailResponseSerializer,
+            ConversionLeadFlagsSerializer,
+            ConversionLeadMetricsSerializer,
+        )
+
+        self.build()
+        detail = self.detail(self.full)
+        self.assertEqual(list(detail), list(BetaUserDetailResponseSerializer().fields))
+        self.assertEqual(
+            list(detail["metrics"]), list(ConversionLeadMetricsSerializer().fields)
+        )
+        self.assertEqual(
+            list(detail["flags"]), list(ConversionLeadFlagsSerializer().fields)
+        )
+        # The lead row's order, after flags and before daily_usage.
+        keys = list(detail)
+        self.assertEqual(keys[keys.index("flags") + 1 : keys.index("daily_usage")],
+                         [*NEW])  # fmt: skip
+
+    def test_the_cost_does_not_depend_on_the_lead(self):
+        self.build()
+        busy = self.lead(score=50.0, used=5_000, left=2_000)
+        self.subscribe(busy, self.plan(PlanTier.PRO))
+        self.teaching(busy, 6, 5)
+        url = lambda u: reverse(  # noqa: E731
+            "analytics-intent-signal-detail", kwargs={"user_id": u.pk}
+        )
+        self.client.get(url(self.bare))  # warm up
+        with CaptureQueriesContext(connection) as ctx:
+            self.client.get(url(self.bare))
+        quiet = len(ctx.captured_queries)
+        with self.assertNumQueries(quiet):
+            self.client.get(url(busy))
