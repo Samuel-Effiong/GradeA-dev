@@ -1,5 +1,8 @@
 {
   "intent_signal_detail a.all4.sig@x.example": {
+    "activated_at": null,
+    "assignments_created": 0,
+    "credits_left": 0,
     "daily_usage": [
       {
         "credits": 0,
@@ -269,9 +272,16 @@
       "usage_percentage": 0.0
     },
     "name": "Ada Four",
+    "papers_graded": 0,
+    "plan_category": null,
+    "plan_interval": null,
+    "plan_tier": null,
     "score": 91.5
   },
   "intent_signal_detail g.admin.sig@x.example": {
+    "activated_at": null,
+    "assignments_created": 0,
+    "credits_left": 0,
     "daily_usage": [
       {
         "credits": 0,
@@ -541,6 +551,10 @@
       "usage_percentage": 0.0
     },
     "name": "Gil Admin",
+    "papers_graded": 0,
+    "plan_category": null,
+    "plan_interval": null,
+    "plan_tier": null,
     "score": 99.0
   },
   "intent_signal_distribution": {
