@@ -136,8 +136,29 @@ class TagFilterTests(TestCase):
         self.assertEqual(self.get("tags=not-a-uuid", student).status_code, 200)
 
     def test_swagger_documents_the_parameter(self):
+        from drf_spectacular import extensions
         from drf_spectacular.generators import SchemaGenerator
 
+        # Schema generation changes every extension's target_class; restore
+        # it, or later schema tests see the wrong targets.
+        registered = {
+            ext
+            for base in (
+                extensions.OpenApiAuthenticationExtension,
+                extensions.OpenApiSerializerExtension,
+                extensions.OpenApiSerializerFieldExtension,
+                extensions.OpenApiViewExtension,
+                extensions.OpenApiFilterExtension,
+            )
+            for ext in base._registry
+        }
+        saved = {ext: ext.__dict__.get("target_class") for ext in registered}
+
+        def restore():
+            for ext, target in saved.items():
+                ext.target_class = target
+
+        self.addCleanup(restore)
         schema = SchemaGenerator().get_schema(request=None, public=True)
         names = {
             p["name"]

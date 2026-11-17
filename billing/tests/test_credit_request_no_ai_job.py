@@ -37,8 +37,27 @@ class NoAiJobTests(Fixture):
 
     @ON
     def test_the_swagger_shapes_do_not_show_ai_job(self):
+        from drf_spectacular import extensions
         from drf_spectacular.generators import SchemaGenerator
 
+        registered = {
+            ext
+            for base in (
+                extensions.OpenApiAuthenticationExtension,
+                extensions.OpenApiSerializerExtension,
+                extensions.OpenApiSerializerFieldExtension,
+                extensions.OpenApiViewExtension,
+                extensions.OpenApiFilterExtension,
+            )
+            for ext in base._registry
+        }
+        saved = {ext: ext.__dict__.get("target_class") for ext in registered}
+
+        def restore():
+            for ext, target in saved.items():
+                ext.target_class = target
+
+        self.addCleanup(restore)
         schema = SchemaGenerator().get_schema(request=None, public=True)
         parts = schema["components"]["schemas"]
         found = [
