@@ -43,7 +43,15 @@ class UserCacheMixin:
             instance_id = self.kwargs.get("pk")
             base = f"{model_name}s:user_id__{user_id}:instance_id__{instance_id}"
         else:
-            query_params = json.dumps(self.request.query_params.dict(), sort_keys=True)
+            query_params = json.dumps(
+                {
+                    # One value stays a plain string (the key it always had);
+                    # a repeated one (?tags=a&tags=b) keeps every value.
+                    name: values[-1] if len(values) == 1 else values
+                    for name, values in self.request.query_params.lists()
+                },
+                sort_keys=True,
+            )
             # Names a cache entry; secures nothing (H-257, Bandit B324).
             query_hash = hashlib.md5(
                 query_params.encode(), usedforsecurity=False
