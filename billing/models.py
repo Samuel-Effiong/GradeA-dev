@@ -2734,13 +2734,6 @@ class CreditRequest(models.Model):
         choices=CreditRequestStatus.choices,
         default=CreditRequestStatus.PENDING,
     )
-    ai_job = models.ForeignKey(
-        "billing.AIJob",
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        related_name="credit_requests",
-    )
     purchase_intent = models.ForeignKey(
         LicenseOveragePurchaseIntent,
         null=True,

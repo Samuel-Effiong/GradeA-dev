@@ -86,7 +86,7 @@ class SwaggerGroupsTests(APITestCase):
         ),
         ("post", "/api/v1/billing/credit-requests"): (
             "CreateCreditRequest",
-            ("requested_blocks", "message", "ai_job"),
+            ("requested_blocks", "message"),
         ),
         ("post", "/api/v1/billing/credit-requests/{id}/approve"): (
             "ApproveCreditRequest",

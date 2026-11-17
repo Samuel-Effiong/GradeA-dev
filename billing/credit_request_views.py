@@ -29,7 +29,7 @@ from AutoGrader.error_messages import describe_user_error
 
 from . import credit_requests
 from .license_service import LicenseSubscriptionService
-from .models import AIJob, CreditRequest, CreditRequestStatus
+from .models import CreditRequest, CreditRequestStatus
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +54,6 @@ class CreditRequestSerializer(serializers.ModelSerializer):
             "decline_reason",
             "decided_by_name",
             "decided_at",
-            "ai_job",
             "purchase_intent",
             "offline_request",
             "created_at",
@@ -77,7 +76,6 @@ class CreateCreditRequestSerializer(serializers.Serializer):
     message = serializers.CharField(
         max_length=500, required=False, allow_blank=True, default=""
     )
-    ai_job = serializers.UUIDField(required=False, allow_null=True)
 
 
 class ApproveCreditRequestSerializer(serializers.Serializer):
@@ -175,17 +173,11 @@ class CreditRequestViewSet(viewsets.ViewSet):
         serializer = CreateCreditRequestSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
-        ai_job = None
-        if data.get("ai_job"):
-            ai_job = AIJob.objects.filter(
-                pk=data["ai_job"], requested_by=request.user
-            ).first()
         try:
             row = credit_requests.create_request(
                 request.user,
                 data["requested_blocks"],
                 data.get("message", ""),
-                ai_job=ai_job,
             )
         except credit_requests.CreditRequestError as exc:
             return _refusal(exc)

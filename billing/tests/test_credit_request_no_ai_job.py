@@ -41,5 +41,9 @@ class NoAiJobTests(Fixture):
 
         schema = SchemaGenerator().get_schema(request=None, public=True)
         parts = schema["components"]["schemas"]
-        for name in ("CreateCreditRequest", "CreditRequest"):
+        found = [
+            n for n in parts if n.startswith(("CreateCreditRequest", "CreditRequest"))
+        ]
+        self.assertIn("CreateCreditRequestRequest", found)
+        for name in found:
             self.assertNotIn("ai_job", parts[name].get("properties", {}), name)
