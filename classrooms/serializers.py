@@ -217,10 +217,38 @@ class CourseSerializer(serializers.ModelSerializer):
                 )
         return value
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Epic E2: a new course can be seeded from a category template. The
+        # field exists only while GRADE_CATEGORIES_ENABLED is on.
+        if grade_service.categories_enabled():
+            self.fields["template_id"] = serializers.UUIDField(
+                write_only=True, required=False, allow_null=True
+            )
+
+    def validate_template_id(self, value):
+        from classrooms.views_grade_categories import templates_visible_to
+
+        request = self.context.get("request")
+        user = getattr(request, "user", None)
+        if value is not None and (
+            user is None or not templates_visible_to(user).filter(pk=value).exists()
+        ):
+            raise serializers.ValidationError(
+                'Invalid pk "' + str(value) + '" - object does not exist.'
+            )
+        return value
+
     def create(self, validated_data):
         """Create course and associated topics from topic_names."""
         topic_names = validated_data.pop("topic_names", [])
+        template_id = validated_data.pop("template_id", None)
         course = super().create(validated_data)
+        if template_id is not None:
+            from classrooms.views_grade_categories import apply_template
+
+            request = self.context.get("request")
+            apply_template(course, template_id, actor=request.user, request=request)
 
         # Create topics from the list of names
         for topic_name in topic_names:
@@ -231,6 +259,8 @@ class CourseSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         """Update course and replace topics if topic_names is provided."""
         topic_names = validated_data.pop("topic_names", None)
+        # A template seeds a NEW course only; on an update it is ignored.
+        validated_data.pop("template_id", None)
         course = super().update(instance, validated_data)
 
         # If topic_names is provided, make the course's topics match it.
@@ -443,7 +473,7 @@ class StudentCourseSerializer(serializers.ModelSerializer):
         # The viewset's own prefetch (student__submissions, each with its
         # assignment): no query per enrollment.
         return grade_service.released_course_grade(
-            obj.student.submissions.all(), obj.course_id
+            obj.student.submissions.all(), obj.course_id, student_id=obj.student_id
         )
 
     def to_representation(self, instance):

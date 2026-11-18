@@ -95,6 +95,7 @@ def upload_assignment_file(
     course,
     sha256,
     topic=None,
+    category=None,
     processing_task_id=None,
 ):
     """
@@ -153,6 +154,10 @@ def upload_assignment_file(
                 serializer = AssignmentSerializer(data=assignment_questions)
                 serializer.is_valid(raise_exception=True)
                 assignment = serializer.save()
+                if category is not None:
+                    # Epic E2 (Q3): the category the upload named.
+                    assignment.category = category
+                    assignment.save(update_fields=["category", "updated_at"])
                 _complete(claim, assignment)
 
                 if processing_task:

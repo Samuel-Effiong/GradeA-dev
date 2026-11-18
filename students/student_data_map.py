@@ -195,6 +195,22 @@ STUDENT_DATA_MAP = {
     ("students.ErasedStudentRecord", "erased_by_id"): _staff(
         "The admin or teacher who erased a student"
     ),
+    # Epic E2: a teacher's excuse of one student from one assignment.
+    # Deleted with the student (a teacher's erasure: in their courses). Not
+    # exported: an export file name is owner-approved wording, and the
+    # excuse's effect is already in the exported final grade (NOTES §E2).
+    ("students.ExcusedWork", "student"): Entry(
+        Role.DELETE,
+        "Assignments a teacher excused the student from",
+        export=False,
+        course_scoped=True,
+    ),
+    ("students.ExcusedWork", "excused_by"): _staff("Teacher who excused the work"),
+    # Epic E2: category templates belong to a teacher or a school.
+    ("classrooms.CategoryTemplate", "teacher"): _staff("Category template owner"),
+    ("classrooms.CategoryTemplate", "created_by_id"): _staff(
+        "Teacher or school admin who made the category template"
+    ),
     # SM R1: tags are teacher-only (Epic C1).
     ("tags.Tag", "teacher"): _staff("Tag owner"),
     ("tags.Tag", "created_by_id"): _staff(

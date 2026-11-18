@@ -24,6 +24,7 @@ from students.models import StudentSubmission
 from tags.assignment_field import AssignmentTagsFieldMixin
 from users.models import UserTypes
 
+from . import category_fields
 from .models import (  # Rubric
     Assignment,
     AssignmentGenerationMessage,
@@ -723,6 +724,10 @@ class SaveGeneratedAssignmentDraftSerializer(serializers.Serializer):
     due_date = serializers.DateTimeField(required=False, allow_null=True)
     auto_grade_on_due_date = serializers.BooleanField(required=False)
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        category_fields.add_fields(self)  # Epic E2, while the flag is on
+
     def validate_due_date(self, value):
         if value and value < timezone.now():
             raise serializers.ValidationError("Due date cannot be in the past.")
@@ -737,7 +742,7 @@ class SaveGeneratedAssignmentDraftSerializer(serializers.Serializer):
                 "Topic must belong to the selected course."
             )
 
-        return data
+        return category_fields.validate(data, course)
 
 
 class ScoringLevelSerializer(serializers.Serializer):
@@ -772,6 +777,10 @@ class AssignmentTextSerializer(serializers.Serializer):
     )
     due_date = serializers.DateTimeField(required=False, allow_null=True)
     auto_grade_on_due_date = serializers.BooleanField(required=False, default=False)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        category_fields.add_fields(self)  # Epic E2, while the flag is on
 
     def validate_due_date(self, value):
         if value and value < timezone.now():
@@ -836,9 +845,12 @@ class AssignmentTextSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 "Topic must belong to the selected course."
             )
-        return data
+        return category_fields.validate(
+            data, course, instance=self.instance if self.partial else None
+        )
 
     def update(self, instance, validated_data):
+        category_fields.apply(instance, category_fields.picked(validated_data))
         instance.title = validated_data.get("title", instance.title)
         instance.course = validated_data.get("course", instance.course)
         instance.topic = validated_data.get("topic", instance.topic)

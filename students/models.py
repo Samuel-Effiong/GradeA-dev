@@ -431,6 +431,40 @@ class StudentSubmission(models.Model):
         return self.answers
 
 
+class ExcusedWork(models.Model):
+    """A teacher excused one student from one assignment (Epic E2, FR-E-08):
+    it counts neither for nor against that student's grade.
+
+    A row of its own, not a submission status: a student who never handed
+    the work in has no submission row, and a placeholder row would change
+    every submission count. Missing work is never stored; it is derived
+    (published, past a due date, no submission, not excused).
+    """
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    student = models.ForeignKey(
+        "users.CustomUser", on_delete=models.CASCADE, related_name="excused_work"
+    )
+    assignment = models.ForeignKey(
+        "assignments.Assignment", on_delete=models.CASCADE, related_name="excused_work"
+    )
+    excused_by = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    excused_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["student", "assignment"], name="unique_excused_work"
+            )
+        ]
+
+
 class BatchUploadType(models.TextChoices):
     SUBMISSION = "submission"
     ASSIGNMENT = "assignment"

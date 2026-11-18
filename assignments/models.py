@@ -1,4 +1,5 @@
 import uuid
+from decimal import Decimal
 
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
@@ -80,6 +81,22 @@ class Assignment(models.Model):
         blank=True,
     )
 
+    # Epic E2 (FR-E-03/05): the course grade category this counts toward,
+    # and how much it counts inside that category relative to the others
+    # (a final with 2 counts twice a midterm with 1, points being equal).
+    category = models.ForeignKey(
+        "classrooms.CourseCategory",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="assignments",
+    )
+    relative_weight = models.DecimalField(
+        max_digits=6,
+        decimal_places=2,
+        default=Decimal("1.00"),
+        db_default=Decimal("1.00"),
+    )
     title = models.CharField(max_length=255, null=True, blank=True, db_index=True)
     raw_input = models.TextField(null=True, blank=True)
     raw_input_hash = models.CharField(max_length=64, editable=False, null=True)
@@ -209,7 +226,12 @@ class Assignment(models.Model):
             models.UniqueConstraint(
                 fields=["course", "title", "raw_input_hash"],
                 name="unique_assignment_per_course",
-            )
+            ),
+            # Added NOT VALID by assignments 0042, validated by 0043.
+            models.CheckConstraint(
+                condition=Q(relative_weight__gt=0),
+                name="assignment_relative_weight_positive",
+            ),
         ]
 
         indexes = [

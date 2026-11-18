@@ -1557,6 +1557,16 @@ TAGS_ENABLED = env.bool("TAGS_ENABLED", default=False)
 # the routes then answer exactly as an unknown URL does.
 STUDENT_DATA_TOOLS_ENABLED = env.bool("STUDENT_DATA_TOOLS_ENABLED", default=False)
 
+# Epic E2: grade categories, relative weights, excused and missing work
+# (plan docs/evidence/epic-e2/STEP0_PLAN.md). Off by default: grades use
+# today's formula, the category routes answer as an unknown URL does, and
+# assignment and course responses carry no new field.
+GRADE_CATEGORIES_ENABLED = env.bool("GRADE_CATEGORIES_ENABLED", default=False)
+
+# Epic E2: single and bulk assignment copy. Off by default: the copy routes
+# answer as an unknown URL does.
+ASSIGNMENT_COPY_ENABLED = env.bool("ASSIGNMENT_COPY_ENABLED", default=False)
+
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
 MAILERLITE_GROUP_ID_STUDENT = env.str("MAILERLITE_GROUP_ID_STUDENT", default="")

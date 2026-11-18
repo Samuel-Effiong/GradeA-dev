@@ -77,6 +77,7 @@ from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
 
+from . import category_fields
 from .file_uploads import sha256_of_uploaded_file, upload_assignment_file
 from .models import (  # Rubric
     Assignment,
@@ -443,6 +444,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             status=assignment_status,
             due_date=due_date,
             auto_grade_on_due_date=auto_grade_on_due_date,
+            **category_fields.picked(serializer.validated_data),
         )
 
         emit(
@@ -523,6 +525,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             status=assignment_status,
             due_date=due_date,
             auto_grade_on_due_date=auto_grade_on_due_date,
+            **category_fields.picked(serializer.validated_data),
         )
 
         emit(
@@ -621,8 +624,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         raw_input = serializer.validated_data.get("raw_input")
         topic = serializer.validated_data.get("topic")
+        # Epic E2: saved on both branches (the extraction save below does not
+        # carry them).
+        picked = category_fields.picked(serializer.validated_data)
 
         if raw_input:
+            if picked:
+                category_fields.apply(instance, picked)
+                instance.save(update_fields=[*picked, "updated_at"])
             if not HasCreditBalance().has_permission(request, self):
                 raise PermissionDenied(
                     "Insufficient credits to re-process this assignment edit."
@@ -660,6 +669,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             instance.auto_grade_on_due_date = serializer.validated_data.get(
                 "auto_grade_on_due_date", instance.auto_grade_on_due_date
             )
+            category_fields.apply(instance, picked)
 
             instance.save()
 
@@ -732,6 +742,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         instance.due_date = serializer.validated_data.get("due_date", instance.due_date)
         instance.auto_grade_on_due_date = serializer.validated_data.get(
             "auto_grade_on_due_date", instance.auto_grade_on_due_date
+        )
+        category_fields.apply(
+            instance, category_fields.picked(serializer.validated_data)
         )
         instance.save()
 
@@ -924,6 +937,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         else:
             topic = None
 
+        # Epic E2 (Q3): the category, checked before any file is charged.
+        category = category_fields.resolve_upload_category(
+            course, request.data.get("category")
+        )
+
         # Access files using request.FILES
         files = request.FILES.getlist("assignments")
 
@@ -977,6 +995,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                         prompt_text,
                         course=course,
                         topic=topic,
+                        **({"category": category} if category else {}),
                         sha256=sha256_of_uploaded_file(uploaded_file),
                     )
 
@@ -1103,6 +1122,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         else:
             topic = None
 
+        # Epic E2 (Q3): the category, checked before any file is charged.
+        category = category_fields.resolve_upload_category(
+            course, request.data.get("category")
+        )
+
         # Access files using request.FILES
         files = request.FILES.getlist("assignments")
 
@@ -1201,7 +1225,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 )
                 door_file.attach(
                     processing_task,
-                    relaunch={"topic_id": str(topic.id) if topic else None},
+                    relaunch={
+                        "topic_id": str(topic.id) if topic else None,
+                        **({"category_id": str(category.id)} if category else {}),
+                    },
                 )
             file_payload = door_file.payload()
             if not door.hold(processing_task, estimates.get(item_index - 1)):
@@ -1229,6 +1256,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 file_payload=file_payload,
                 prompt_text=prompt_text,
                 file_name=uploaded_file.name,
+                **({"category_id": str(category.id)} if category else {}),
             )
             tasks_data.append(
                 {
@@ -1747,6 +1775,8 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # H-158: a draft stored before that row may hold a repeat.
             self._number_draft_questions_in_order(assignment_data, "draft save")
             assignment_data["course"] = str(course.id)
+            # Epic E2: kept out of the JSON snapshot; set on the saved row.
+            picked = category_fields.pop(save_serializer.validated_data)
 
             for field, value in save_serializer.validated_data.items():
                 if field == "topic":
@@ -1768,6 +1798,9 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             assignment_serializer = AssignmentSerializer(data=assignment_data)
             assignment_serializer.is_valid(raise_exception=True)
             assignment = assignment_serializer.save()
+            if picked:
+                category_fields.apply(assignment, picked)
+                assignment.save(update_fields=[*picked, "updated_at"])
 
             draft_message.assignment = assignment
             draft_message.assignment_snapshot = assignment_data

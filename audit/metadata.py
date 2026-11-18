@@ -150,6 +150,15 @@ ALLOWED_KEYS = frozenset(
         # answered (approve, decline or withdraw).
         "blocks",
         "decision",
+        # Epic E2: a recomputed stored final grade, a course's category ids
+        # and weights (never names), and a category template's id, owner
+        # type and what happened to it.
+        "final_grade",
+        "category_ids",
+        "weight_percents",
+        "template_id",
+        "owner_type",
+        "change",
         # H-273: reason label derived from exception class or status code
         "reason_label",
         # H-273: failing field names on ValidationError (names only, never messages)
@@ -312,8 +321,9 @@ METADATA_ALLOWLIST = {
     AuditAction.ASSIGNMENT_CREATE: frozenset({"course_id", "session_id"}),
     AuditAction.ASSIGNMENT_UPDATE: frozenset({"course_id", "changed_fields"}),
     AuditAction.ASSIGNMENT_DELETE: frozenset({"course_id"}),
+    # Epic E2: assignment_id is the SOURCE (the target is the copy).
     AuditAction.ASSIGNMENT_COPY: frozenset(
-        {"course_id", "session_id", "source", "item_count"}
+        {"course_id", "session_id", "source", "item_count", "assignment_id"}
     ),
     AuditAction.LESSON_CREATE: frozenset(),
     AuditAction.LESSON_UPDATE: frozenset(),
@@ -412,8 +422,16 @@ METADATA_ALLOWLIST = {
         {"deleted_general", "deleted_student_record", "deleted_financial", "scrubbed"}
     ),
     AuditAction.GRADE_CHANGE: frozenset(
-        {"assignment_id", "student_id", "changed_fields", "source"}
+        {"assignment_id", "student_id", "changed_fields", "source", "course_id"}
     ),
+    # Epic E2 (A1-A4): ids and counts only; category and template names
+    # never reach the trail.
+    AuditAction.GRADE_CATEGORIES_CHANGE: frozenset({"course_id", "item_count"}),
+    AuditAction.CATEGORY_TEMPLATE_CHANGE: frozenset(
+        {"template_id", "owner_type", "item_count", "change"}
+    ),
+    AuditAction.WORK_EXCUSED: frozenset({"assignment_id", "student_id", "course_id"}),
+    AuditAction.EXCUSE_REMOVED: frozenset({"assignment_id", "student_id", "course_id"}),
     # license_id: the licence an escalated or manually closed Stripe-change
     # intent belongs to (the event's target is the intent).
     AuditAction.SUBSCRIPTION_CHANGE: frozenset(
@@ -454,7 +472,11 @@ BEFORE_AFTER_ALLOWLIST = {
             "hold_sweep_margin_minutes",
         }
     ),
-    AuditAction.GRADE_CHANGE: _GRADE_FIELDS,
+    # Epic E2: a recomputed final grade (classrooms.grade_categories
+    # .recalculate_course) records its stored value before and after.
+    AuditAction.GRADE_CHANGE: _GRADE_FIELDS | {"final_grade"},
+    # Epic E2 (A1): a course's category ids and weights, in order.
+    AuditAction.GRADE_CATEGORIES_CHANGE: frozenset({"category_ids", "weight_percents"}),
     # AI grading's own before/after (SM note 2): the same grade fields, on
     # the one GRADING_COMPLETED event, with no GRADE_CHANGE beside it.
     AuditAction.GRADING_COMPLETED: _GRADE_FIELDS,

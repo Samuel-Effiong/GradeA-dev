@@ -1010,7 +1010,11 @@ class StudentListSerializer(serializers.ModelSerializer):
         # and scored, keyed on `graded_at`/`score`, NOT `score_percentage` -
         # a submission graded before that field existed/was backfilled
         # still counts (H-33), same as the per-course figure always did.
-        grade = grade_service.cross_course_grade(self._cross_course_submissions(obj))
+        grade = grade_service.cross_course_grade(
+            self._cross_course_submissions(obj),
+            student_id=obj.pk,
+            course_ids=self._teacher_course_ids(obj),
+        )
         self._cross_course_grade_cache[obj.pk] = grade
         return grade
 

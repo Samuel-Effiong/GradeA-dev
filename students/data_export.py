@@ -319,6 +319,8 @@ COURSE_PATH = {
     "students.BackgroundProcessingTask": "assignment__course_id",  # E-Q2
     # Epic B1b-5: through the processing task it was kept for.
     "students.KeptUpload": "processing_task__assignment__course_id",
+    # Epic E2: erased, not exported (see the data map).
+    "students.ExcusedWork": "assignment__course_id",
 }
 
 #: Rows in a fixed order: time first, then id.
@@ -429,7 +431,9 @@ def _rows(label, field_name, student, scope):
             .objects.filter(student=student)
             .select_related("assignment")
         )
-        released_grades = partial(released_course_grade, submissions)
+        released_grades = partial(
+            released_course_grade, submissions, student_id=student.pk
+        )
 
     rows = []
     for obj in queryset:

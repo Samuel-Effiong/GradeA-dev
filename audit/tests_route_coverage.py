@@ -79,6 +79,17 @@ CONCEALED_ROUTES = frozenset(
         # NFR-CMP-04: while STUDENT_DATA_TOOLS_ENABLED is off (the default)
         # the erasure route answers everyone as an unknown URL does.
         "student-data-erase",
+        # Epic E2: while GRADE_CATEGORIES_ENABLED / ASSIGNMENT_COPY_ENABLED
+        # are off (the default) these answer everyone as an unknown URL does
+        # (classrooms/views_grade_categories.py, assignments/views_copy.py).
+        "course-categories",
+        "course-categories-preview",
+        "course-grading-policy",
+        "assignment-excused",
+        "category-template-list",
+        "category-template-detail",
+        "assignment-copy",
+        "assignment-bulk-copy",
     }
 )
 

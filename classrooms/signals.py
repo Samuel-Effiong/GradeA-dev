@@ -1,7 +1,7 @@
 import logging
 
 from django.db import transaction
-from django.db.models.signals import post_delete, post_save
+from django.db.models.signals import post_delete, post_save, pre_save
 from django.dispatch import receiver
 
 from assignments.models import Assignment
@@ -294,3 +294,99 @@ def recalculate_final_grade_on_submission_delete(sender, instance, **kwargs):
     if course_id is None:
         return
     _recalculate_final_grade(instance.student_id, course_id)
+
+
+# --- Epic E2: recalculation triggers and the missing-work task ---------------
+#
+# Only while GRADE_CATEGORIES_ENABLED is on (dark: no query, no task, today's
+# behaviour). A change to what a course's grades read recomputes them in the
+# same transaction (FR-E-07): an assignment's category, relative weight or
+# points (plan 09 §3.4), its status or due date in a course that counts
+# missing work, and the course's own missing-work setting. The missing-work
+# task is kept in step with the same changes (SM ruling 2026-11-18).
+
+_E2_ASSIGNMENT_FIELDS = (
+    "category_id",
+    "relative_weight",
+    "total_points",
+    "status",
+    "due_date",
+)
+
+
+@receiver(pre_save, sender=Assignment)
+def remember_grade_inputs(sender, instance, **kwargs):
+    instance._e2_before = None
+    if not grade_service.categories_enabled() or instance._state.adding:
+        return
+    instance._e2_before = (
+        Assignment.objects.filter(pk=instance.pk)
+        .values(*_E2_ASSIGNMENT_FIELDS, "course__missing_counts_as_zero")
+        .first()
+    )
+
+
+@receiver(post_save, sender=Assignment)
+def recalculate_on_grade_input_change(sender, instance, created, **kwargs):
+    if not grade_service.categories_enabled():
+        return
+    from classrooms import grade_categories
+
+    before = getattr(instance, "_e2_before", None)
+    counts_missing = (
+        before["course__missing_counts_as_zero"]
+        if before is not None
+        else bool(
+            Course.objects.filter(pk=instance.course_id)
+            .values_list("missing_counts_as_zero", flat=True)
+            .first()
+        )
+    )
+    grade_categories.sync_missing_work_task(
+        instance, course_counts_missing=counts_missing
+    )
+    if created or before is None:
+        return
+    changed = {
+        field
+        for field in _E2_ASSIGNMENT_FIELDS
+        if before[field] != getattr(instance, field)
+    }
+    weighs = changed & {"category_id", "relative_weight", "total_points"}
+    timing = changed & {"status", "due_date"}
+    if weighs or (timing and counts_missing):
+        grade_categories.recalculate_course(instance.course_id, source="assignment")
+
+
+@receiver(post_delete, sender=Assignment)
+def delete_missing_work_task(sender, instance, **kwargs):
+    if not grade_service.categories_enabled():
+        return
+    from classrooms import grade_categories
+
+    grade_categories.delete_missing_work_task(instance.pk)
+
+
+@receiver(pre_save, sender=Course)
+def remember_missing_setting(sender, instance, **kwargs):
+    instance._e2_counted_missing = None
+    if not grade_service.categories_enabled() or instance._state.adding:
+        return
+    instance._e2_counted_missing = (
+        Course.objects.filter(pk=instance.pk)
+        .values_list("missing_counts_as_zero", flat=True)
+        .first()
+    )
+
+
+@receiver(post_save, sender=Course)
+def recalculate_on_missing_setting_change(sender, instance, created, **kwargs):
+    if not grade_service.categories_enabled():
+        return
+    before = getattr(instance, "_e2_counted_missing", None)
+    if created or before is None or before == instance.missing_counts_as_zero:
+        return
+    from classrooms import grade_categories
+
+    grade_categories.sync_course_missing_work_tasks(instance)
+    grade_categories.recalculate_course(instance.pk, source="missing_work_setting")

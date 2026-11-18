@@ -1342,6 +1342,7 @@ def upload_assignment_async(
     prompt_text=None,
     file_name=None,
     processing_task_id=None,
+    category_id=None,
 ):
     try:
         ensure_task_not_cancelled(processing_task_id)
@@ -1352,6 +1353,10 @@ def upload_assignment_async(
         user = CustomUser.objects.get(id=user_id)
         course = reachable_courses(user).get(id=course_id)
         topic = Topic.objects.get(id=topic_id) if topic_id else None
+        # Epic E2 (Q3): the category the request checked, carried through.
+        from assignments.category_fields import upload_category_for_task
+
+        category = upload_category_for_task(course, category_id)
 
         update_processing_task(
             processing_task_id, meta={"step": "Preparing assignment content"}
@@ -1375,6 +1380,7 @@ def upload_assignment_async(
             prompt_text,
             course=course,
             topic=topic,
+            **({"category": category} if category else {}),
             sha256=digest,
             processing_task_id=processing_task_id,
         )

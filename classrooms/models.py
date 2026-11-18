@@ -1,8 +1,10 @@
 import uuid
+from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models import Q, UniqueConstraint, UUIDField
+from django.db.models.functions import Now
 from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
@@ -149,6 +151,10 @@ class Course(models.Model):
     )
     description = models.TextField(blank=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
+    # Epic E2 (Q2): whether published work past its due date that a student
+    # never handed in counts as 0. Off (today's rule): it doesn't count.
+    # Read only while GRADE_CATEGORIES_ENABLED is on.
+    missing_counts_as_zero = models.BooleanField(default=False, db_default=False)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
@@ -191,8 +197,109 @@ class Topic(models.Model):
 
 
 class CourseCategory(models.Model):
+    """A named, weighted grade category of one course (Epic E2, FR-E-03;
+    03a §2.8, the repair of H-6).
+
+    `course` is required by every code path; the column stays nullable
+    because a NOT NULL column without a database default would break a
+    code-only rollback (H-56). The rows that existed before E2 belonged to
+    no course and were deleted by classrooms 0019 (Q7). The weights of a
+    course add up to 100 (or it has none): a multi-row rule, kept by
+    `classrooms.grade_categories.set_course_categories` under a lock on the
+    course row.
+    """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     name = models.CharField(max_length=100, db_index=True)
+    course = models.ForeignKey(
+        Course,
+        on_delete=models.CASCADE,
+        related_name="grade_categories",
+        null=True,
+        blank=True,
+    )
+    weight_percent = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        db_default=Decimal("0.00"),
+    )
+    position = models.IntegerField(default=0, db_default=0)
+    created_at = models.DateTimeField(default=timezone.now, db_default=Now())
+
+    class Meta:
+        ordering = ["position", "name"]
+        constraints = [
+            UniqueConstraint(
+                fields=["course", "name"], name="unique_category_name_per_course"
+            ),
+            models.CheckConstraint(
+                condition=Q(weight_percent__gte=0) & Q(weight_percent__lte=100),
+                name="category_weight_percent_0_100",
+            ),
+        ]
+
+    def __str__(self):
+        return self.name
+
+
+class CategoryTemplateOwner(models.TextChoices):
+    TEACHER = "TEACHER", _("Teacher")
+    SCHOOL = "SCHOOL", _("School")
+
+
+class CategoryTemplate(models.Model):
+    """A named set of category weights that seeds a new course (Epic E2,
+    FR-E-03; 03a §2.7). A teacher's own, or a school's (made by its school
+    admin, Q5). `items` is `[{"name": ..., "weight_percent": "50.00"}]`,
+    adding up to 100; it is copied into CourseCategory rows when a course is
+    made from it and never queried by item."""
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    name = models.CharField(max_length=100)
+    owner_type = models.CharField(
+        max_length=16, choices=CategoryTemplateOwner.choices, db_index=True
+    )
+    teacher = models.ForeignKey(
+        "users.CustomUser",
+        on_delete=models.CASCADE,
+        related_name="category_templates",
+        null=True,
+        blank=True,
+    )
+    school = models.ForeignKey(
+        School,
+        on_delete=models.CASCADE,
+        related_name="category_templates",
+        null=True,
+        blank=True,
+    )
+    items = models.JSONField()
+    created_by_id = models.UUIDField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["name", "id"]
+        constraints = [
+            UniqueConstraint(
+                fields=["teacher", "name"],
+                condition=Q(owner_type="TEACHER"),
+                name="unique_teacher_category_template_name",
+            ),
+            UniqueConstraint(
+                fields=["school", "name"],
+                condition=Q(owner_type="SCHOOL"),
+                name="unique_school_category_template_name",
+            ),
+            models.CheckConstraint(
+                condition=(
+                    Q(owner_type="TEACHER", teacher__isnull=False, school__isnull=True)
+                    | Q(owner_type="SCHOOL", school__isnull=False, teacher__isnull=True)
+                ),
+                name="category_template_one_owner",
+            ),
+        ]
 
     def __str__(self):
         return self.name

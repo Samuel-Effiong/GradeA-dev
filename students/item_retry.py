@@ -260,6 +260,11 @@ def _relaunch_upload(item, requested_by):
             user_id=str(requested_by.id),
             course_id=str(item.batch_session.course_id),
             topic_id=kept.relaunch.get("topic_id"),
+            **(
+                {"category_id": kept.relaunch["category_id"]}
+                if kept.relaunch.get("category_id")
+                else {}
+            ),
             session_id=str(item.batch_session_id),
             file_payload=payload,
             prompt_text=BATCH_UPLOAD_PROMPT,

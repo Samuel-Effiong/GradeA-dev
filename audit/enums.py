@@ -120,6 +120,12 @@ class AuditAction(models.TextChoices):
     # admin, target the user). Unlock also clears the 5-try login lock.
     ACCOUNT_LOCK = "ACCOUNT_LOCK", "Sign-in locked"
     ACCOUNT_UNLOCK = "ACCOUNT_UNLOCK", "Sign-in unlocked"
+    # Epic E2: grade categories and excused work. Labels approved by the
+    # owner (OWNER_SHEET A1-A4, SM 2026-11-18).
+    GRADE_CATEGORIES_CHANGE = "GRADE_CATEGORIES_CHANGE", "Grade categories changed"
+    CATEGORY_TEMPLATE_CHANGE = "CATEGORY_TEMPLATE_CHANGE", "Category template changed"
+    WORK_EXCUSED = "WORK_EXCUSED", "Work excused"
+    EXCUSE_REMOVED = "EXCUSE_REMOVED", "Excuse removed"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

@@ -119,3 +119,14 @@ def student_summary_async(
             ),
         )
         raise
+
+
+@shared_task
+def recalculate_missing_work(assignment_id):
+    """Epic E2 (SM ruling 2026-11-18): the assignment's due date has passed,
+    so its missing work now counts as 0 in a course that says so. Recomputes
+    the course's stored grades if it still qualifies; otherwise nothing.
+    Idempotent, no credits."""
+    from classrooms import grade_categories
+
+    return len(grade_categories.run_missing_work_task(assignment_id))
