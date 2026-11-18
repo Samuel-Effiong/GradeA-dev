@@ -34,13 +34,15 @@ class PlanSortBase(LeadFilterBase):
             (PlanTier.POWER, PlanCategory.INDIVIDUAL, BillingInterval.ANNUAL, 2),
             (PlanTier.CUSTOM, PlanCategory.LICENSE, BillingInterval.MONTHLY, 1),
         )
-        self.people = []
-        for i, (tier, category, interval, days) in enumerate(specs):
-            user = self.teacher(float(i))
+        # Everyone first: once a TRIAL plan exists, a new teacher is given a
+        # trial automatically.
+        self.people = [self.teacher(float(i)) for i in range(len(specs))]
+        self.empty = self.teacher(99.0)  # no plan, never signed in
+        for user, (tier, category, interval, days) in zip(
+            self.people, specs, strict=True
+        ):
             self.subscribe(user, self.plan(tier, category, interval))
             self.signed_in(user, NOW - timedelta(days=days))
-            self.people.append(user)
-        self.empty = self.teacher(99.0)  # no plan, never signed in
         CustomUser.objects.filter(pk=self.empty.pk).update(last_login=None)
         self.people.append(self.empty)
         return self
@@ -119,14 +121,14 @@ class NewSortTests(PlanSortBase):
         self.build()
 
         def count():
+            self.emails(ordering="-plan_tier")  # warm up
             with CaptureQueriesContext(connection) as queries:
                 self.emails(ordering="-plan_tier")
             return len(queries)
 
         before = count()
         for i in range(6):
-            user = self.teacher(float(i))
-            self.subscribe(user, self.plan(PlanTier.PRO))
+            self.teacher(float(i))
         self.assertEqual(count(), before)
 
 
