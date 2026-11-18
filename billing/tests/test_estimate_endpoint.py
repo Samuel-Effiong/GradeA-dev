@@ -74,10 +74,12 @@ class EstimateEndpointTests(EndpointFixture):
         self.assertEqual(response.status_code, 200, response.content)
         body = response.json()["data"]
         self.assertEqual(body["n"], 3)
-        self.assertEqual(body["p50"], 300)
+        # Display credits (owner, 2026-11-18): 300 raw rounds up to 1 and
+        # the 10,000 raw wallet shows as 10.
+        self.assertEqual(body["p50"], 1)
         self.assertEqual(body["source"], "assignment")
         self.assertEqual(body["verdict"], "SUFFICIENT")
-        self.assertEqual(body["spendable"], 10_000)
+        self.assertEqual(body["spendable"], 10)
 
     def test_listed_submissions_count_only_those_of_this_assignment(self):
         elsewhere = make_assignment(self.teacher, "Elsewhere")
