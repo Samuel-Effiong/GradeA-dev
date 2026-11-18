@@ -120,6 +120,9 @@ class AuditAction(models.TextChoices):
     # admin, target the user). Unlock also clears the 5-try login lock.
     ACCOUNT_LOCK = "ACCOUNT_LOCK", "Sign-in locked"
     ACCOUNT_UNLOCK = "ACCOUNT_UNLOCK", "Sign-in unlocked"
+    # Owner 2026-11-18: a teacher dismissed a failed batch item ("don't
+    # retry"); reason_code is the item's code.
+    BATCH_ITEM_DISMISSED = "BATCH_ITEM_DISMISSED", "Batch item dismissed"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

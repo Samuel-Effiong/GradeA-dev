@@ -168,10 +168,11 @@ def _delete_then_mark(row_id, storage_key):
     return True
 
 
-def discard(processing_task):
-    """The item succeeded, was cancelled or was refused: its file is no longer
-    needed. Due at once and marked "discarded", deleted after commit; a failed
-    delete is the purge's, and stays a discard."""
+def discard(processing_task, reason=None):
+    """The item succeeded, was cancelled or was refused (or, `reason`
+    "dismissed", the teacher dismissed it): its file is no longer needed.
+    Due at once and marked with the reason ("discarded" by default), deleted
+    after commit; a failed delete is the purge's, and keeps the reason."""
     if processing_task is None or processing_task.task_type not in KEEPABLE_TYPES:
         return
     rows = list(
@@ -182,7 +183,8 @@ def discard(processing_task):
     if not rows:
         return
     _model().objects.filter(pk__in=[pk for pk, _ in rows]).update(
-        kept_until=timezone.now(), purge_reason=_model().PurgeReason.DISCARDED
+        kept_until=timezone.now(),
+        purge_reason=reason or _model().PurgeReason.DISCARDED,
     )
     for row_id, storage_key in rows:
         transaction.on_commit(partial(_delete_then_mark, row_id, storage_key))

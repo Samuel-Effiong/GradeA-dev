@@ -3199,6 +3199,73 @@ class TaskViewSet(viewsets.ViewSet):
             {"retried": retried, "skipped": skipped}, status=status.HTTP_202_ACCEPTED
         )
 
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Dismiss one failed batch item (don't retry it)",
+        description=(
+            "Owner 2026-11-18. Marks a FAILED item dismissed: it stays FAILURE "
+            "with its reason code and error, is no longer retryable "
+            "(session-results' `retryable` false, `dismissed` true; skipped by "
+            "retry-failed), and its kept upload file, if any, is deleted. No "
+            "credits move. 200 with the item in session-results' shape; a "
+            "second dismiss changes nothing. An item that did not fail is 409 "
+            "NOT_RETRYABLE. Same ownership and course rules as the retry."
+        ),
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"session/(?P<session_id>[^/.]+)/items/(?P<item_id>[^/.]+)/dismiss",
+        url_name="dismiss-item",
+        permission_classes=[IsAuthenticated, IsTeacher],
+    )
+    def dismiss_item(self, request, session_id=None, item_id=None):
+        session = self._own_session(request, session_id)
+        # H-38: the same session-level rule as the retry.
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
+        item = get_object_or_404(
+            BackgroundProcessingTask, id=_uuid_or_404(item_id), batch_session=session
+        )
+        item, _ = item_retry.dismiss_item(item, request.user, request=request)
+        return Response(
+            item_result(item, get_task_context(item)), status=status.HTTP_200_OK
+        )
+
+    @extend_schema(
+        tags=["Tasks"],
+        summary="Dismiss every failed item of a batch (don't retry them)",
+        description=(
+            'Body (optional): {"reason_codes": [...]} to dismiss only those codes. '
+            "200 with {dismissed: [item_id], skipped: [{item_id, reason_code}]}. "
+            "Each item follows the single-item dismiss's rule; items already "
+            "dismissed are left out."
+        ),
+    )
+    @action(
+        detail=False,
+        methods=["post"],
+        url_path=r"session/(?P<session_id>[^/.]+)/dismiss-failed",
+        url_name="dismiss-failed",
+        permission_classes=[IsAuthenticated, IsTeacher],
+    )
+    def dismiss_failed(self, request, session_id=None):
+        session = self._own_session(request, session_id)
+        if not teacher_may_reach(request.user, session):
+            raise Http404("No BatchUploadSession matches the given query.")
+        reason_codes = request.data.get("reason_codes")
+        if reason_codes is not None and (
+            not isinstance(reason_codes, list)
+            or not all(isinstance(code, str) for code in reason_codes)
+        ):
+            raise ParseError("reason_codes must be a list of reason codes.")
+        dismissed, skipped = item_retry.dismiss_failed(
+            session, request.user, reason_codes=reason_codes, request=request
+        )
+        return Response(
+            {"dismissed": dismissed, "skipped": skipped}, status=status.HTTP_200_OK
+        )
+
     @staticmethod
     def _own_session(request, session_id):
         return get_object_or_404(

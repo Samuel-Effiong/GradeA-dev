@@ -72,6 +72,7 @@ def with_counts(sessions):
             cancelled_count=count(
                 Q(processing_tasks__status=BackgroundTaskStatus.CANCELLED)
             ),
+            dismissed_count=count(Q(processing_tasks__dismissed_at__isnull=False)),
             pending_count=count(
                 Q(processing_tasks__isnull=False)
                 & ~Q(processing_tasks__status__in=_FINISHED)
@@ -87,7 +88,14 @@ def retryable_counts(session_ids):
     failed = list(
         BackgroundProcessingTask.objects.filter(
             batch_session_id__in=session_ids, status=BackgroundTaskStatus.FAILURE
-        ).only("id", "batch_session_id", "task_type", "status", "reason_code")
+        ).only(
+            "id",
+            "batch_session_id",
+            "task_type",
+            "status",
+            "reason_code",
+            "dismissed_at",
+        )
     )
     kept_ids = kept_item_ids(failed)
     return Counter(
@@ -111,6 +119,7 @@ def session_row(session, retryable):
         "failure_count": session.failure_count,
         "cancelled_count": session.cancelled_count,
         "pending_count": session.pending_count,
+        "dismissed_count": session.dismissed_count,
         "resumable": retryable > 0,
         "retryable_count": retryable,
     }

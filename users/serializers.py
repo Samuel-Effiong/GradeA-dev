@@ -751,6 +751,8 @@ class BatchSessionResultTaskEntrySerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_null=True)
     remediation = serializers.CharField(required=False, allow_null=True)
     retryable = serializers.BooleanField(required=False)
+    # Owner 2026-11-18: the teacher dismissed the item ("don't retry").
+    dismissed = serializers.BooleanField(required=False)
     retry_count = serializers.IntegerField(required=False)
     reference = serializers.CharField(required=False, allow_null=True)
     replaced_existing = serializers.BooleanField(required=False, allow_null=True)
@@ -813,6 +815,7 @@ class BatchSessionListItemSerializer(serializers.Serializer):
     failure_count = serializers.IntegerField()
     cancelled_count = serializers.IntegerField()
     pending_count = serializers.IntegerField()
+    dismissed_count = serializers.IntegerField()
     resumable = serializers.BooleanField()
     retryable_count = serializers.IntegerField()
 

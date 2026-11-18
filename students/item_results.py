@@ -59,6 +59,8 @@ def is_retryable(task, kept_ids=None):
     file, owner 2026-11-18), with `kept_ids` from item_retry.kept_item_ids
     when the caller read them for many items (None reads it for this item).
     Any other item: its code's catalogue flag, as before."""
+    if task.dismissed_at is not None:
+        return False  # the teacher dismissed it (owner, 2026-11-18)
     if task.task_type in UPLOAD_ITEM_TYPES:
         kept = None if kept_ids is None else task.pk in kept_ids
         return upload_retryable(task, kept=kept)
@@ -98,6 +100,8 @@ def item_result(task, context, kept_ids=None):
         "message": task.error if failed else None,
         "remediation": _remediation(spec, code, meta, task.task_type),
         "retryable": is_retryable(task, kept_ids),
+        # Owner 2026-11-18: the teacher dismissed it ("don't retry").
+        "dismissed": task.dismissed_at is not None,
         "retry_count": task.retry_count,
         # Dashed UUID, same form as X-Request-ID and a sync body's `reference`,
         # so a client matches them as strings. It is the item's audit trace_id

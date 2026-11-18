@@ -233,6 +233,7 @@ class TheRow(SessionsFixture, TestCase):
                 "failure_count": 1,
                 "cancelled_count": 1,
                 "pending_count": 2,
+                "dismissed_count": 0,
                 "resumable": False,
                 "retryable_count": 0,
             },

@@ -28,6 +28,7 @@ retry-failed skips them. grade_engine_async checks again when it runs.
 from __future__ import annotations
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import F, Q
 from django.http import Http404
 from django.utils import timezone
@@ -140,8 +141,10 @@ def upload_retryable(item, kept=None):
     can retry, and its file still kept. `kept` is whether it still has a
     kept file, when the caller has already read that (session-results, one
     query for the session: kept_item_ids); otherwise it is read here."""
-    if item.status != BackgroundTaskStatus.FAILURE or not upload_code_retryable(
-        item.reason_code
+    if (
+        item.status != BackgroundTaskStatus.FAILURE
+        or item.dismissed_at is not None
+        or not upload_code_retryable(item.reason_code)
     ):
         return False
     if kept is None:
@@ -159,6 +162,7 @@ def kept_item_ids(items):
         for item in items
         if item.task_type in UPLOAD_ITEM_TYPES
         and item.status == BackgroundTaskStatus.FAILURE
+        and item.dismissed_at is None
     ]
     if not ids:
         return set()
@@ -181,6 +185,7 @@ def refusal_for(item):
     if (
         item.task_type not in GRADE_ITEM_TYPES
         or item.status != BackgroundTaskStatus.FAILURE
+        or item.dismissed_at is not None
         or not _retryable_as_it_is(item.reason_code)
         or not item.submission_id
     ):
@@ -208,6 +213,7 @@ def retry_item(item, requested_by, request=None):
     claimed = BackgroundProcessingTask.objects.filter(
         pk=item.pk,
         status=BackgroundTaskStatus.FAILURE,
+        dismissed_at__isnull=True,
         reason_code=item.reason_code,
         retry_count=item.retry_count,
         pk__in=BackgroundProcessingTask.objects.filter(
@@ -332,3 +338,83 @@ def retry_failed(session, requested_by, reason_codes=None, request=None):
         else:
             retried.append(str(item.id))
     return retried, skipped
+
+
+# Dismiss: the teacher won't retry an item (owner, 2026-11-18).
+
+
+def dismiss_item(item, requested_by, request=None):
+    """Owner 2026-11-18: the teacher won't retry FAILED `item`. It stays
+    FAILURE with its code and error; dismissed_at is set and meta says who.
+    Its kept file is discarded (purge_reason "dismissed", the delete after
+    commit). Returns (item, whether this call dismissed it): a second
+    dismiss changes nothing. An item that did not fail is ItemNotRetryable
+    (the existing 409); one whose course `requested_by` can't reach is
+    Http404 (H-38). No credits move: a FAILURE item holds none."""
+    from .kept_uploads import discard
+    from .models import KeptUpload
+    from .task_tracking import merge_task_meta
+
+    if not is_reachable(item, requested_by):
+        raise Http404()
+    with transaction.atomic():
+        row = (
+            BackgroundProcessingTask.objects.select_for_update()
+            .filter(pk=item.pk)
+            .first()
+        )
+        if row is None:
+            raise Http404()
+        if row.status != BackgroundTaskStatus.FAILURE:
+            raise ItemNotRetryable()
+        if row.dismissed_at is not None:
+            return row, False
+        row.dismissed_at = timezone.now()
+        row.meta = merge_task_meta(row.meta, {"dismissed_by": str(requested_by.id)})
+        row.save(update_fields=["dismissed_at", "meta", "updated_at"])
+        discard(row, reason=KeptUpload.PurgeReason.DISMISSED)
+        emit(
+            AuditAction.BATCH_ITEM_DISMISSED,
+            actor=requested_by,
+            request=request,
+            target_type="BackgroundProcessingTask",
+            target_id=row.id,
+            outcome=AuditOutcome.SUCCESS,
+            reason_code=row.reason_code or None,
+            metadata={
+                "session_id": str(row.batch_session_id),
+                "item_id": str(row.id),
+                "task_type": row.task_type,
+            },
+        )
+    return row, True
+
+
+def dismiss_failed(session, requested_by, reason_codes=None, request=None):
+    """Dismiss every failed, not yet dismissed item of `session` (only those
+    with one of `reason_codes`, when given). Returns (dismissed item ids,
+    skipped [{item_id, reason_code}]), in item order, as retry_failed does;
+    an unreachable item (H-38) is skipped with no code."""
+    dismissed, skipped = [], []
+    failures = session.processing_tasks.filter(
+        status=BackgroundTaskStatus.FAILURE, dismissed_at__isnull=True
+    ).order_by("item_index", "created_at")
+    for item in failures:
+        if not is_reachable(item, requested_by):
+            skipped.append({"item_id": str(item.id), "reason_code": None})
+            continue
+        if reason_codes and item.reason_code not in reason_codes:
+            skipped.append(
+                {"item_id": str(item.id), "reason_code": item.reason_code or None}
+            )
+            continue
+        try:
+            _, changed = dismiss_item(item, requested_by, request=request)
+        except (Http404, ItemNotRetryable):
+            skipped.append(
+                {"item_id": str(item.id), "reason_code": item.reason_code or None}
+            )
+            continue
+        if changed:
+            dismissed.append(str(item.id))
+    return dismissed, skipped
