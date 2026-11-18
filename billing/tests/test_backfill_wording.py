@@ -16,6 +16,7 @@ from django.utils import timezone
 from billing.invoice_wording import invoice_description
 from billing.management.commands.backfill_billing_transactions import Command
 from billing.models import (
+    CONVERSION_FACTOR,
     BillingTransaction,
     BillingTransactionMethod,
     BillingTransactionSource,
@@ -112,6 +113,8 @@ class WordingModuleTests(TestCase):
 class CommandWritesPlainTextTests(TestCase, OverageFixture):
     def setUp(self):
         self.plan = make_plan()
+        self.plan.overage_block_size = 500 * CONVERSION_FACTOR
+        self.plan.save()
         self.user, self.wallet = self.build(email="bf@billing.test")
 
     def _event(self, event_type, obj):
@@ -229,7 +232,7 @@ class MigrationRewritesOldRowsTests(TestCase, OverageFixture):
         )
         live = self._row("New subscription — Something")
         mod = importlib.import_module(
-            "billing.migrations.0088_plain_backfill_descriptions"
+            "billing.migrations.0089_plain_backfill_descriptions"
         )
         mod.rewrite(global_apps, None)
         for row in (old, inv, live):
@@ -242,7 +245,7 @@ class MigrationRewritesOldRowsTests(TestCase, OverageFixture):
 
     def _run_reverse(self):
         mod = importlib.import_module(
-            "billing.migrations.0088_plain_backfill_descriptions"
+            "billing.migrations.0089_plain_backfill_descriptions"
         )
         return mod.noop(global_apps, None)
 
