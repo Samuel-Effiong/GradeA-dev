@@ -31,7 +31,6 @@ from users.serializers import CustomUserSerializer
 from . import grade_service
 from .models import (
     Course,
-    CourseCategory,
     EnrollmentStatusType,
     School,
     Session,
@@ -1297,25 +1296,6 @@ class TeacherSummarySerializer(serializers.Serializer):
 class MonthlyTokenUsageSerializer(serializers.Serializer):
     month = serializers.CharField()
     tokens = serializers.IntegerField()
-
-
-class CourseCategorySerializer(serializers.ModelSerializer):
-    """Serializer for CourseCategory"""
-
-    class Meta:
-        model = CourseCategory
-        fields = [
-            "id",
-            "name",
-        ]
-        read_only_fields = [
-            "id",
-        ]
-
-    def validate_name(self, value):
-        if not value or not value.strip():
-            raise serializers.ValidationError("Category name cannot be empty.")
-        return value
 
 
 class BulkAddStudentSerializer(serializers.Serializer):

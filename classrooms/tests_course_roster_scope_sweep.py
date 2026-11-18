@@ -49,10 +49,6 @@ ALLOWED = {
         "school admins and superadmins only, never a student: the removed "
         "classmate fan-out never covered these keys"
     ),
-    "classrooms/views.py::CourseCategoryViewSet": (
-        "never routed (HARDENING_BACKLOG H-6): no API surface, and its "
-        "category_courses action is not cached"
-    ),
     "dashboard/views.py::SuperAdminDashboardView": (
         "superadmins only, never a student: the removed classmate fan-out "
         "never covered these keys"

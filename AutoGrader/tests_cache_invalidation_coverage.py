@@ -171,7 +171,6 @@ MIXIN_PREFIXES = {
     "courses",
     "sessions",
     "studentcourses",
-    "coursecategorys",
     "topics",
     "studentsubmissions",
     "customusers",

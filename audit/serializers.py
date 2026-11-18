@@ -51,7 +51,6 @@ _TARGET_LABEL = {
     "StudentCourseViewSet": "Student enrollment",
     "StudentSubmissionViewSet": "Student submission",
     "TaskViewSet": "Task",
-    "CourseCategoryViewSet": "Course category",
     # Epic E2: the words of the approved label A2 ("Category template changed").
     "CategoryTemplate": "Category template",
     "StudentAdminDashboardView": "Student dashboard",

@@ -58,7 +58,32 @@ A1-A4: OWNER_SHEET.md, all approved (owner, 2026-11-18).
   constraints are added on an empty table, after the Q7 delete),
   assignments 0042 (check added NOT VALID) and 0043 (VALIDATE), students
   0044 (new table).
+- **H-6:** the unrouted, broken `CourseCategoryViewSet` and its serializer
+  are deleted, with their roster-sweep allow-list entry and audit label.
+- Audit target label "Category template" (the words of approved A2; SM
+  accepted). Excuse events target the assignment (existing label).
+
+## Plants (one per run, each restored from a saved copy, sha256 checked)
+
+| # | Plant | Predicted kill | Result |
+|---|---|---|---|
+| P1 | `course_grade` runs the E2 policy query with the flag off | E1a query budget | Killed by `tests_e1_hot_path` LockCostTest (an extra statement inside the enrollment lock). Prediction incomplete: the budget test stayed green |
+| P2 | excused work counts as 0 instead of being left out | maths excuse tests | Killed: `test_excuse_and_its_removal_recompute_and_are_audited` (the cross-course excuse test drops excused rows on its own path) |
+| P3 | copy accepts any existing destination course | copy tenancy tests | Killed: single 404 test and bulk W9 test |
+
+## Known failure, not E2
+
+`assignments.tests_schema_extension` (2 tests) fails whenever
+`audit.tests_h293_error_class_filter` runs first in the same process: the
+latter builds the OpenAPI schema, which turns the extension's
+`target_class` string into a class. Reproduced on clean staging 8c1aa325b
+with those two labels alone (Ran 16, failures=1, errors=1). Not fixed in E2
+(SM).
 
 ## Runs
 
-(filled in at the end)
+E2 + E1a suites: Ran 217 OK. Near run (flags unset, --parallel 1):
+classrooms students dashboard assignments tags billing users Ran 7766,
+failures=2 (the two known local flag tests), skipped=29; guards Ran 1163,
+failures=1 (`coursecategorys` left in the cache-coverage mixin list after
+H-6; entry removed, guard rerun in the last commit's message).

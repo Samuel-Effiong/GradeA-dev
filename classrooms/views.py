@@ -77,7 +77,6 @@ from .filters import MyStudentsFilter
 from .models import (  # , Classroom, ClassroomSettings
     COURSE_ACCESS_ENROLLMENT_STATUSES,
     Course,
-    CourseCategory,
     EnrollmentStatusType,
     School,
     Session,
@@ -91,7 +90,6 @@ from .permissions import IsSuperAdmin, IsTeacher, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
     AddStudentToCourseSerializer,
     BulkAddStudentSerializer,
-    CourseCategorySerializer,
     CourseSerializer,
     DirectAddStudentSerializer,
     ExpiredTokenSerializer,
@@ -2602,143 +2600,6 @@ class StudentCourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             serializer = self.get_serializer(page, many=True)
             return self.get_paginated_response(serializer.data)
         serializer = self.get_serializer(students, many=True)
-        return Response(serializer.data)
-
-
-@extend_schema_view(
-    list=extend_schema(
-        tags=["Course Categories"],
-        summary="List all course categories",
-        description="Retrieve a paginated list of all course categories in the system.",
-        parameters=[
-            OpenApiParameter(
-                name="page",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Page number for pagination",
-            ),
-            OpenApiParameter(
-                name="page_size",
-                type=OpenApiTypes.INT,
-                location=OpenApiParameter.QUERY,
-                description="Number of results per page",
-            ),
-        ],
-        responses={
-            200: CourseCategorySerializer(many=True),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    create=extend_schema(
-        tags=["Course Categories"],
-        summary="Create a new course category",
-        description="Create a new course category with the provided details.",
-        request=CourseCategorySerializer,
-        responses={
-            201: OpenApiResponse(
-                response=CourseCategorySerializer,
-                description="Course category created successfully",
-            ),
-            400: OpenApiResponse(
-                description="Invalid input. Missing required fields or invalid data format"
-            ),
-        },
-    ),
-    retrieve=extend_schema(
-        tags=["Course Categories"],
-        summary="Retrieve a course category",
-        description="Retrieve detailed information about a specific course category by its ID.",
-        responses={
-            200: CourseCategorySerializer,
-            404: OpenApiResponse(description="Course category not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    ),
-    partial_update=extend_schema(
-        tags=["Course Categories"],
-        summary="Partially update a course category",
-        description="Update one or more fields of an existing course category.",
-        request=CourseCategorySerializer(partial=True),
-        responses={
-            200: CourseCategorySerializer,
-            400: OpenApiResponse(description="Invalid input data"),
-            401: OpenApiResponse(
-                description="Authentication credentials were not provided"
-            ),
-            403: OpenApiResponse(
-                description="User does not have permission to perform this action"
-            ),
-            404: OpenApiResponse(description="Category not found"),
-        },
-    ),
-    destroy=extend_schema(
-        tags=["Course Categories"],
-        summary="Delete a course category",
-        description="Delete a course category by ID. This action cannot be undone.",
-        responses={
-            204: OpenApiResponse(description="Course category deleted successfully"),
-            404: OpenApiResponse(description="Course category not found"),
-        },
-    ),
-)
-class CourseCategoryViewSet(UserCacheMixin, viewsets.ModelViewSet):
-    """
-    API endpoint that allows course categories to be viewed or edited.
-    """
-
-    queryset = CourseCategory.objects.all()
-    serializer_class = CourseCategorySerializer
-    permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)
-    pagination_class = StandardPageNumberPagination
-    http_method_names = ["get", "head", "post", "delete", "patch", "options"]
-    filter_backends = [DjangoFilterBackend, SearchFilter, OrderingFilter]
-    filterset_fields = {
-        "name": ["exact", "icontains"],
-    }
-    search_fields = ["name"]
-    ordering_fields = ["name"]
-
-    def get_queryset(self):
-        queryset = super().get_queryset()
-
-        # Filter by search query if provided
-        search_query = self.request.query_params.get("search", None)
-        if search_query:
-            queryset = queryset.filter(name__icontains=search_query)
-        return queryset
-
-    @extend_schema(
-        tags=["Course Categories"],
-        summary="Get courses in a category",
-        description="List all courses associated with a specific category.",
-        parameters=[
-            OpenApiParameter(
-                name="id",
-                type=OpenApiTypes.UUID,
-                location=OpenApiParameter.PATH,
-                description="ID of the course category",
-                required=True,
-            ),
-        ],
-        responses={
-            200: CourseSerializer(many=True),
-            404: OpenApiResponse(description="Category not found"),
-            500: OpenApiResponse(description="Internal Server Error"),
-        },
-    )
-    @action(detail=True, methods=["get"], url_path="courses")
-    def category_courses(self, request, pk=None, *args, **kwargs):
-        """
-        List all courses associated with a specific category.
-        """
-        category = self.get_object()
-        courses = category.courses.filter(is_active=True)
-        page = self.paginate_queryset(courses)
-        if page is not None:
-            serializer = CourseSerializer(page, many=True)
-            return self.get_paginated_response(serializer.data)
-
-        serializer = CourseSerializer(courses, many=True, context={"request": request})
         return Response(serializer.data)
 
 
