@@ -1,0 +1,166 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 6,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "id": "user:Ada",
+    "full_name": "Ada Snap",
+    "email": "ada@e1-snapshot.test",
+    "enrolled_courses": [
+     {
+      "id": "course:Algebra",
+      "name": "Algebra",
+      "description": ""
+     },
+     {
+      "id": "course:Biology",
+      "name": "Biology",
+      "description": ""
+     }
+    ],
+    "teacher": "Tess Snap",
+    "grade": {
+     "letter_grade": "C+",
+     "gpa": 2.3,
+     "remark": "Satisfactory",
+     "percentage": 79.44
+    },
+    "total_assignments_in_course": 9,
+    "total_assignments_submitted": 6,
+    "percentage_of_submission": 66.67,
+    "at_risk": false,
+    "grade_trend": "DECLINING",
+    "trend_delta": -13.22
+   },
+   {
+    "id": "user:Eve",
+    "full_name": "Eve Snap",
+    "email": "eve@e1-snapshot.test",
+    "enrolled_courses": [
+     {
+      "id": "course:Algebra",
+      "name": "Algebra",
+      "description": ""
+     },
+     {
+      "id": "course:Biology",
+      "name": "Biology",
+      "description": ""
+     }
+    ],
+    "teacher": "Tess Snap",
+    "grade": {
+     "letter_grade": "C+",
+     "gpa": 2.3,
+     "remark": "Satisfactory",
+     "percentage": 79.74
+    },
+    "total_assignments_in_course": 9,
+    "total_assignments_submitted": 6,
+    "percentage_of_submission": 66.67,
+    "at_risk": false,
+    "grade_trend": "DECLINING",
+    "trend_delta": -99.28
+   },
+   {
+    "id": "user:Ben",
+    "full_name": "Ben Snap",
+    "email": "ben@e1-snapshot.test",
+    "enrolled_courses": [
+     {
+      "id": "course:Algebra",
+      "name": "Algebra",
+      "description": ""
+     },
+     {
+      "id": "course:Biology",
+      "name": "Biology",
+      "description": ""
+     }
+    ],
+    "teacher": "Tess Snap",
+    "grade": {
+     "letter_grade": "F",
+     "gpa": 0.0,
+     "remark": "Fail",
+     "percentage": 46.67
+    },
+    "total_assignments_in_course": 9,
+    "total_assignments_submitted": 5,
+    "percentage_of_submission": 55.56,
+    "at_risk": true,
+    "grade_trend": "DECLINING",
+    "trend_delta": -4.91
+   },
+   {
+    "id": "user:Cy",
+    "full_name": "Cy Snap",
+    "email": "cy@e1-snapshot.test",
+    "enrolled_courses": [
+     {
+      "id": "course:Algebra",
+      "name": "Algebra",
+      "description": ""
+     }
+    ],
+    "teacher": "Tess Snap",
+    "grade": null,
+    "total_assignments_in_course": 6,
+    "total_assignments_submitted": 2,
+    "percentage_of_submission": 33.33,
+    "at_risk": true,
+    "grade_trend": "INSUFFICIENT DATA",
+    "trend_delta": 0.0
+   },
+   {
+    "id": "user:Dee",
+    "full_name": "Dee Snap",
+    "email": "dee@e1-snapshot.test",
+    "enrolled_courses": [
+     {
+      "id": "course:Algebra",
+      "name": "Algebra",
+      "description": ""
+     }
+    ],
+    "teacher": "Tess Snap",
+    "grade": {
+     "letter_grade": "F",
+     "gpa": 0.0,
+     "remark": "Fail",
+     "percentage": 3.64
+    },
+    "total_assignments_in_course": 6,
+    "total_assignments_submitted": 3,
+    "percentage_of_submission": 50.0,
+    "at_risk": true,
+    "grade_trend": "IMPROVING",
+    "trend_delta": 57.05
+   },
+   {
+    "id": "user:Fay",
+    "full_name": "Fay Snap",
+    "email": "fay@e1-snapshot.test",
+    "enrolled_courses": [
+     {
+      "id": "course:Algebra",
+      "name": "Algebra",
+      "description": ""
+     }
+    ],
+    "teacher": "Tess Snap",
+    "grade": null,
+    "total_assignments_in_course": 6,
+    "total_assignments_submitted": 0,
+    "percentage_of_submission": 0.0,
+    "at_risk": true,
+    "grade_trend": "INSUFFICIENT DATA",
+    "trend_delta": 0.0
+   }
+  ]
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 1,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "school_id": "school:E1",
+    "school_name": "E1 Snapshot School",
+    "teachers": 2,
+    "students": 0,
+    "courses": 3,
+    "average_performance": 57.62
+   }
+  ]
+ }
+}

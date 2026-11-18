@@ -1,0 +1,304 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 7,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "student_id": "user:Fay",
+    "student_name": "Fay Snap",
+    "assignment_submitted": 0,
+    "assignment_assigned": 6,
+    "average_grade": null,
+    "best_assignment": null,
+    "worst_assignment": null,
+    "grade_trend": "INSUFFICIENT DATA",
+    "assignment_history": [],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Ben",
+    "student_name": "Ben Snap",
+    "assignment_submitted": 4,
+    "assignment_assigned": 6,
+    "average_grade": 46.09,
+    "best_assignment": {
+     "id": "assignment:A2 Quiz",
+     "title": "A2 Quiz",
+     "score": 6.0,
+     "score_percentage": 120.0
+    },
+    "worst_assignment": {
+     "id": "assignment:A1 Exam",
+     "title": "A1 Exam",
+     "score": 40.0,
+     "score_percentage": 40.0
+    },
+    "grade_trend": "STABLE",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:A0 Old",
+      "assignment_title": "A0 Old",
+      "submitted": true,
+      "score": 7.0,
+      "score_percentage": 70.0,
+      "graded_at": "2026-07-16T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A1 Exam",
+      "assignment_title": "A1 Exam",
+      "submitted": true,
+      "score": 40.0,
+      "score_percentage": 40.0,
+      "graded_at": "2026-09-18T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A2 Quiz",
+      "assignment_title": "A2 Quiz",
+      "submitted": true,
+      "score": 6.0,
+      "score_percentage": 120.0,
+      "graded_at": "2026-09-26T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A4 Zero",
+      "assignment_title": "A4 Zero",
+      "submitted": true,
+      "score": 3.0,
+      "score_percentage": 50.0,
+      "graded_at": "2026-10-11T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Ada",
+    "student_name": "Ada Snap",
+    "assignment_submitted": 4,
+    "assignment_assigned": 6,
+    "average_grade": 84.44,
+    "best_assignment": {
+     "id": "assignment:A1 Exam",
+     "title": "A1 Exam",
+     "score": 92.0,
+     "score_percentage": 92.0
+    },
+    "worst_assignment": {
+     "id": "assignment:A2 Quiz",
+     "title": "A2 Quiz",
+     "score": 1.0,
+     "score_percentage": 20.0
+    },
+    "grade_trend": "STABLE",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:A0 Old",
+      "assignment_title": "A0 Old",
+      "submitted": true,
+      "score": 5.55,
+      "score_percentage": 55.5,
+      "graded_at": "2026-07-17T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A1 Exam",
+      "assignment_title": "A1 Exam",
+      "submitted": true,
+      "score": 92.0,
+      "score_percentage": 92.0,
+      "graded_at": "2026-09-17T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A2 Quiz",
+      "assignment_title": "A2 Quiz",
+      "submitted": true,
+      "score": 1.0,
+      "score_percentage": 20.0,
+      "graded_at": "2026-09-27T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A3 NoPts",
+      "assignment_title": "A3 NoPts",
+      "submitted": true,
+      "score": 7.0,
+      "score_percentage": 70.0,
+      "graded_at": "2026-10-06T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": false
+   },
+   {
+    "student_id": "user:Eve",
+    "student_name": "Eve Snap",
+    "assignment_submitted": 3,
+    "assignment_assigned": 6,
+    "average_grade": 86.96,
+    "best_assignment": {
+     "id": "assignment:A1 Exam",
+     "title": "A1 Exam",
+     "score": 95.0,
+     "score_percentage": 95.0
+    },
+    "worst_assignment": {
+     "id": "assignment:A3 NoPts",
+     "title": "A3 NoPts",
+     "score": 2.0,
+     "score_percentage": 20.0
+    },
+    "grade_trend": "DECLINING",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:A1 Exam",
+      "assignment_title": "A1 Exam",
+      "submitted": true,
+      "score": 95.0,
+      "score_percentage": 95.0,
+      "graded_at": "2026-09-16T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A2 Quiz",
+      "assignment_title": "A2 Quiz",
+      "submitted": true,
+      "score": 3.0,
+      "score_percentage": 60.0,
+      "graded_at": "2026-09-29T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A3 NoPts",
+      "assignment_title": "A3 NoPts",
+      "submitted": true,
+      "score": 2.0,
+      "score_percentage": 20.0,
+      "graded_at": "2026-10-08T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Cy",
+    "student_name": "Cy Snap",
+    "assignment_submitted": 2,
+    "assignment_assigned": 6,
+    "average_grade": 80.0,
+    "best_assignment": {
+     "id": "assignment:A2 Quiz",
+     "title": "A2 Quiz",
+     "score": 4.0,
+     "score_percentage": 80.0
+    },
+    "worst_assignment": {
+     "id": "assignment:A2 Quiz",
+     "title": "A2 Quiz",
+     "score": 4.0,
+     "score_percentage": 80.0
+    },
+    "grade_trend": "INSUFFICIENT DATA",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:A1 Exam",
+      "assignment_title": "A1 Exam",
+      "submitted": true,
+      "score": null,
+      "score_percentage": null,
+      "graded_at": "2026-09-19T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A2 Quiz",
+      "assignment_title": "A2 Quiz",
+      "submitted": true,
+      "score": 4.0,
+      "score_percentage": 80.0,
+      "graded_at": null
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Dee",
+    "student_name": "Dee Snap",
+    "assignment_submitted": 3,
+    "assignment_assigned": 6,
+    "average_grade": 3.64,
+    "best_assignment": {
+     "id": "assignment:A2 Quiz",
+     "title": "A2 Quiz",
+     "score": 9.0,
+     "score_percentage": 90.0
+    },
+    "worst_assignment": {
+     "id": "assignment:A1 Exam",
+     "title": "A1 Exam",
+     "score": -5.0,
+     "score_percentage": 0.0
+    },
+    "grade_trend": "IMPROVING",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:A1 Exam",
+      "assignment_title": "A1 Exam",
+      "submitted": true,
+      "score": -5.0,
+      "score_percentage": 0.0,
+      "graded_at": "2026-09-20T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A2 Quiz",
+      "assignment_title": "A2 Quiz",
+      "submitted": true,
+      "score": 9.0,
+      "score_percentage": 90.0,
+      "graded_at": "2026-09-30T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:A3 NoPts",
+      "assignment_title": "A3 NoPts",
+      "submitted": true,
+      "score": 5.0,
+      "score_percentage": 50.0,
+      "graded_at": "2026-10-07T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Hal",
+    "student_name": "Hal Snap",
+    "assignment_submitted": 1,
+    "assignment_assigned": 6,
+    "average_grade": 10.0,
+    "best_assignment": {
+     "id": "assignment:A1 Exam",
+     "title": "A1 Exam",
+     "score": 10.0,
+     "score_percentage": 10.0
+    },
+    "worst_assignment": {
+     "id": "assignment:A1 Exam",
+     "title": "A1 Exam",
+     "score": 10.0,
+     "score_percentage": 10.0
+    },
+    "grade_trend": "INSUFFICIENT DATA",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:A1 Exam",
+      "assignment_title": "A1 Exam",
+      "submitted": true,
+      "score": 10.0,
+      "score_percentage": 10.0,
+      "graded_at": "2026-09-21T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   }
+  ]
+ }
+}

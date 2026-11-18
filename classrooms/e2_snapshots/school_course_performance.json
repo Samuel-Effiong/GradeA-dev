@@ -1,0 +1,60 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "id": "course:Chemistry",
+    "name": "Chemistry",
+    "teacher": "Theo Snap",
+    "students": {
+     "enrolled": 2,
+     "completed": 0,
+     "pending": 0,
+     "total": 2
+    },
+    "assignments": 1,
+    "avg_grade": 90.0,
+    "distribution": {
+     "A": 2
+    }
+   },
+   {
+    "id": "course:Biology",
+    "name": "Biology",
+    "teacher": "Tess Snap",
+    "students": {
+     "enrolled": 3,
+     "completed": 0,
+     "pending": 0,
+     "total": 3
+    },
+    "assignments": 3,
+    "avg_grade": 55.01,
+    "distribution": {
+     "F": 3
+    }
+   },
+   {
+    "id": "course:Algebra",
+    "name": "Algebra",
+    "teacher": "Tess Snap",
+    "students": {
+     "enrolled": 6,
+     "completed": 0,
+     "pending": 0,
+     "total": 6
+    },
+    "assignments": 6,
+    "avg_grade": 55.2825,
+    "distribution": {
+     "B": 2,
+     "F": 2
+    }
+   }
+  ]
+ }
+}

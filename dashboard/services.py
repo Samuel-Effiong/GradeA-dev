@@ -233,12 +233,15 @@ class StudentWeeklySummaryService:
         }
 
     def _average_score(self, submissions):
-        scores = [
-            float(submission.score_percentage)
+        rows = [
+            submission
             for submission in submissions
             if submission.score_percentage is not None
         ]
-        return grade_service.mean_of_values(scores)
+        return grade_service.average_grade(
+            [float(submission.score_percentage) for submission in rows],
+            [(s.score, grade_service.weight_of(s)) for s in rows],
+        )
 
     def _letter_grade(self, percentage):
         if percentage is None:
@@ -299,6 +302,7 @@ class WeeklyCourseSummaryService:
         student_records = []
         all_relevant_submissions = []
         all_relevant_graded_scores = []
+        all_relevant_graded_scored = []
 
         for enrollment in enrollments:
             student = enrollment.student
@@ -317,6 +321,11 @@ class WeeklyCourseSummaryService:
             )
             student_records.append(student_record)
             all_relevant_graded_scores.extend(student_record["graded_scores"])
+            # D1: the (score, points) of the same rows as "graded_scores".
+            all_relevant_graded_scored.extend(
+                (submission.score, grade_service.weight_of(submission))
+                for submission in self._sorted_graded_submissions(relevant_submissions)
+            )
 
         student_records.sort(
             key=lambda item: (
@@ -331,6 +340,7 @@ class WeeklyCourseSummaryService:
             relevant_assignments=relevant_assignments,
             submissions=all_relevant_submissions,
             graded_scores=all_relevant_graded_scores,
+            graded_scored=all_relevant_graded_scored,
             as_of=as_of,
             recent_start=recent_start,
             previous_start=previous_start,
@@ -459,6 +469,7 @@ class WeeklyCourseSummaryService:
         recent_start,
         previous_start,
         student_count,
+        graded_scored=(),
     ):
         expected_submissions = len(relevant_assignments) * student_count
         unique_submissions = {
@@ -470,7 +481,7 @@ class WeeklyCourseSummaryService:
             if expected_submissions
             else 100.0
         )
-        average_grade = grade_service.mean_of_values(graded_scores)
+        average_grade = grade_service.average_grade(graded_scores, graded_scored)
 
         recent_submissions = [
             submission
@@ -483,23 +494,29 @@ class WeeklyCourseSummaryService:
             if previous_start <= submission.submission_date < recent_start
         ]
 
-        recent_graded_scores = [
-            float(submission.score_percentage)
+        recent_graded = [
+            submission
             for submission in unique_submissions
             if submission.score_percentage is not None
             and submission.graded_at
             and recent_start <= submission.graded_at <= as_of
         ]
-        previous_graded_scores = [
-            float(submission.score_percentage)
+        previous_graded = [
+            submission
             for submission in unique_submissions
             if submission.score_percentage is not None
             and submission.graded_at
             and previous_start <= submission.graded_at < recent_start
         ]
 
-        recent_average_grade = grade_service.mean_of_values(recent_graded_scores)
-        previous_average_grade = grade_service.mean_of_values(previous_graded_scores)
+        recent_average_grade = grade_service.average_grade(
+            [float(s.score_percentage) for s in recent_graded],
+            [(s.score, grade_service.weight_of(s)) for s in recent_graded],
+        )
+        previous_average_grade = grade_service.average_grade(
+            [float(s.score_percentage) for s in previous_graded],
+            [(s.score, grade_service.weight_of(s)) for s in previous_graded],
+        )
 
         grade_trend = self._trend_from_values(
             previous_average_grade,
@@ -1152,6 +1169,7 @@ class TeacherAIContextService:
         dated_scores = defaultdict(list)
         submissions_by_course = defaultdict(int)
         graded_scores_by_course = defaultdict(list)
+        graded_scored_by_course = defaultdict(list)  # D1: the same rows
         for submission in submissions:
             key = (submission["student_id"], submission["assignment__course_id"])
             submitted_ids[key].add(submission["assignment_id"])
@@ -1168,6 +1186,9 @@ class TeacherAIContextService:
                 )
                 graded_scores_by_course[submission["assignment__course_id"]].append(
                     score
+                )
+                graded_scored_by_course[submission["assignment__course_id"]].append(
+                    (submission["score"], submission["points"])
                 )
 
         students = []
@@ -1224,7 +1245,9 @@ class TeacherAIContextService:
                     "due_assignments": due_by_course[course.id],
                     "submissions": submissions_by_course[course.id],
                     "graded_submissions": len(scores),
-                    "average_score": (grade_service.mean_of_values(scores)),
+                    "average_score": grade_service.average_grade(
+                        scores, graded_scored_by_course[course.id]
+                    ),
                     "at_risk_students": at_risk_by_course[course.id],
                 }
             )

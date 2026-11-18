@@ -1,0 +1,23 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "courses": [
+   {
+    "name": "Biology",
+    "teachers": 1,
+    "avg_grade": 55.0
+   },
+   {
+    "name": "Algebra",
+    "teachers": 1,
+    "avg_grade": 55.3
+   },
+   {
+    "name": "Chemistry",
+    "teachers": 1,
+    "avg_grade": 90.0
+   }
+  ]
+ }
+}

@@ -4512,6 +4512,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             # Group graded submissions by course for efficient computation
             course_submissions: dict = {course.id: [] for course in active_courses}
             all_percentages = []
+            all_scored = []  # D1: every released graded row, as (score, points)
             all_scores = []
             graded_course_gpas = []
 
@@ -4527,9 +4528,17 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                 course_subs = course_submissions.get(course.id, [])
                 if course_subs:
                     # Both unrounded, as before; rounded where shown below.
-                    avg_pct = grade_service.mean_of_values(
-                        [float(s.score_percentage) for s in course_subs], ndigits=None
+                    course_scored = [
+                        (s.score, grade_service.weight_of(s)) for s in course_subs
+                    ]
+                    avg_pct = grade_service.average_grade(
+                        [float(s.score_percentage) for s in course_subs],
+                        course_scored,
+                        ndigits=None,
                     )
+                    if avg_pct is None:
+                        # Flag on only: no row could be weighted (no points).
+                        avg_pct = 0.0
                     # Divides by every released row, scored or not, as before.
                     avg_score = grade_service.mean_of_values(
                         [float(s.score) for s in course_subs if s.score is not None],
@@ -4537,6 +4546,7 @@ class StudentAdminDashboardView(viewsets.ViewSet):
                         count=len(course_subs),
                     )
                     all_percentages.append(avg_pct)
+                    all_scored.extend(course_scored)
                     all_scores.extend(
                         float(s.score) for s in course_subs if s.score is not None
                     )
@@ -4567,7 +4577,9 @@ class StudentAdminDashboardView(viewsets.ViewSet):
             # so the letter grade and GPA shown together always agree with
             # each other and with the school's own GPA scale (see
             # get_letter_grade_from_gpa).
-            overall_percentage = grade_service.mean_of_values(all_percentages)
+            overall_percentage = grade_service.average_grade(
+                all_percentages, all_scored
+            )
             if overall_percentage is None:
                 overall_percentage = 0.0
 

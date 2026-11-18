@@ -1,0 +1,22 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "school_name": "E1 Snapshot School",
+  "teachers": 2,
+  "students": 8,
+  "assignments_created": 11,
+  "assignments_graded": 10,
+  "assignments_graded_percentage": 90.9,
+  "avg_turnaround_days": 0.2,
+  "ai_extraction_confidence": 80.0,
+  "ai_grading_confidence": 78.5,
+  "flagged_for_review_count": 15,
+  "flagged_for_review_percentage": 62.5,
+  "at_risk_students": 4,
+  "avg_courses_per_teacher": 1.5,
+  "avg_class_size": 2.7,
+  "avg_assignments_per_course": 3.7,
+  "student_growth_rate": 100.0
+ }
+}

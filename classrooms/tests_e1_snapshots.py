@@ -280,6 +280,7 @@ class Fixture:
 
 @override_settings(CACHES=LOCMEM)
 class GradeFigureSnapshotTest(TestCase):
+    golden_dir = GOLDEN_DIR
     """Byte-for-byte snapshots of every grade-bearing output."""
 
     maxDiff = None
@@ -322,9 +323,9 @@ class GradeFigureSnapshotTest(TestCase):
         text = json.dumps(
             self.canonical(json.loads(text)), indent=1, ensure_ascii=False
         )
-        path = GOLDEN_DIR / f"{name}.json"
+        path = self.golden_dir / f"{name}.json"
         if RECORD:
-            GOLDEN_DIR.mkdir(exist_ok=True)
+            self.golden_dir.mkdir(exist_ok=True)
             path.write_text(text + "\n", encoding="utf-8")
             return
         self.assertTrue(path.exists(), f"no golden file {path.name}; record it first")
@@ -539,3 +540,16 @@ class GradeFigureSnapshotTest(TestCase):
                 "rigor": {str(t.id): rigor[t.id] for t in teachers},
             },
         )
+
+
+@override_settings(GRADE_CATEGORIES_ENABLED=True)
+class GradeFigureSnapshotFlagOnTest(GradeFigureSnapshotTest):
+    """Epic E2: the same endpoints with GRADE_CATEGORIES_ENABLED on, against
+    their own golden files (classrooms/e2_snapshots). The fixture has no
+    categories, excuses or missing-work setting, so every final grade is
+    today's; only the D1 figures (the plain means, owner Q1) move to the
+    points-weighted formula. Which files differ from e1_snapshots, and why,
+    is recorded in docs/evidence/epic-e2/NOTES.md. Re-record the same way,
+    with E1_RECORD_SNAPSHOTS=1."""
+
+    golden_dir = GOLDEN_DIR.parent / "e2_snapshots"

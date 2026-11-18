@@ -1,0 +1,53 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 2,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "id": "enrollment:Ben/Algebra",
+    "student": "user:Ben",
+    "course": "course:Algebra",
+    "course_title": "Algebra",
+    "course_description": "",
+    "teacher": "Tess Snap",
+    "total_no_of_assignment": 6,
+    "total_assignment_submitted": 4,
+    "submitted_assignment_percentage": 66.66666666666666,
+    "created_at": "2026-10-15T12:00:00Z",
+    "enrollment_status": "ENROLLED",
+    "withdrawal_date": null,
+    "final_grade": "86.67",
+    "grade_letter": {
+     "letter_grade": "B",
+     "gpa": 3.0,
+     "remark": "Good"
+    },
+    "auto_added": false
+   },
+   {
+    "id": "enrollment:Ben/Biology",
+    "student": "user:Ben",
+    "course": "course:Biology",
+    "course_title": "Biology",
+    "course_description": "",
+    "teacher": "Tess Snap",
+    "total_no_of_assignment": 3,
+    "total_assignment_submitted": 1,
+    "submitted_assignment_percentage": 33.33333333333333,
+    "created_at": "2026-10-15T12:00:00Z",
+    "enrollment_status": "ENROLLED",
+    "withdrawal_date": null,
+    "final_grade": "50.00",
+    "grade_letter": {
+     "letter_grade": "F",
+     "gpa": 0.0,
+     "remark": "Fail"
+    },
+    "auto_added": false
+   }
+  ]
+ }
+}

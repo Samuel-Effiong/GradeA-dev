@@ -1,0 +1,131 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "count": 3,
+  "next": null,
+  "previous": null,
+  "results": [
+   {
+    "student_id": "user:Ada",
+    "student_name": "Ada Snap",
+    "assignment_submitted": 2,
+    "assignment_assigned": 3,
+    "average_grade": 57.14,
+    "best_assignment": {
+     "id": "assignment:B1 Lab",
+     "title": "B1 Lab",
+     "score": 15.0,
+     "score_percentage": 75.0
+    },
+    "worst_assignment": {
+     "id": "assignment:B2 Quiz",
+     "title": "B2 Quiz",
+     "score": 1.0,
+     "score_percentage": 12.5
+    },
+    "grade_trend": "DECLINING",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:B1 Lab",
+      "assignment_title": "B1 Lab",
+      "submitted": true,
+      "score": 15.0,
+      "score_percentage": 75.0,
+      "graded_at": "2026-09-21T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:B2 Quiz",
+      "assignment_title": "B2 Quiz",
+      "submitted": true,
+      "score": 1.0,
+      "score_percentage": 12.5,
+      "graded_at": "2026-10-04T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Ben",
+    "student_name": "Ben Snap",
+    "assignment_submitted": 1,
+    "assignment_assigned": 3,
+    "average_grade": 50.0,
+    "best_assignment": {
+     "id": "assignment:B1 Lab",
+     "title": "B1 Lab",
+     "score": 10.0,
+     "score_percentage": 50.0
+    },
+    "worst_assignment": {
+     "id": "assignment:B1 Lab",
+     "title": "B1 Lab",
+     "score": 10.0,
+     "score_percentage": 50.0
+    },
+    "grade_trend": "INSUFFICIENT DATA",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:B1 Lab",
+      "assignment_title": "B1 Lab",
+      "submitted": true,
+      "score": 10.0,
+      "score_percentage": 50.0,
+      "graded_at": "2026-09-22T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   },
+   {
+    "student_id": "user:Eve",
+    "student_name": "Eve Snap",
+    "assignment_submitted": 3,
+    "assignment_assigned": 3,
+    "average_grade": 57.89,
+    "best_assignment": {
+     "id": "assignment:B1 Lab",
+     "title": "B1 Lab",
+     "score": 19.0,
+     "score_percentage": 95.0
+    },
+    "worst_assignment": {
+     "id": "assignment:B3 Undated",
+     "title": "B3 Undated",
+     "score": 1.0,
+     "score_percentage": 10.0
+    },
+    "grade_trend": "DECLINING",
+    "assignment_history": [
+     {
+      "assignment_id": "assignment:B1 Lab",
+      "assignment_title": "B1 Lab",
+      "submitted": true,
+      "score": 19.0,
+      "score_percentage": 95.0,
+      "graded_at": "2026-09-23T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:B2 Quiz",
+      "assignment_title": "B2 Quiz",
+      "submitted": true,
+      "score": 2.0,
+      "score_percentage": 25.0,
+      "graded_at": "2026-10-05T15:00:00Z"
+     },
+     {
+      "assignment_id": "assignment:B3 Undated",
+      "assignment_title": "B3 Undated",
+      "submitted": true,
+      "score": 1.0,
+      "score_percentage": 10.0,
+      "graded_at": "2026-10-13T15:00:00Z"
+     }
+    ],
+    "ai_student_summary": null,
+    "at_risk": true
+   }
+  ]
+ }
+}

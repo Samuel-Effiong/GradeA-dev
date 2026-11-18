@@ -1,0 +1,10 @@
+{
+ "success": true,
+ "message": "Request Successful",
+ "data": {
+  "school_name": "E1 Snapshot School",
+  "window_start": "2026-08-24",
+  "window_end": "2026-10-18",
+  "weeks": []
+ }
+}
