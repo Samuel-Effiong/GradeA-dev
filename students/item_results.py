@@ -19,6 +19,7 @@ from AutoGrader.reason_codes import (
     credit_refusal_remediation,
 )
 
+from .item_retry import UPLOAD_ITEM_TYPES, upload_retryable
 from .models import BackgroundTaskStatus, BackgroundTaskType
 
 #: failure_codes' key for a failure with no reason code. A documented
@@ -52,8 +53,21 @@ def _remediation(spec, code, meta, task_type=None):
     return spec.remediation
 
 
-def item_result(task, context):
-    """The session-results entry for one tracked item."""
+def _retryable(task, spec, kept_ids):
+    """Whether a retry would retry `task` in place. An upload item: item_retry's
+    own rule (its kept file, owner 2026-11-18), with `kept_ids` from
+    item_retry.kept_item_ids when the caller read them for many items. Any
+    other item: its code's catalogue flag, as before."""
+    if task.task_type in UPLOAD_ITEM_TYPES:
+        kept = None if kept_ids is None else task.pk in kept_ids
+        return upload_retryable(task, kept=kept)
+    return bool(spec.retryable) if spec is not None else False
+
+
+def item_result(task, context, kept_ids=None):
+    """The session-results entry for one tracked item. `kept_ids`: the ids
+    of the session's items that still have a kept file (one query for the
+    whole list); None reads it for this item alone."""
     meta = task.meta or {}
     failed = task.status == BackgroundTaskStatus.FAILURE
     code = task.reason_code or None
@@ -81,7 +95,7 @@ def item_result(task, context):
         "error_class": error_class,
         "message": task.error if failed else None,
         "remediation": _remediation(spec, code, meta, task.task_type),
-        "retryable": bool(spec.retryable) if spec is not None else False,
+        "retryable": _retryable(task, spec, kept_ids),
         "retry_count": task.retry_count,
         # Dashed UUID, same form as X-Request-ID and a sync body's `reference`,
         # so a client matches them as strings. It is the item's audit trace_id

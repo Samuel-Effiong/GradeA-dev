@@ -3269,12 +3269,19 @@ class TaskViewSet(viewsets.ViewSet):
             for processing_task in tracked_tasks:
                 normalize_processing_task_status(processing_task)
                 processing_task.refresh_from_db()
+            # Owner 2026-11-18: an upload item's `retryable` needs its kept
+            # file; read for the whole session in one query.
+            kept_ids = item_retry.kept_item_ids(tracked_tasks)
+
+            for processing_task in tracked_tasks:
 
                 # Get context for this specific task
                 task_context = get_task_context(processing_task)
 
                 # FR-A-07 (S7a): the old keys, plus the item's own result.
-                task_entry = item_result(processing_task, task_context)
+                task_entry = item_result(
+                    processing_task, task_context, kept_ids=kept_ids
+                )
 
                 if processing_task.status == "SUCCESS":
                     success.append(task_entry)

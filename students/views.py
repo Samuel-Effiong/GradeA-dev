@@ -132,6 +132,7 @@ from .task_tracking import (
     create_processing_task,
     launch_processing_task,
     mark_processing_task_failure,
+    record_parked_item,
     record_refused_item,
 )
 
@@ -1513,14 +1514,16 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # launch_processing_task dispatches at once, so a park recorded after
         # an earlier file's item STARTED would be read as a mid-batch stop
         # (batch_credit_refusal: the session stamped, the rest stopped).
+        # Owner 2026-11-18: each parked file is kept, as an accepted one is,
+        # so it is retried by hand after a top-up with no re-upload.
         parked_items = {
-            index: record_refused_item(
+            index: record_parked_item(
                 requested_by=request.user,
                 task_type=BackgroundTaskType.BATCH_ANSWER_UPLOAD,
                 error=error,
+                uploaded_file=files[index],
                 batch_session=session,
                 assignment=assignment,
-                file_name=files[index].name,
                 item_index=index + 1,
             )
             for index, error in parked.items()
@@ -1554,7 +1557,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 continue
 
             if item_index - 1 in parked_items:
-                # H-223: parked (recorded above); uploaded again after a top-up.
+                # H-223: parked (recorded and kept above); retried after a top-up.
                 tasks_data.append(
                     {
                         "file_name": uploaded_file.name,

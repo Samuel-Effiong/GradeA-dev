@@ -135,11 +135,37 @@ def upload_code_retryable(code):
     return _retryable_as_it_is(code) or code in UPLOAD_EXTRA_RETRYABLE_CODES
 
 
-def _upload_retryable(item):
-    return (
-        item.status == BackgroundTaskStatus.FAILURE
-        and upload_code_retryable(item.reason_code)
-        and kept_file(item) is not None
+def upload_retryable(item, kept=None):
+    """Whether upload `item` is retried in place: FAILED, a code a kept file
+    can retry, and its file still kept. `kept` is whether it still has a
+    kept file, when the caller has already read that (session-results, one
+    query for the session: kept_item_ids); otherwise it is read here."""
+    if item.status != BackgroundTaskStatus.FAILURE or not upload_code_retryable(
+        item.reason_code
+    ):
+        return False
+    if kept is None:
+        kept = kept_file(item) is not None
+    return kept
+
+
+def kept_item_ids(items):
+    """The ids of the failed upload `items` that still have a kept file, in
+    one query (none when no item could need it)."""
+    from .models import KeptUpload
+
+    ids = [
+        item.pk
+        for item in items
+        if item.task_type in UPLOAD_ITEM_TYPES
+        and item.status == BackgroundTaskStatus.FAILURE
+    ]
+    if not ids:
+        return set()
+    return set(
+        KeptUpload.objects.filter(
+            processing_task_id__in=ids, purged_at__isnull=True
+        ).values_list("processing_task_id", flat=True)
     )
 
 
@@ -147,7 +173,7 @@ def refusal_for(item):
     """Why `item` can't be retried in place, as the error to raise; or None
     when it can."""
     if item.task_type in UPLOAD_ITEM_TYPES:
-        if _upload_retryable(item):
+        if upload_retryable(item):
             return None
         return ItemNotRetryable(
             params={"resolution": "replace_file"}, display=_upload_display(item)
