@@ -25,6 +25,7 @@ from django.conf import settings
 from django.core.cache import cache
 from django.db import connection
 from django.http import Http404
+from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.decorators import (
     api_view,
@@ -68,6 +69,7 @@ def deployed_version():
     return "unknown"
 
 
+@extend_schema(tags=["Health"])
 @api_view(["GET"])
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -138,6 +140,7 @@ def _run(name, check, results):
         return False
 
 
+@extend_schema(tags=["Health"])
 @api_view(["GET"])
 @authentication_classes([])
 @permission_classes([AllowAny])
@@ -198,6 +201,7 @@ def _check_beat_watchdog():
         )
 
 
+@extend_schema(tags=["Health"])
 @api_view(["GET"])
 @authentication_classes([])
 @permission_classes([AllowAny])

@@ -7,6 +7,7 @@ answer. A full erasure that the data refuses (staff data, a wallet that is
 not empty, billing records) answers its coded 409 and changes nothing.
 """
 
+from drf_spectacular.utils import extend_schema
 from rest_framework.response import Response
 
 from AutoGrader.handlers import json_404
@@ -15,6 +16,7 @@ from students.views_data_export import StudentDataToolsView
 from users.models import CustomUser, UserTypes
 
 
+@extend_schema(tags=["Student Data"])
 class StudentDataEraseView(StudentDataToolsView):
     # POST only: GET and HEAD must never erase (and answer 405).
     http_method_names = ["post", "options"]

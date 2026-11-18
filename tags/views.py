@@ -17,7 +17,8 @@ from typing import TYPE_CHECKING
 from django.conf import settings
 from django.db.models import Count
 from django.shortcuts import get_object_or_404
-from rest_framework import mixins, status, viewsets
+from drf_spectacular.utils import extend_schema, extend_schema_view, inline_serializer
+from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -29,7 +30,7 @@ from classrooms.models import teacher_course_access_q
 from classrooms.permissions import IsTeacher
 
 from . import services
-from .models import OwnerType, Tag
+from .models import OwnerType, Tag, TagType
 from .normalize import MAX_NAME_LENGTH, normalize_tag_name
 from .serializers import (
     AssignmentTagsSerializer,
@@ -58,6 +59,34 @@ class DarkUntilEnabled(_ViewBase):
         return super().dispatch(request, *args, **kwargs)
 
 
+TAG_BODY = inline_serializer(
+    "TagBody",
+    {
+        "tag_type": serializers.ChoiceField(choices=TagType.choices),
+        "name": serializers.CharField(),
+    },
+)
+TAG_RENAME_BODY = inline_serializer("TagRenameBody", {"name": serializers.CharField()})
+IMPACT_REPLY = inline_serializer(
+    "TagImpact", {"affected_count": serializers.IntegerField()}
+)
+ASSIGNMENT_TAGS_REPLY = inline_serializer(
+    "AssignmentTagsReply", {"tags": TagSerializer(many=True)}
+)
+
+
+@extend_schema(tags=["Tags"])
+@extend_schema_view(
+    create=extend_schema(
+        tags=["Tags"],
+        request=TAG_BODY,
+        responses={200: TagSerializer, 201: TagSerializer},
+    ),
+    partial_update=extend_schema(
+        tags=["Tags"], request=TAG_RENAME_BODY, responses=TagSerializer
+    ),
+    impact=extend_schema(tags=["Tags"], responses=IMPACT_REPLY),
+)
 class TagViewSet(
     DarkUntilEnabled,
     mixins.ListModelMixin,
@@ -128,6 +157,7 @@ class TagViewSet(
         return Response({"affected_count": services.tag_impact(self.get_object())})
 
 
+@extend_schema(tags=["Tags"])
 class AssignmentTagsView(DarkUntilEnabled, APIView):
     """PUT /assignments/{id}/tags {tag_ids: [...]}: replace the set.
 
@@ -137,6 +167,7 @@ class AssignmentTagsView(DarkUntilEnabled, APIView):
     permission_classes = (IsTeacher,)
     http_method_names = ["put", "options"]
 
+    @extend_schema(request=AssignmentTagsSerializer, responses=ASSIGNMENT_TAGS_REPLY)
     def put(self, request, pk):
         raw = request.data.get("tag_ids") if hasattr(request.data, "get") else None
         if isinstance(raw, list) and len(raw) > services.MAX_TAGS_PER_ASSIGNMENT:

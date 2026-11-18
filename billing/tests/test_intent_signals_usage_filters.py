@@ -31,11 +31,14 @@ from .test_intent_signals_pins import NOW
 
 SORTS = ("credit_usage", "credits_left", "papers_graded", "assignments_created",
          "activated_at")  # fmt: skip
+EXTRA = ("plan_tier", "plan_category", "plan_interval", "last_login")
 ORDERING_ADDITION = (
     "You can also sort by `credit_usage`, `credits_left`, `papers_graded`, "
-    "`assignments_created` or `activated_at`. Add `-` in front for the "
-    "largest or newest first. Empty values come last either way, and ties are "
-    "broken by ID."
+    "`assignments_created`, `activated_at`, `plan_tier`, `plan_category`, "
+    "`plan_interval` or `last_login`. `plan_tier` goes by plan level, from "
+    "Trial to Custom. Add `-` in front for the largest, newest or highest "
+    "plan first. Empty values come last either way, and ties are broken by "
+    "ID."
 )
 
 
@@ -387,7 +390,14 @@ class SwaggerTests(UsageBase):
         )
         self.assertEqual(
             allowed,
-            {"signals", "-signals", *SORTS, *(f"-{k}" for k in SORTS)},
+            {
+                "signals",
+                "-signals",
+                *SORTS,
+                *(f"-{k}" for k in SORTS),
+                *EXTRA,
+                *(f"-{k}" for k in EXTRA),
+            },
         )
         self.assertTrue(
             ordering["description"].endswith(f" {ORDERING_ADDITION}"),

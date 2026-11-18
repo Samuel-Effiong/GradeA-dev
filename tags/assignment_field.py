@@ -8,13 +8,14 @@ admins list no assignments. The rows come from `prefetch_tags`, so a list
 costs one extra query, not one per row.
 """
 
+import uuid
 from typing import TYPE_CHECKING
 
 from django.conf import settings
-from django.db.models import Prefetch
+from django.db.models import Count, Prefetch
 from rest_framework import serializers
 
-from .models import AssignmentTag
+from .models import AssignmentTag, OwnerType, Tag
 
 PREFETCH_TO = "prefetched_tag_links"
 
@@ -66,3 +67,40 @@ class AssignmentTagsFieldMixin(_SerializerBase):
             }
             for link in links
         ]
+
+
+def filter_by_tags(queryset, request):
+    """S13: `?tags=<id>,<id>` or `?tags=<id>&tags=<id>` keeps the assignments
+    that carry every one of the teacher's own tags named. Ignored while the
+    flag is off. A subquery, so a row is never multiplied."""
+    if not tags_enabled():
+        return queryset
+    values = [
+        part.strip()
+        for raw in request.query_params.getlist("tags")
+        for part in raw.split(",")
+        if part.strip()
+    ]
+    if not values:
+        return queryset
+    wanted = set()
+    for value in values:
+        try:
+            wanted.add(uuid.UUID(value))
+        except ValueError:
+            raise serializers.ValidationError(
+                {"tags": [f"{value!r} is not a valid UUID."]}
+            ) from None
+    mine = Tag.objects.filter(
+        pk__in=wanted, owner_type=OwnerType.TEACHER, teacher_id=request.user.pk
+    ).count()
+    if mine != len(wanted):
+        return queryset.none()
+    matching = (
+        AssignmentTag.objects.filter(tag_id__in=wanted)
+        .values("assignment_id")
+        .annotate(matched=Count("tag_id", distinct=True))
+        .filter(matched=len(wanted))
+        .values("assignment_id")
+    )
+    return queryset.filter(pk__in=matching)
