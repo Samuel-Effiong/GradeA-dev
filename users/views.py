@@ -85,7 +85,7 @@ from classrooms.models import (
 from classrooms.permissions import IsSuperAdmin, IsTeacher
 from classrooms.serializers import SchoolAdminRegistrationCompletionSerializer
 from classrooms.services import OLD_INVITATION_CLOSED_MESSAGE
-from students import item_retry
+from students import item_retry, session_list
 from students.item_results import UNCLASSIFIED, failure_summary, item_result
 from students.models import (
     BackgroundProcessingTask,
@@ -121,6 +121,7 @@ from users.models import (
 from users.permissions import HasCreditBalance
 from users.serializers import (  # BatchSessionResultTaskEntrySerializer,; TaskContextSerializer,
     BatchSessionCancelSerializer,
+    BatchSessionListItemSerializer,
     BatchSessionResultSerializer,
     BetaWhitelistSerializer,
     ChangePasswordSerializer,
@@ -3049,14 +3050,95 @@ class TaskViewSet(viewsets.ViewSet):
 
     @extend_schema(
         tags=["Tasks"],
+        summary="List the teacher's batch sessions",
+        description=(
+            "The caller's own batch sessions, newest first, paginated "
+            "(page, page_size). Teachers only; a session whose course the "
+            "teacher can no longer reach is left out (H-38). Each row has the "
+            "item counts, `retryable_count` (failed items the retry endpoints "
+            "would retry, by session-results' rule) and `resumable` "
+            "(retryable_count > 0). Filters: resumable=true|false, "
+            "assignment_id, task_type. Use session_id with session-results "
+            "and the retry endpoints."
+        ),
+        parameters=[
+            OpenApiParameter("resumable", OpenApiTypes.BOOL, required=False),
+            OpenApiParameter("assignment_id", OpenApiTypes.UUID, required=False),
+            OpenApiParameter("task_type", OpenApiTypes.STR, required=False),
+            OpenApiParameter("page", OpenApiTypes.INT, required=False),
+            OpenApiParameter("page_size", OpenApiTypes.INT, required=False),
+        ],
+        responses={
+            200: inline_serializer(
+                "PaginatedBatchSessionList",
+                {
+                    "count": serializers.IntegerField(),
+                    "next": serializers.URLField(allow_null=True),
+                    "previous": serializers.URLField(allow_null=True),
+                    "results": BatchSessionListItemSerializer(many=True),
+                },
+            )
+        },
+    )
+    @action(
+        detail=False,
+        methods=["get"],
+        url_path="sessions",
+        url_name="sessions",
+        permission_classes=[IsAuthenticated, IsTeacher],
+    )
+    def sessions(self, request):
+        """Owner 2026-11-18: how a teacher finds a batch again
+        (students.session_list)."""
+        assignment_id = request.query_params.get("assignment_id")
+        if assignment_id is not None:
+            try:
+                assignment_id = uuid.UUID(str(assignment_id))
+            except ValueError:
+                assignment_id = False  # matches nothing
+        sessions = session_list.teacher_sessions(
+            request.user,
+            assignment_id=assignment_id or None,
+            task_type=request.query_params.get("task_type") or None,
+        )
+        if assignment_id is False:
+            sessions = sessions.none()
+        resumable = (request.query_params.get("resumable") or "").lower()
+        if resumable in ("true", "false"):
+            counts = session_list.retryable_counts(sessions.values("pk"))
+            with_items = [pk for pk, count in counts.items() if count]
+            if resumable == "true":
+                sessions = sessions.filter(pk__in=with_items)
+            else:
+                sessions = sessions.exclude(pk__in=with_items)
+        paginator = StandardPageNumberPagination()
+        page = paginator.paginate_queryset(
+            session_list.with_counts(sessions), request, view=self
+        )
+        counts = session_list.retryable_counts([session.pk for session in page])
+        rows = [
+            session_list.session_row(session, counts.get(session.pk, 0))
+            for session in page
+        ]
+        return paginator.get_paginated_response(
+            BatchSessionListItemSerializer(rows, many=True).data
+        )
+
+    @extend_schema(
+        tags=["Tasks"],
         summary="Retry one failed batch item in place (FR-A-07 S7b)",
         description=(
-            "Retries a FAILED grade item whose reason code is retryable as it "
-            "is (PROVIDER_FAILURE, INSUFFICIENT_CREDITS_MID_BATCH): the same "
-            "item_id, retry_count + 1, relaunched. 202 with the item in "
-            "session-results' shape. Anything else is 409 NOT_RETRYABLE; an "
-            "upload item answers 'upload the file again' with "
-            "params.resolution = 'replace_file' (its file isn't kept)."
+            "Retries a FAILED item in place: the same item_id, retry_count + "
+            "1, relaunched. A grade item is retried when its reason code is "
+            "retryable as it is (PROVIDER_FAILURE, "
+            "INSUFFICIENT_CREDITS_MID_BATCH). An upload item is retried from "
+            "its kept file when the file is still kept and its code is one of "
+            "those or INSUFFICIENT_CREDITS (a file parked at the door or "
+            "refused at the late door); otherwise it is 409 NOT_RETRYABLE "
+            "with params.resolution = 'replace_file'. Anything else is 409 "
+            "NOT_RETRYABLE. 202 with the item in session-results' shape. "
+            "session-results' per-item `retryable` says beforehand which "
+            "items qualify; GET tasks/sessions finds a teacher's sessions."
         ),
     )
     @action(
@@ -3087,7 +3169,9 @@ class TaskViewSet(viewsets.ViewSet):
         summary="Retry every retryable failed item of a batch (FR-A-07 S7b)",
         description=(
             'Body (optional): {"reason_codes": [...]} to retry only those codes. '
-            "202 with {retried: [item_id], skipped: [{item_id, reason_code}]}."
+            "202 with {retried: [item_id], skipped: [{item_id, reason_code}]}. "
+            "Each item follows the single-item retry's rule. GET tasks/sessions "
+            "?resumable=true lists the sessions that have an item to retry."
         ),
     )
     @action(
@@ -3130,6 +3214,11 @@ class TaskViewSet(viewsets.ViewSet):
             This endpoint returns the progress of the background tasks, indicating how many
             files have been processed and the overall completion status. It provides lists of
             successfully processed submissions, failures, cancellations, and pending tasks.
+
+            Each item's `retryable` is whether the retry endpoints would retry
+            it in place (an upload item needs its kept file); `resumable` is
+            true when any failed item is. GET tasks/sessions lists the
+            teacher's sessions, so a session_id can be found again.
             """,
         responses={
             200: OpenApiResponse(

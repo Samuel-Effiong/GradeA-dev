@@ -798,6 +798,25 @@ class BatchSessionCancelSerializer(serializers.Serializer):
     message = serializers.CharField()
 
 
+class BatchSessionListItemSerializer(serializers.Serializer):
+    """One row of GET tasks/sessions (owner, 2026-11-18;
+    students.session_list.session_row). Data only."""
+
+    session_id = serializers.UUIDField()
+    task_type = serializers.CharField()
+    assignment_id = serializers.UUIDField(allow_null=True)
+    assignment_title = serializers.CharField(allow_null=True)
+    course_id = serializers.UUIDField(allow_null=True)
+    course_name = serializers.CharField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    success_count = serializers.IntegerField()
+    failure_count = serializers.IntegerField()
+    cancelled_count = serializers.IntegerField()
+    pending_count = serializers.IntegerField()
+    resumable = serializers.BooleanField()
+    retryable_count = serializers.IntegerField()
+
+
 class BetaWhitelistSerializer(serializers.ModelSerializer):
     class Meta:
         model = BetaWhitelist

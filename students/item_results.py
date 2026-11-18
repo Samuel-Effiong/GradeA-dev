@@ -53,14 +53,16 @@ def _remediation(spec, code, meta, task_type=None):
     return spec.remediation
 
 
-def _retryable(task, spec, kept_ids):
-    """Whether a retry would retry `task` in place. An upload item: item_retry's
-    own rule (its kept file, owner 2026-11-18), with `kept_ids` from
-    item_retry.kept_item_ids when the caller read them for many items. Any
-    other item: its code's catalogue flag, as before."""
+def is_retryable(task, kept_ids=None):
+    """Whether a retry would retry `task` in place: session-results' and
+    tasks/sessions' one rule. An upload item: item_retry's own rule (its kept
+    file, owner 2026-11-18), with `kept_ids` from item_retry.kept_item_ids
+    when the caller read them for many items (None reads it for this item).
+    Any other item: its code's catalogue flag, as before."""
     if task.task_type in UPLOAD_ITEM_TYPES:
         kept = None if kept_ids is None else task.pk in kept_ids
         return upload_retryable(task, kept=kept)
+    spec = _spec(task.reason_code) if task.reason_code else None
     return bool(spec.retryable) if spec is not None else False
 
 
@@ -95,7 +97,7 @@ def item_result(task, context, kept_ids=None):
         "error_class": error_class,
         "message": task.error if failed else None,
         "remediation": _remediation(spec, code, meta, task.task_type),
-        "retryable": _retryable(task, spec, kept_ids),
+        "retryable": is_retryable(task, kept_ids),
         "retry_count": task.retry_count,
         # Dashed UUID, same form as X-Request-ID and a sync body's `reference`,
         # so a client matches them as strings. It is the item's audit trace_id

@@ -329,6 +329,9 @@ class QueryCount(SessionsFixture, TestCase):
             self.item(session, task_type=GRADING, code="PROVIDER_FAILURE")
 
     def count_queries(self, **params):
+        # A first request reads per-process caches (the user, permissions);
+        # warm them so only this route's own queries are compared.
+        self.sessions(**params)
         with CaptureQueriesContext(connection) as queries:
             data = self.sessions(**params)
         return len(queries.captured_queries), data
