@@ -2687,6 +2687,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # tokens here rather than through the login serializer.
             stamp_last_login(user)
             refresh = EpochRefreshToken.for_user(user)
+            # Distinct sign-in days and the teacher's BetaProfile, as the
+            # login serializer records them (S17). Bookkeeping, so a failure
+            # here must not turn a good sign-in into an error.
+            try:
+                AnalyticsService.track_activity(user)
+            except Exception:
+                logger.exception("Could not record Google sign-in activity")
             sign_in_succeeded(request, user, "google")
 
             return Response(
