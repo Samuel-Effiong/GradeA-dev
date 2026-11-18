@@ -4,6 +4,10 @@ Before a batch runs, the teacher can ask what it will likely cost (p50) and
 what it could cost (p90), and whether their spendable balance covers it.
 The estimate is advice only: nothing refuses a teacher because of it.
 
+Everything here works in raw credits except advise(), the endpoint's
+payload, which answers in display credits (raw / CONVERSION_FACTOR, the ones
+the wallet shows; owner, 2026-11-18).
+
 THE ONLY READER OF AICallRecord outside ai_processor (SM ruling 2026-11-08,
 `ai_processor.tests_call_record_static.NothingReadsOrExposesTheTable`). It
 reads aggregates only (sums and counts per paper) and every public function
@@ -38,7 +42,12 @@ from django.utils import timezone
 
 from ai_processor.models import AICallRecord
 from audit import metrics
-from billing.models import BillingSettings, CreditUsageLog, CreditWallet
+from billing.models import (
+    CONVERSION_FACTOR,
+    BillingSettings,
+    CreditUsageLog,
+    CreditWallet,
+)
 from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
@@ -418,17 +427,35 @@ def spendable_of(user):
     return int(spendable_credits(wallet))
 
 
+def _display_cost(raw):
+    """Raw credits as display credits, rounded up: a cost never
+    under-promises."""
+    return -(-int(raw) // CONVERSION_FACTOR)
+
+
+def _display_balance(raw):
+    """Raw credits as display credits, rounded down: the rule of
+    CreditWallet.display_balance, so it matches the wallet."""
+    return int(raw) // CONVERSION_FACTOR
+
+
 def advise(teacher, assignment, n, *, representative=None):
-    """The endpoint's payload: codes and numbers only."""
+    """The endpoint's payload: codes and numbers only, in display credits
+    (owner, 2026-11-18), the ones the wallet shows. The verdict and the
+    projected balances are worked out from the display figures, so the
+    screen never shows SUFFICIENT next to a negative projected balance.
+    estimate() and everything else here stay in raw credits."""
     result = estimate(assignment, n, teacher=teacher, representative=representative)
-    spendable = spendable_of(teacher)
+    p50 = _display_cost(result["p50"])
+    p90 = _display_cost(result["p90"])
+    spendable = _display_balance(spendable_of(teacher))
     return {
-        "p50": result["p50"],
-        "p90": result["p90"],
-        "verdict": verdict(result["p50"], result["p90"], spendable),
+        "p50": p50,
+        "p90": p90,
+        "verdict": verdict(p50, p90, spendable),
         "spendable": spendable,
-        "projected_remaining_p50": spendable - result["p50"],
-        "projected_remaining_p90": spendable - result["p90"],
+        "projected_remaining_p50": spendable - p50,
+        "projected_remaining_p90": spendable - p90,
         "source": result["source"],
         "shape_basis": result["shape_basis"],
         "sample_size": result["sample_size"],
