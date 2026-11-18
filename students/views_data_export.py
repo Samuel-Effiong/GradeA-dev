@@ -1,6 +1,7 @@
 """NFR-CMP-04 step 2: `GET students/<id>/data-export` (students/data_export.py).
 
-While STUDENT_DATA_TOOLS_ENABLED is off (the default) the route answers
+While STUDENT_DATA_TOOLS_ENABLED is off (on by default since 2026-11-18;
+set to false on a server to turn it off) the route answers
 exactly what an unknown URL answers, from `dispatch()`, before
 authentication runs. When it is on, every refusal (an unknown id, a target
 that is not a student, a caller outside the scope, the student themselves)

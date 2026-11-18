@@ -1,6 +1,6 @@
 """Epic C1: the tag API (plan 11 §3.4).
 
-Dark by default (SM ruling 1). While TAGS_ENABLED is off every tag route
+On by default since 2026-11-18 (owner). While TAGS_ENABLED is off every tag route
 answers exactly what an unknown URL answers (AutoGrader.handlers.json_404),
 from `dispatch()`, before authentication, permissions or throttling run, so
 no 401 or 403 reveals that the route exists.

@@ -71,12 +71,12 @@ CONCEALED_ROUTES = frozenset(
         "qa-console-runs-list",
         "qa-console-runs-create",
         "qa-console-runs-detail",
-        # Epic C1: while TAGS_ENABLED is off (the default) the tag routes
+        # Epic C1: while TAGS_ENABLED is off (as under the test runner) the tag routes
         # answer everyone as an unknown URL does (tags/views.py; SM ruling 1).
         "tag-list",
         "tag-detail",
         "assignment-tags",
-        # NFR-CMP-04: while STUDENT_DATA_TOOLS_ENABLED is off (the default)
+        # NFR-CMP-04: while STUDENT_DATA_TOOLS_ENABLED is off (test runner)
         # the erasure route answers everyone as an unknown URL does.
         "student-data-erase",
     }
