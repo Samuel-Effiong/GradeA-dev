@@ -162,6 +162,10 @@ MID_BATCH_GRADING_REMEDIATION = "Top up credits, then resume the remaining items
 #: N3 (owner-approved, 2026-11-19): NOT_RETRYABLE's remediation for an upload
 #: whose kept file the lifetime purge removed.
 UPLOAD_FILE_AGAIN_REMEDIATION = "Upload the file again."
+#: N4 (SM ruling, 2026-11-19): a CodedError's remediation when there is
+#: nothing more to say than its message. Renders null, never falling back
+#: to the spec's.
+NO_REMEDIATION = ""
 
 
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
@@ -807,7 +811,8 @@ class CodedError(Exception):
         if missing:
             raise ValueError(f"{code}: params missing: {sorted(missing)}")
         if remediation is not None and remediation not in (
-            spec.alternative_remediations
+            NO_REMEDIATION,
+            *spec.alternative_remediations,
         ):
             raise ValueError(f"{code}: not an approved remediation: {remediation!r}")
         self.reason_code = code
@@ -845,7 +850,8 @@ class CodedError(Exception):
         """What to do next: the chosen alternative, else the spec's (None
         when the spec has nothing to suggest)."""
         if self._remediation is not None:
-            return self._remediation
+            # NO_REMEDIATION ("") is null: nothing more to do.
+            return self._remediation or None
         return self._spec.remediation or None
 
 
@@ -941,14 +947,18 @@ class ExpectedUserError(metaclass=_UserErrorMeta):
 def coded_body(code, params, message, remediation=None):
     """The envelope for `code`, as the view payload. `remediation` is a
     CodedError's chosen one; by default the spec's (null for "nothing to
-    do")."""
+    do"). NO_REMEDIATION is null too, never the spec's."""
     code = ReasonCode(code)
     spec = REASON_CODES[code]
     body = {
         "error": message,
         "reason_code": code.value,
         "error_class": spec.error_class.value,
-        "remediation": remediation or spec.remediation or None,
+        "remediation": (
+            None
+            if remediation == NO_REMEDIATION
+            else remediation or spec.remediation or None
+        ),
         "retryable": spec.retryable,
         "params": params,
         "reference": get_request_id(),
@@ -985,7 +995,12 @@ def coded_response(error):
     code, params, message = reason
     spec = REASON_CODES[code]
     if isinstance(error, CodedError):
-        remediation = error.remediation
+        # NO_REMEDIATION passes through as itself, so coded_body keeps it null.
+        remediation = (
+            NO_REMEDIATION
+            if error._remediation == NO_REMEDIATION
+            else error.remediation
+        )
     else:
         remediation = credit_refusal_remediation(credit_refusal_variant(error))
     response = Response(
