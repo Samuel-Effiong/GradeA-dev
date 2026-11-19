@@ -34,7 +34,6 @@ from types import SimpleNamespace
 
 from django.utils import timezone
 from rest_framework.test import APIClient
-from rest_framework_simplejwt.tokens import RefreshToken
 
 from assignments.models import Assignment, AssignmentStatus
 from billing.models import (
@@ -69,11 +68,34 @@ def canary_balance(index):
     return 7_319_447 + 104_729 * index
 
 
+class _EnvelopeClient(APIClient):
+    """`response.json()` gives the house envelope's `data` on a success
+    (the renderer sends an empty list as `{}`, users/renderers.py), and the
+    raw body on an error. `response.content` stays the raw bytes."""
+
+    def request(self, *args, **kwargs):
+        response = super().request(*args, **kwargs)
+        raw = response.json
+
+        def unwrapped():
+            payload = raw()
+            if isinstance(payload, dict) and payload.get("success") is True:
+                data = payload.get("data")
+                return [] if data == {} else data
+            return payload
+
+        response.json = unwrapped  # type: ignore[method-assign]
+        return response
+
+
 def jwt_client(user):
-    """A real signed access token checked by the real JWT authenticator."""
-    client = APIClient()
+    """A real signed access token (the app's own token class, with the
+    sign-in epoch) checked by the real JWT authenticator."""
+    from users.tokens import EpochRefreshToken
+
+    client = _EnvelopeClient()
     if user is not None:
-        token = RefreshToken.for_user(user).access_token
+        token = EpochRefreshToken.for_user(user).access_token
         client.credentials(HTTP_AUTHORIZATION=f"Bearer {token}")
     return client
 

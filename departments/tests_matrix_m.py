@@ -18,6 +18,7 @@ from unittest.mock import patch
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
+from django.urls import reverse
 
 from audit.enums import AuditAction
 from departments.tests_matrix_fixture import (
@@ -198,14 +199,17 @@ class M12DepartmentPayloadsCarryNoUserSerializer(_MatrixCase):
     would bring credit_wallet and settings)."""
 
     def test_my_departments_has_exactly_the_agreed_keys(self):
-        response = self.get(self.w.t1, f"{API}/departments/")
+        response = self.get(self.w.t1, reverse("departments-mine"))
         self.assertEqual(response.status_code, 200, body(response))
         self.assertTrue(response.json())
         for row in response.json():
             self.assertEqual(set(row), {"id", "name", "can_edit"})
 
     def test_the_roster_has_exactly_name_and_role(self):
-        response = self.get(self.w.t1, f"{API}/departments/{self.w.d1.id}/roster/")
+        response = self.get(
+            self.w.t1,
+            reverse("departments-roster", kwargs={"department_id": self.w.d1.id}),
+        )
         self.assertEqual(response.status_code, 200, body(response))
         self.assertTrue(response.json())
         for row in response.json():
@@ -276,7 +280,7 @@ class M14FiltersNeverWiden(_MatrixCase):
 @flag_on
 class M15Caches(_MatrixCase):
     def test_a_removed_member_is_not_served_their_cached_list(self):
-        url = f"{API}/departments/"
+        url = reverse("departments-mine")
         warm = self.get(self.w.t1, url)
         self.assertIn(str(self.w.d1.id), body(warm))
         from departments.models import DepartmentMembership
@@ -285,13 +289,16 @@ class M15Caches(_MatrixCase):
             department=self.w.d1, teacher=self.w.t1
         )
         response = jwt_client(self.w.a1).delete(
-            f"{API}/school-admin/departments/{self.w.d1.id}/members/{membership.id}/"
+            reverse(
+                "departments-admin-member-detail",
+                kwargs={"department_id": self.w.d1.id, "membership_id": membership.id},
+            )
         )
         self.assertEqual(response.status_code, 204, body(response))
         self.assertNotIn(str(self.w.d1.id), body(self.get(self.w.t1, url)))
 
     def test_each_viewer_gets_their_own_list(self):
-        url = f"{API}/departments/"
+        url = reverse("departments-mine")
         t1 = self.get(self.w.t1, url).json()
         t3 = self.get(self.w.t3, url).json()
         self.assertEqual({row["id"] for row in t1}, {str(self.w.d1.id)})
@@ -347,7 +354,9 @@ class M16MembershipEmailGoesToTheTeacherOnly(_MatrixCase):
             "AutoGrader.tasks.send_email_task.delay", side_effect=record
         ), self.captureOnCommitCallbacks(execute=True):
             response = jwt_client(self.w.a1).post(
-                f"{API}/school-admin/departments/{self.w.d1.id}/members/",
+                reverse(
+                    "departments-admin-members", kwargs={"department_id": self.w.d1.id}
+                ),
                 {"teacher_ids": [str(self.w.t4.id)]},
                 format="json",
             )
