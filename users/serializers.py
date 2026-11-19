@@ -750,6 +750,8 @@ class BatchSessionResultTaskEntrySerializer(serializers.Serializer):
     error_class = serializers.CharField(required=False, allow_null=True)
     message = serializers.CharField(required=False, allow_null=True)
     remediation = serializers.CharField(required=False, allow_null=True)
+    # N3: "replace_file" when the item can only be uploaded again.
+    resolution = serializers.CharField(required=False, allow_null=True)
     retryable = serializers.BooleanField(required=False)
     # Owner 2026-11-18: the teacher dismissed the item ("don't retry").
     dismissed = serializers.BooleanField(required=False)

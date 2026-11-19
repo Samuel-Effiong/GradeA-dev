@@ -159,6 +159,9 @@ def mid_batch_remediation(days=None):
 #: #1): text 1 on a GRADING paper. Grading keeps no file, so only the first
 #: sentence applies; upload items keep the full text 1 above.
 MID_BATCH_GRADING_REMEDIATION = "Top up credits, then resume the remaining items."
+#: N3 (owner-approved, 2026-11-19): NOT_RETRYABLE's remediation for an upload
+#: whose kept file the lifetime purge removed.
+UPLOAD_FILE_AGAIN_REMEDIATION = "Upload the file again."
 
 
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
@@ -362,6 +365,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         # resolution: "replace_file" for an upload item (re-upload it).
         params=frozenset({"why", "resolution"}),
         defaults={"why": "This item can't be retried as it is."},
+        alternative_remediations=(UPLOAD_FILE_AGAIN_REMEDIATION,),
     ),
     # The three sign-in locks (v2's S6a N3, SM ruling). Approved by QA
     # (the founder) on 2026-09-30, catalogue section A. Their responses keep

@@ -35,7 +35,11 @@ from django.utils import timezone
 
 from audit.emitter import emit, resolve_trace_id
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
-from AutoGrader.reason_codes import REASON_CODES, CodedError
+from AutoGrader.reason_codes import (
+    REASON_CODES,
+    UPLOAD_FILE_AGAIN_REMEDIATION,
+    CodedError,
+)
 from classrooms.models import reachable_courses
 
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
@@ -201,8 +205,14 @@ def refusal_for(item):
     if item.task_type in UPLOAD_ITEM_TYPES:
         if upload_retryable(item):
             return None
+        # N3 (owner, 2026-11-19): a file the lifetime purge removed says
+        # "Upload the file again." as its remediation.
         return ItemNotRetryable(
-            params={"resolution": "replace_file"}, display=_upload_display(item)
+            params={"resolution": "replace_file"},
+            display=_upload_display(item),
+            remediation=(
+                UPLOAD_FILE_AGAIN_REMEDIATION if lifetime_purged(item) else None
+            ),
         )
     if (
         item.task_type not in GRADE_ITEM_TYPES
