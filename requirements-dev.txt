@@ -3,13 +3,13 @@
 -r requirements.txt
 
 bandit==1.8.6
-black==25.1.0
+black==26.10.1
 celery-types==0.24.0
 cfgv==3.4.0
 codespell==2.4.1
 coverage==7.15.4
 detect-secrets==1.5.0
-distlib==0.4.0
+distlib==0.4.3
 django-browser-reload==1.19.0
 django-stubs==5.2.8
 django-stubs-ext==5.2.8
@@ -37,7 +37,7 @@ mccabe==0.7.0
 mypy==1.17.1
 mypy_extensions==1.1.0
 nodeenv==1.9.1
-pathspec==0.12.1
+pathspec==1.0.0
 pluggy==1.6.0
 pre_commit==4.3.0
 py-cpuinfo==9.0.0
@@ -45,6 +45,8 @@ pycodestyle==2.14.0
 pydocstyle==6.3.0
 pyflakes==3.4.0
 pytest==9.1.1
+python-discovery==1.6.1
+pytokens==0.4.1
 restructuredtext_lint==1.4.0
 snowballstemmer==3.0.1
 stevedore==5.5.0
@@ -63,4 +65,4 @@ types-python-dateutil==2.9.0.20250822
 types-pytz==2025.2.0.20250809
 types-PyYAML==6.0.12.20250915
 types-requests==2.32.4.20250913
-virtualenv==21.14.5
+virtualenv==21.14.10
