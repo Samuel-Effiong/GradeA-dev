@@ -26,7 +26,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.core.management import CommandError, call_command
 from django.db import IntegrityError, transaction
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.utils import timezone
 
 from audit.enums import AuditAction
@@ -51,6 +51,10 @@ D = Decimal
 NAME = "missing_work_go_live"
 BEAT = "e2-missing-work-go-live-hourly"
 TASK = "classrooms.tasks.run_missing_work_go_live"
+# The Beat task runs under the Beat lock, which needs the real (test) Redis
+# cache, so these change only the flag, not CACHES.
+task_flag_on = override_settings(GRADE_CATEGORIES_ENABLED=True)
+task_flag_off = override_settings(GRADE_CATEGORIES_ENABLED=False)
 
 
 class _GoLiveCase(TestCase):
@@ -230,7 +234,7 @@ class BeatEntryTests(TestCase):
         self.assertEqual(entry["task"], TASK)
         self.assertIn(BEAT, settings.BEAT_HEALTH_EXPECTATIONS)
 
-    @categories_off
+    @task_flag_off
     def test_the_task_does_nothing_while_the_flag_is_off(self):
         from classrooms.tasks import run_missing_work_go_live
 
@@ -239,7 +243,7 @@ class BeatEntryTests(TestCase):
         self.assertFalse(GoLiveRun.objects.exists())
 
 
-@categories_on
+@task_flag_on
 class BeatTaskTests(_GoLiveCase):
     def test_the_task_runs_it(self):
         from classrooms.tasks import run_missing_work_go_live

@@ -22,16 +22,23 @@ recompute as switching the course setting (a GRADE_CHANGE audit entry only
 for each grade that moved, source "missing_work_go_live"). No credits are
 spent. Each changed grade is printed as `<course id>  <student id>  <old> ->
 <new>`. A second run changes nothing.
+
+The same recompute also runs once by itself (classrooms/missing_work_go_live.py,
+owner 2026-11-19 "automatic"): the hourly Beat task does it the first time
+the flag is on, and records it in a GoLiveRun row. This command reports that
+row. A full --apply (no --course) that finds it not yet done takes the same
+claim, so it never runs alongside the automatic run, and marks it done, so
+the automatic run then skips. Once it is done, --apply still recomputes (a
+repair tool; a second run changes nothing).
 """
 
 from django.core.management.base import BaseCommand, CommandError
-from django.db import transaction
 
-from classrooms import grade_categories, grade_service
-from classrooms.models import Course, StudentCourse
+from classrooms import grade_service, missing_work_go_live
+from classrooms.models import StudentCourse
 from classrooms.signals import compute_final_grade
 
-SOURCE = "missing_work_go_live"
+SOURCE = missing_work_go_live.SOURCE
 
 
 class Command(BaseCommand):
@@ -55,22 +62,56 @@ class Command(BaseCommand):
                 "so there is nothing to recompute. Switch the flag on first."
             )
         apply = options["apply"]
-        courses = Course.objects.filter(missing_counts_as_zero=True).order_by(
-            "created_at", "id"
-        )
+        courses = missing_work_go_live.course_ids()
         if options["course"]:
             courses = courses.filter(pk=options["course"])
 
         mode = "APPLY" if apply else "DRY RUN (nothing written; pass --apply)"
         self.stdout.write(f"recalculate_missing_work: {mode}")
+        done = self._report_marker()
+        if apply and not options["course"] and not done:
+            self._claimed_run()
+            return
         checked = changed = 0
-        for course_id in courses.values_list("id", flat=True).iterator():
+        for course_id in courses.iterator():
             checked += 1
             for student_id, old, new in self._course(course_id, apply):
                 changed += 1
                 self.stdout.write(f"{course_id}  {student_id}  {old} -> {new}")
         verb = "changed" if apply else "would change"
         self.stdout.write(f"courses checked {checked}, grades {verb} {changed}")
+
+    def _report_marker(self):
+        marker = missing_work_go_live.marker()
+        if marker is not None and marker.completed_at is not None:
+            self.stdout.write(
+                f"automatic go-live: already ran at {marker.completed_at:%Y-%m-%d %H:%M} "
+                f"(courses {marker.courses_checked}, grades changed "
+                f"{marker.grades_changed}); a run now changes only what moved since"
+            )
+            return True
+        self.stdout.write("automatic go-live: not completed yet")
+        return False
+
+    def _claimed_run(self):
+        def show(course_id, student_id, old, new):
+            self.stdout.write(f"{course_id}  {student_id}  {old} -> {new}")
+
+        result = missing_work_go_live.run(on_change=show)
+        status = result["status"]
+        if status in (
+            missing_work_go_live.HELD_ELSEWHERE,
+            missing_work_go_live.LOST_CLAIM,
+        ):
+            raise CommandError(
+                f"The automatic go-live run is in progress ({status}), "
+                "so this run stopped. Try again when it has finished."
+            )
+        self.stdout.write(f"automatic go-live: {status}")
+        self.stdout.write(
+            f"courses checked {result['courses_checked']}, "
+            f"grades changed {result['grades_changed']}"
+        )
 
     def _course(self, course_id, apply):
         if not apply:
@@ -82,7 +123,4 @@ class Command(BaseCommand):
                 if new != old:
                     found.append((student_id, old, new))
             return found
-        with transaction.atomic():
-            course = Course.objects.select_for_update().get(pk=course_id)
-            grade_categories.sync_course_missing_work_tasks(course)
-            return grade_categories.recalculate_course(course_id, source=SOURCE)
+        return missing_work_go_live.recompute_course(course_id)
