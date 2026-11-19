@@ -152,9 +152,10 @@ def upload_retryable(item, kept=None):
     return kept
 
 
-def kept_item_ids(items):
-    """The ids of the failed upload `items` that still have a kept file, in
-    one query (none when no item could need it)."""
+def kept_states(items):
+    """`(kept, lifetime_purged)`: the ids of the failed upload `items` that
+    still have a kept file, and of those whose file the lifetime purge
+    removed (E2E F5), in one query (none when no item could need it)."""
     from .models import KeptUpload
 
     ids = [
@@ -165,12 +166,33 @@ def kept_item_ids(items):
         and item.dismissed_at is None
     ]
     if not ids:
-        return set()
-    return set(
-        KeptUpload.objects.filter(
-            processing_task_id__in=ids, purged_at__isnull=True
-        ).values_list("processing_task_id", flat=True)
-    )
+        return set(), set()
+    kept, lifetime_purged = set(), set()
+    for item_id, purged_at, reason in KeptUpload.objects.filter(
+        processing_task_id__in=ids
+    ).values_list("processing_task_id", "purged_at", "purge_reason"):
+        if purged_at is None:
+            kept.add(item_id)
+        elif reason == KeptUpload.PurgeReason.LIFETIME:
+            lifetime_purged.add(item_id)
+    return kept, lifetime_purged
+
+
+def kept_item_ids(items):
+    """The ids of the failed upload `items` that still have a kept file, in
+    one query (none when no item could need it)."""
+    return kept_states(items)[0]
+
+
+def lifetime_purged(item):
+    """Whether upload `item`'s kept file was removed by the lifetime purge."""
+    from .models import KeptUpload
+
+    return KeptUpload.objects.filter(
+        processing_task_id=item.pk,
+        purged_at__isnull=False,
+        purge_reason=KeptUpload.PurgeReason.LIFETIME,
+    ).exists()
 
 
 def refusal_for(item):

@@ -3427,7 +3427,14 @@ class TaskViewSet(viewsets.ViewSet):
                 processing_task.refresh_from_db()
             # Owner 2026-11-18: an upload item's `retryable` needs its kept
             # file; read for the whole session in one query.
-            kept_ids = item_retry.kept_item_ids(tracked_tasks)
+            # E2E F5: and which lost it to the lifetime purge, same query.
+            kept_ids, lifetime_purged_ids = item_retry.kept_states(tracked_tasks)
+            # E2E F3: the batch's counts as they stand now, for the
+            # mid-batch text.
+            counts = (
+                sum(t.status == "SUCCESS" for t in tracked_tasks),
+                session.total_files or len(tracked_tasks),
+            )
 
             for processing_task in tracked_tasks:
 
@@ -3436,7 +3443,11 @@ class TaskViewSet(viewsets.ViewSet):
 
                 # FR-A-07 (S7a): the old keys, plus the item's own result.
                 task_entry = item_result(
-                    processing_task, task_context, kept_ids=kept_ids
+                    processing_task,
+                    task_context,
+                    kept_ids=kept_ids,
+                    counts=counts,
+                    lifetime_purged_ids=lifetime_purged_ids,
                 )
 
                 if processing_task.status == "SUCCESS":

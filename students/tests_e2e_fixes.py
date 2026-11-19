@@ -325,7 +325,7 @@ class LifetimePurgedItemReadsLikeTheRetry(ParkedFixture, TestCase):
         )
         refusal = self.retry(parked)
         self.assertEqual(refusal.status_code, 409)
-        body = refusal.json()
+        body = refusal.json()["error"]["field_errors"]
 
         results = self.session_results(data["session_id"])
         entry = next(

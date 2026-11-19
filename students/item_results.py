@@ -19,8 +19,18 @@ from AutoGrader.reason_codes import (
     credit_refusal_remediation,
 )
 
-from .item_retry import UPLOAD_ITEM_TYPES, upload_retryable
-from .models import BackgroundTaskStatus, BackgroundTaskType
+from .item_retry import (
+    UPLOAD_ITEM_TYPES,
+    deleted_after_days,
+    lifetime_purged,
+    upload_retryable,
+)
+from .models import (
+    BackgroundProcessingTask,
+    BackgroundTaskStatus,
+    BackgroundTaskType,
+    BatchUploadSession,
+)
 
 #: failure_codes' key for a failure with no reason code. A documented
 #: sentinel, not a ReasonCode: such a failure reads as error_class SYSTEM.
@@ -68,14 +78,59 @@ def is_retryable(task, kept_ids=None):
     return bool(spec.retryable) if spec is not None else False
 
 
-def item_result(task, context, kept_ids=None):
+def batch_counts(session_id, total_files=None):
+    """`(completed, total)` of a batch as it stands now: its SUCCESS items,
+    and its total_files (or its item count)."""
+    items = BackgroundProcessingTask.objects.filter(batch_session_id=session_id)
+    if total_files is None:
+        total_files = (
+            BatchUploadSession.objects.filter(pk=session_id)
+            .values_list("total_files", flat=True)
+            .first()
+        )
+    completed = items.filter(status=BackgroundTaskStatus.SUCCESS).count()
+    return completed, total_files or items.count()
+
+
+def _mid_batch_message(spec, task, counts):
+    """E2E F3: the mid-batch text, from the batch's counts when it is read,
+    not as they were when the item failed (the same two approved texts)."""
+    if counts is None:
+        counts = batch_counts(task.batch_session_id)
+    params = {"completed": counts[0], "total": counts[1]}
+    return spec.render(params, variant=spec.variant_from_params(params))
+
+
+def item_result(task, context, kept_ids=None, *, counts=None, lifetime_purged_ids=None):
     """The session-results entry for one tracked item. `kept_ids`: the ids
-    of the session's items that still have a kept file (one query for the
-    whole list); None reads it for this item alone."""
+    of the session's items that still have a kept file, and
+    `lifetime_purged_ids` those whose file the lifetime purge removed (one
+    query for the whole list: item_retry.kept_states); `counts` the batch's
+    `(completed, total)` (batch_counts). None reads each for this item."""
     meta = task.meta or {}
     failed = task.status == BackgroundTaskStatus.FAILURE
     code = task.reason_code or None
     spec = _spec(code) if code else None
+    message = task.error if failed else None
+    remediation = _remediation(spec, code, meta, task.task_type)
+    retryable = is_retryable(task, kept_ids)
+    if (
+        failed
+        and code == ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH.value
+        and (task.batch_session_id)
+    ):
+        message = _mid_batch_message(spec, task, counts)
+    elif failed and not retryable and task.task_type in UPLOAD_ITEM_TYPES:
+        # E2E F5: a file the lifetime purge removed reads as the retry's
+        # own refusal (NOT_RETRYABLE, item_retry.deleted_after_days).
+        purged = (
+            lifetime_purged(task)
+            if lifetime_purged_ids is None
+            else task.pk in lifetime_purged_ids
+        )
+        if purged:
+            message = deleted_after_days()
+            remediation = REASON_CODES[ReasonCode.NOT_RETRYABLE].remediation
     if spec is not None:
         error_class = spec.error_class.value
     elif failed:
@@ -89,7 +144,7 @@ def item_result(task, context, kept_ids=None):
         "status": task.status,
         "file_name": task.file_name,
         "task_id": task.celery_task_id,
-        "error": task.error,
+        "error": message if failed else task.error,
         "context": context,
         # FR-A-07.
         "item_id": str(task.id),
@@ -97,9 +152,9 @@ def item_result(task, context, kept_ids=None):
         "submission_id": str(submission_id) if submission_id else None,
         "reason_code": code,
         "error_class": error_class,
-        "message": task.error if failed else None,
-        "remediation": _remediation(spec, code, meta, task.task_type),
-        "retryable": is_retryable(task, kept_ids),
+        "message": message,
+        "remediation": remediation,
+        "retryable": retryable,
         # Owner 2026-11-18: the teacher dismissed it ("don't retry").
         "dismissed": task.dismissed_at is not None,
         "retry_count": task.retry_count,
