@@ -905,6 +905,35 @@ def reason_of(error):
     return None
 
 
+def is_user_error(error):
+    """E2E F8: True for a failure whose catalogue class is USER (an
+    unreadable or unsupported file, a credit refusal and the like): an
+    expected outcome, logged as a warning, not a fault."""
+    if isinstance(error, CodedError):
+        code = error.reason_code
+    else:
+        refusal = _refusal_reason(error)
+        if refusal is None:
+            return False
+        code = refusal[0]
+    if code is None:
+        return False
+    spec = REASON_CODES.get(ReasonCode(code))
+    return spec is not None and spec.error_class == ErrorClass.USER
+
+
+class _UserErrorMeta(type):
+    def __instancecheck__(cls, instance):
+        return is_user_error(instance)
+
+
+class ExpectedUserError(metaclass=_UserErrorMeta):
+    """E2E F8: `isinstance(error, ExpectedUserError)` is is_user_error. A
+    Celery task lists it in `throws`, which Celery reads only to log such a
+    failure at INFO without a traceback ("expected") instead of ERROR
+    "raised unexpected"; it changes nothing else about the failure."""
+
+
 def coded_body(code, params, message, remediation=None):
     """The envelope for `code`, as the view payload. `remediation` is a
     CodedError's chosen one; by default the spec's (null for "nothing to

@@ -2,6 +2,8 @@
 
 Advisory only: it returns the estimate's codes and numbers, writes nothing
 and holds nothing, and no route refuses a teacher because of its verdict.
+The numbers are display credits, the ones the wallet shows (owner,
+2026-11-18; billing.estimates.advise).
 
 Who may ask: a teacher, for an assignment of a course they can reach. That
 is the same rule grade-all applies (AssignmentViewSet.get_queryset filters on
@@ -72,14 +74,24 @@ class EstimateRequestSerializer(serializers.Serializer):
 ESTIMATE_REPLY = inline_serializer(
     "EstimateReply",
     {
-        "p50": serializers.IntegerField(),
-        "p90": serializers.IntegerField(),
+        "p50": serializers.IntegerField(
+            help_text="Likely cost, in display credits (rounded up)."
+        ),
+        "p90": serializers.IntegerField(
+            help_text="High-end cost, in display credits (rounded up)."
+        ),
         "verdict": serializers.ChoiceField(
             choices=["SUFFICIENT", "MARGINAL", "INSUFFICIENT"]
         ),
-        "spendable": serializers.IntegerField(),
-        "projected_remaining_p50": serializers.IntegerField(),
-        "projected_remaining_p90": serializers.IntegerField(),
+        "spendable": serializers.IntegerField(
+            help_text="Spendable balance, in display credits (rounded down)."
+        ),
+        "projected_remaining_p50": serializers.IntegerField(
+            help_text="spendable - p50, in display credits."
+        ),
+        "projected_remaining_p90": serializers.IntegerField(
+            help_text="spendable - p90, in display credits."
+        ),
         "source": serializers.CharField(),
         "shape_basis": serializers.CharField(),
         "sample_size": serializers.IntegerField(),

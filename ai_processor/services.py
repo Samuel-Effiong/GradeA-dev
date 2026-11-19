@@ -27,6 +27,7 @@ from pdf2image import convert_from_bytes, convert_from_path
 from pdf2image.exceptions import PDFPageCountError, PDFSyntaxError
 from PIL import Image
 
+from ai_processor.call_estimates import call_headroom
 from ai_processor.tools import compress_image_for_upload, encode_image, perform_search
 from audit.emitter import resolve_trace_id
 from billing import holds as credit_holds
@@ -588,6 +589,21 @@ def _second_opinion_error_code(exc) -> str:
     return "other"
 
 
+def assignment_chunk_note(page_start, page_end, total_pages, next_question):
+    """The note each chunk of a chunked assignment extraction carries; the
+    upload door counts it too (ai_processor.call_estimates)."""
+    return (
+        f"NOTE: You are processing pages {page_start} to "
+        f"{page_end} of a "
+        f"{total_pages}-page document. Extract ONLY the questions visible "
+        f"on these pages. Continue sequential question numbering from question "
+        f"{next_question}. Do not repeat questions from previous pages."
+        f"Your ONLY job is to extract every question on these pages fully and correctly"
+        f"Rubrics, model answers, options - all the same rules apply as normal"
+        f"Do not rush or abbreviate to 'save space' and do NOT skip any question visible in these pages"
+    )
+
+
 CHUNKED_EXTRACTION_PAGE_THRESHOLD = 4
 CHUNK_SIZE = 2
 
@@ -608,6 +624,10 @@ PROSEMIRROR_TOKEN_BUDGET_PER_CHUNK = 3000
 # (~6.5s/page vs ~13.7s/page at 1/chunk) - not tested above 3, re-benchmark
 # before raising further.
 ANSWERS_EXTRACTION_PAGES_PER_CHUNK = 3
+# Pages per call when an uploaded assignment is extracted in chunks
+# (extract_assignment_with_retry's default); the upload door counts the same
+# chunks (ai_processor.call_estimates.upload_item_estimate).
+ASSIGNMENT_UPLOAD_PAGES_PER_CHUNK = 3
 
 
 # How much a chunk's verdict about one question is WORTH when merging.
@@ -1666,15 +1686,8 @@ Do not include any explanatory text before or after the JSON
             # Build a context note so the AI knows this is a partial document
             page_start = chunk_index * pages_per_chunk + 1
             page_end = page_start + len(chunk) - 1
-            chunk_note = (
-                f"NOTE: You are processing pages {page_start} to "
-                f"{page_end} of a "
-                f"{len(image_contents)}-page document. Extract ONLY the questions visible "
-                f"on these pages. Continue sequential question numbering from question "
-                f"{len(merged_questions) + 1}. Do not repeat questions from previous pages."
-                f"Your ONLY job is to extract every question on these pages fully and correctly"
-                f"Rubrics, model answers, options - all the same rules apply as normal"
-                f"Do not rush or abbreviate to 'save space' and do NOT skip any question visible in these pages"
+            chunk_note = assignment_chunk_note(
+                page_start, page_end, len(image_contents), len(merged_questions) + 1
             )
 
             chunk_content = [
@@ -1780,7 +1793,7 @@ Do not include any explanatory text before or after the JSON
         content: str | list,
         max_retries: int = 3,
         upload=False,
-        pages_per_chunk: int = 3,
+        pages_per_chunk: int = ASSIGNMENT_UPLOAD_PAGES_PER_CHUNK,
         processing_task_id=None,
     ):
         """
@@ -2347,6 +2360,48 @@ Do not include any explanatory text before or after the JSON
 
         return merged_result
 
+    @staticmethod
+    def answer_extraction_messages(
+        content, assignment, assignment_model, *, system_prompt=None
+    ):
+        """The messages of a one-call answer extraction: the system prompt,
+        the assignment context, the course roster and the file. The upload
+        door counts these same messages (E2E F1,
+        ai_processor.call_estimates.upload_item_estimate)."""
+        # Get all the student in this assignment course
+        student_names = []
+        if assignment_model and hasattr(assignment_model, "course"):
+
+            # Fetch all active enrollments for the course
+            enrollments = StudentCourse.objects.filter(
+                course=assignment_model.course, enrollment_status="ENROLLED"
+            ).select_related("student")
+
+            student_names = [
+                f"{enrollment.student.first_name} {enrollment.student.last_name}"
+                for enrollment in enrollments
+            ]
+
+        student_roster = (
+            "Here is the list of students in this assignment course: Use it to match, "
+            "the student information that is retrieve from the assignment \n "
+        )
+        student_roster += "\n\n".join(student_names)
+
+        return [
+            {
+                "role": "system",
+                "content": (
+                    ANSWERS_EXTRACTION_PROMPT
+                    if system_prompt is None
+                    else system_prompt
+                ),
+            },
+            {"role": "user", "content": assignment},
+            {"role": "user", "content": student_roster},
+            {"role": "user", "content": content},
+        ]
+
     def extract_answer_image(
         self,
         user,
@@ -2400,32 +2455,9 @@ Do not include any explanatory text before or after the JSON
                 config=config,
             )
 
-        # Get all the student in this assignment course
-        student_names = []
-        if assignment_model and hasattr(assignment_model, "course"):
-
-            # Fetch all active enrollments for the course
-            enrollments = StudentCourse.objects.filter(
-                course=assignment_model.course, enrollment_status="ENROLLED"
-            ).select_related("student")
-
-            student_names = [
-                f"{enrollment.student.first_name} {enrollment.student.last_name}"
-                for enrollment in enrollments
-            ]
-
-        student_roster = (
-            "Here is the list of students in this assignment course: Use it to match, "
-            "the student information that is retrieve from the assignment \n "
+        messages = self.answer_extraction_messages(
+            content, assignment, assignment_model, system_prompt=system_prompt
         )
-        student_roster += "\n\n".join(student_names)
-
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": assignment},
-            {"role": "user", "content": student_roster},
-            {"role": "user", "content": content},
-        ]
 
         try:
             ensure_task_not_cancelled(processing_task_id)
@@ -5642,7 +5674,7 @@ Now, respond to the following teacher's instruction using the rules above
         call_record.note_billed(target_teacher)
         ensure_task_not_cancelled(processing_task_id)
         estimated_cost = self.estimate_messages_cost(
-            user_prompt, system_prompt, messages
+            user_prompt, system_prompt, messages, task_type=task_type
         )
         call_record.note_estimate(estimated_cost)
 
@@ -5755,8 +5787,12 @@ Now, respond to the following teacher's instruction using the rules above
 
         return (tiles_wide * tiles_high * 170) + 85
 
-    def estimate_messages_cost(self, user_prompt, system_prompt, messages):
-        """What a call carrying these prompts and messages is estimated at.
+    def estimate_messages_cost(
+        self, user_prompt, system_prompt, messages, task_type=None
+    ):
+        """What a call carrying these prompts and messages is estimated at:
+        the counted input plus the headroom of the call's task_type
+        (ai_processor.call_estimates; E2E F1).
 
         THE ONE PLACE the gate in execute_graded_task and the door of the
         upload routes (assignments.upload_door, H-180) both ask, so the
@@ -5806,9 +5842,13 @@ Now, respond to the following teacher's instruction using the rules above
                         elif item["type"] == "pdf_url":
                             pdf_bytes.append(item.get("bytes"))
 
-        return self.estimate_total_token(total_prompt, image_bytes, pdf_bytes)
+        return self.estimate_total_token(
+            total_prompt, image_bytes, pdf_bytes, task_type=task_type
+        )
 
-    def estimate_total_token(self, prompt_text, image_bytes=None, pdf_bytes=None):
+    def estimate_total_token(
+        self, prompt_text, image_bytes=None, pdf_bytes=None, task_type=None
+    ):
 
         encoding = tiktoken.get_encoding("cl100k_base")
 
@@ -5824,7 +5864,9 @@ Now, respond to the following teacher's instruction using the rules above
                 pages = pdf_service.get_pdf_page_count(bytes)
                 total_estimate += pages * 1200
 
-        total_estimate += 20000
+        # E2E F1 (option C): the call's headroom, per task_type; 20,000 for
+        # a task type with no data (ai_processor.call_estimates).
+        total_estimate += call_headroom(task_type)
 
         return total_estimate
 

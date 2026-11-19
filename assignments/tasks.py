@@ -24,7 +24,12 @@ from AutoGrader.error_messages import (
     classify_infra_error,
     describe_background_task_error,
 )
-from AutoGrader.reason_codes import REASON_CODES, CodedError, reason_of
+from AutoGrader.reason_codes import (
+    REASON_CODES,
+    CodedError,
+    ExpectedUserError,
+    reason_of,
+)
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.tasks import send_email_task
 from billing.errors import InsufficientCreditsError
@@ -133,7 +138,7 @@ UPLOAD_REFUSALS = (
 )
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, throws=(ExpectedUserError,))
 def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None):
     """
     Legacy bulk-grading task. No code dispatches this anymore (the
@@ -250,7 +255,7 @@ def grade_all_submissions(self, user_id, assignment_id, processing_task_id=None)
     return {"status": "Completed", "assignment_id": assignment_id}
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, throws=(ExpectedUserError,))
 def extract_assignment_background_task(
     self,
     user_id,
@@ -326,7 +331,7 @@ def extract_assignment_background_task(
         raise
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, throws=(ExpectedUserError,))
 def update_assignment_background_task(
     self,
     user_id,
@@ -404,7 +409,7 @@ def update_assignment_background_task(
         raise
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, throws=(ExpectedUserError,))
 def extract_answer_background_task(
     self, submission_id, raw_input, user_id, processing_task_id=None
 ):
@@ -647,6 +652,9 @@ def _audit_unreachable_course_refusal(teacher_id, assignment, processing_task_id
     # claim, refund in-flight charges) gets a chance to run before SIGKILL.
     soft_time_limit=GRADING_TASK_TIME_LIMIT_SECONDS - 60,
     time_limit=GRADING_TASK_TIME_LIMIT_SECONDS,
+    # E2E F8: a user's error is logged by Celery as expected (INFO), not
+    # "raised unexpected" (ERROR); real faults are unchanged.
+    throws=(ExpectedUserError,),
 )
 def grade_engine_async(
     self,
@@ -943,7 +951,7 @@ def _reconcile_formatted_grade_numbers(formatted, submission):
     return formatted
 
 
-@shared_task(bind=True)
+@shared_task(bind=True, throws=(ExpectedUserError,))
 def format_grade(self, submission_id, prompt, processing_task_id=None):
     try:
         ensure_task_not_cancelled(processing_task_id)
@@ -1025,7 +1033,13 @@ ANSWER_UPLOAD_FALLBACK = (
 # both for the real-endpoint timing this is derived from. Re-derive this
 # alongside those two if either changes; it must stay safely under
 # CELERY_BROKER_TRANSPORT_OPTIONS' visibility_timeout=3600s in settings.py.
-@shared_task(bind=True, max_retries=3, soft_time_limit=2700, time_limit=3000)
+@shared_task(
+    bind=True,
+    max_retries=3,
+    soft_time_limit=2700,
+    time_limit=3000,
+    throws=(ExpectedUserError,),
+)
 def upload_answers_engine_async(
     self,
     assignment_id,
@@ -1217,7 +1231,7 @@ def upload_answers_engine_async(
 FORMATTED_GRADE_SUPERSEDED = "Superseded by a newer grade; nothing written"
 
 
-@shared_task()
+@shared_task(throws=(ExpectedUserError,))
 def formatted_grade_async(
     submission_id, user_prompt, processing_task_id=None, result_stamp=None
 ):
@@ -1330,7 +1344,13 @@ def formatted_grade_async(
         raise
 
 
-@shared_task(bind=True, max_retries=3, soft_time_limit=1800, time_limit=2100)
+@shared_task(
+    bind=True,
+    max_retries=3,
+    soft_time_limit=1800,
+    time_limit=2100,
+    throws=(ExpectedUserError,),
+)
 def upload_assignment_async(
     self,
     *,
@@ -1506,7 +1526,7 @@ def _refuse_batch_without_rubric(assignment, submissions, session, actor):
     )
 
 
-@shared_task(bind=True, max_retries=3)
+@shared_task(bind=True, max_retries=3, throws=(ExpectedUserError,))
 def grade_batch_async(
     self, user_id, assignment_id, batch_id=None, processing_task_id=None
 ):
@@ -1936,7 +1956,11 @@ def _relaunch_failed_dispatches(teacher, assignment, papers, session, collect=No
     return papers.exclude(id__in=reused)
 
 
-@shared_task(bind=True, name="assignments.tasks.auto_grade_due_assignment")
+@shared_task(
+    bind=True,
+    name="assignments.tasks.auto_grade_due_assignment",
+    throws=(ExpectedUserError,),
+)
 def auto_grade_due_assignment(self, assignment_id, session_id=None):
     session = None
     try:

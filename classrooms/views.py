@@ -1229,7 +1229,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
 
 @extend_schema_view(
     list=extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="List all Course",
         description="Retrieve a paginated list of all Course in the system.",
         parameters=[
@@ -1252,7 +1252,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     create=extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Create a new Course",
         description="Create a new Course with the provided details.",
         request=CourseSerializer,
@@ -1267,7 +1267,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     retrieve=extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Retrieve a Course",
         description="Retrieve detailed information about a specific Course by its ID.",
         responses={
@@ -1277,7 +1277,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     partial_update=extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Partially update a Course",
         description="Update one or more fields of an existing section.",
         request=CourseSerializer(partial=True),
@@ -1288,7 +1288,7 @@ class SchoolViewSet(UserCacheMixin, viewsets.ModelViewSet):
         },
     ),
     destroy=extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Delete a Course",
         description="Delete a Course by ID. This action cannot be undone.",
         responses={
@@ -1438,7 +1438,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return [(SCOPE_COURSE, course_id) for course_id in course_ids]
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Add student to a particular course",
         description="Add student to a particular course.",
         request=AddStudentToCourseSerializer,
@@ -1508,7 +1508,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Add student directly to a course without email verification",
         description="Allows teachers to manually create and enroll students (like toddlers) instantly.",
         request=DirectAddStudentSerializer,
@@ -1562,7 +1562,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Bulk add students to a course",
         description="Allows teachers to upload a CSV or paste roster data from Excel (TSV).",
         request=BulkAddStudentSerializer,
@@ -1613,7 +1613,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(result, status=status.HTTP_200_OK)
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Remove student from course",
         description="Remove a student from a course.",
         parameters=[
@@ -1689,7 +1689,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Renew expired activation token for student",
         description="Renew the activation token for a student whose token has expired",
         request=ExpiredTokenSerializer,
@@ -1720,7 +1720,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         )
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="List courses a student is enrolled in",
         responses=CourseSerializer(many=True),
     )
@@ -1890,7 +1890,7 @@ class CourseViewSet(UserCacheMixin, viewsets.ModelViewSet):
         return Response(serializer.data)
 
     @extend_schema(
-        tags=["02 Course"],
+        tags=["Course"],
         summary="Create topics for a course",
         description="Create multiple topics for a specific course. Accepts a list of topic names or topic objects.",
         request=TopicSerializer(many=True),

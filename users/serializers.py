@@ -751,6 +751,8 @@ class BatchSessionResultTaskEntrySerializer(serializers.Serializer):
     message = serializers.CharField(required=False, allow_null=True)
     remediation = serializers.CharField(required=False, allow_null=True)
     retryable = serializers.BooleanField(required=False)
+    # Owner 2026-11-18: the teacher dismissed the item ("don't retry").
+    dismissed = serializers.BooleanField(required=False)
     retry_count = serializers.IntegerField(required=False)
     reference = serializers.CharField(required=False, allow_null=True)
     replaced_existing = serializers.BooleanField(required=False, allow_null=True)
@@ -796,6 +798,26 @@ class BatchSessionCancelSerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
     cancelled_count = serializers.IntegerField()
     message = serializers.CharField()
+
+
+class BatchSessionListItemSerializer(serializers.Serializer):
+    """One row of GET tasks/sessions (owner, 2026-11-18;
+    students.session_list.session_row). Data only."""
+
+    session_id = serializers.UUIDField()
+    task_type = serializers.CharField()
+    assignment_id = serializers.UUIDField(allow_null=True)
+    assignment_title = serializers.CharField(allow_null=True)
+    course_id = serializers.UUIDField(allow_null=True)
+    course_name = serializers.CharField(allow_null=True)
+    created_at = serializers.DateTimeField()
+    success_count = serializers.IntegerField()
+    failure_count = serializers.IntegerField()
+    cancelled_count = serializers.IntegerField()
+    pending_count = serializers.IntegerField()
+    dismissed_count = serializers.IntegerField()
+    resumable = serializers.BooleanField()
+    retryable_count = serializers.IntegerField()
 
 
 class BetaWhitelistSerializer(serializers.ModelSerializer):

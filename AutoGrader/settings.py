@@ -25,6 +25,11 @@ from environ import Env
 env = Env()
 env.read_env(".env")
 
+# True under the test runner (`manage.py test` or pytest). Settings below use
+# it for defaults that must differ in tests: BENCHMARK_ARCHIVE_ENABLED,
+# KEPT_UPLOADS_BACKEND and the Phase 2 switches.
+_RUNNING_TESTS = "test" in sys.argv or "pytest" in sys.modules
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -695,8 +700,10 @@ AI_CALL_RECORD_ENABLED = env.bool("AI_CALL_RECORD_ENABLED", default=True)
 # processes. The account's own privacy settings are separate.
 AI_PROVIDER_ZDR_ENABLED = env.bool("AI_PROVIDER_ZDR_ENABLED", default=False)
 
-# Epic B1: credit holds, metered units, batch jobs and queue.
-BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=False)
+# Epic B1: credit holds, metered units, batch jobs and queue. On by default
+# (owner, 2026-11-18); off only under the test runner, where tests turn it on
+# themselves. Set BILLING_HOLDS_ENABLED=false on a server to turn it off.
+BILLING_HOLDS_ENABLED = env.bool("BILLING_HOLDS_ENABLED", default=not _RUNNING_TESTS)
 # B1b-9 (08b §6.3): the drain before the flag is turned off. While on, new
 # work makes no hold, job or queue entry (it runs the flag-off path) and what
 # is already held runs to its end; run `billing_holds_drain`. Set it the same
@@ -1548,14 +1555,20 @@ FIELD_ENCRYPTION_KEY = env.str("FIELD_ENCRYPTION_KEY", "")
 # turn it back off. See docs/ops/rate-limiting.md.
 EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
 
-# Epic C1: teacher tags (plan 11 §3.4). Off by default: the tag routes then
-# answer exactly as an unknown URL does, and assignment responses carry no
-# `tags` field. The backfill command does not depend on it.
-TAGS_ENABLED = env.bool("TAGS_ENABLED", default=False)
+# Epic C1: teacher tags (plan 11 §3.4). On by default (owner, 2026-11-18);
+# off only under the test runner, where tests turn it on themselves. Set
+# TAGS_ENABLED=false on a server to turn it off: the tag routes then answer
+# exactly as an unknown URL does, and assignment responses carry no `tags`
+# field. The backfill command does not depend on it.
+TAGS_ENABLED = env.bool("TAGS_ENABLED", default=not _RUNNING_TESTS)
 
-# NFR-CMP-04: a student's data export (and, later, erasure). Off by default:
-# the routes then answer exactly as an unknown URL does.
-STUDENT_DATA_TOOLS_ENABLED = env.bool("STUDENT_DATA_TOOLS_ENABLED", default=False)
+# NFR-CMP-04: a student's data export and erasure. On by default (owner,
+# 2026-11-18); off only under the test runner, where tests turn it on
+# themselves. Set STUDENT_DATA_TOOLS_ENABLED=false on a server to turn it
+# off: the routes then answer exactly as an unknown URL does.
+STUDENT_DATA_TOOLS_ENABLED = env.bool(
+    "STUDENT_DATA_TOOLS_ENABLED", default=not _RUNNING_TESTS
+)
 
 # Epic E2: grade categories, relative weights, excused and missing work
 # (plan docs/evidence/epic-e2/STEP0_PLAN.md). Off by default: grades use
@@ -1674,8 +1687,7 @@ BENCHMARK_ARCHIVE_PREFIX = env.str(
 # Cloudinary (see STORAGES above), so a test that saved a file would make a
 # live network call using real credentials. Individual tests still override
 # the storage backend explicitly; this is the backstop for the test someone
-# forgets to.
-_RUNNING_TESTS = "test" in sys.argv or "pytest" in sys.modules
+# forgets to. _RUNNING_TESTS is set near the top of this file.
 BENCHMARK_ARCHIVE_ENABLED = env.bool(
     "BENCHMARK_ARCHIVE_ENABLED", default=not _RUNNING_TESTS
 )

@@ -2,9 +2,15 @@ import logging
 import re
 
 from django.http import Http404
-from rest_framework.exceptions import AuthenticationFailed, Throttled, ValidationError
+from rest_framework.exceptions import (
+    AuthenticationFailed,
+    NotAuthenticated,
+    Throttled,
+    ValidationError,
+)
 from rest_framework.response import Response
 from rest_framework.views import exception_handler
+from rest_framework_simplejwt.exceptions import InvalidToken
 
 from audit.enums import ReasonCode
 from AutoGrader.reason_codes import (
@@ -62,6 +68,31 @@ def _reword_not_found(exc, drf_response):
     )
 
 
+# QA rows 11 and 12: owner-approved sentences in place of DRF's and
+# simplejwt's own. Only `detail` changes; status, `code` and shape stay.
+_NO_CREDENTIALS_DEFAULT = "Authentication credentials were not provided."
+_NO_CREDENTIALS_TEXT = "Please sign in to continue."
+_TOKEN_DEFAULTS = frozenset(
+    {
+        "Given token not valid for any token type",
+        "Token is invalid",
+        "Token is expired",
+        "Token is invalid or expired",
+    }
+)
+_SESSION_EXPIRED_TEXT = "Your session has expired. Please sign in again."
+
+
+def _reword_auth(exc, drf_response):
+    if not isinstance(drf_response.data, dict):
+        return
+    detail = str(drf_response.data.get("detail", ""))
+    if isinstance(exc, NotAuthenticated) and detail == _NO_CREDENTIALS_DEFAULT:
+        drf_response.data["detail"] = _NO_CREDENTIALS_TEXT
+    elif isinstance(exc, InvalidToken) and detail in _TOKEN_DEFAULTS:
+        drf_response.data["detail"] = _SESSION_EXPIRED_TEXT
+
+
 def custom_exception_handler(exc, context):
     request = context["request"]
     extra = {
@@ -115,6 +146,7 @@ def custom_exception_handler(exc, context):
         # H-273: stash for audit middleware (exception ref, never its text)
         drf_response._audit_exc = exc
         _reword_not_found(exc, drf_response)
+        _reword_auth(exc, drf_response)
         if isinstance(exc, ValidationError):
             if isinstance(exc.detail, dict):
                 safe = sorted(

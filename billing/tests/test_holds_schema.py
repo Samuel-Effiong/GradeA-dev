@@ -5,16 +5,13 @@ missing model fails that test alone (LookupError) instead of the module.
 """
 
 import importlib
-import os
-import subprocess
-import sys
 import uuid
 
 from django.apps import apps
-from django.conf import settings
 from django.db import IntegrityError, connection, models, transaction
 from django.test import TestCase, override_settings
 
+from billing.tests.test_fresh_settings_support import fresh_settings
 from users.models import CustomUser, UserTypes
 
 
@@ -377,28 +374,11 @@ class PlanAndSettingsTests(TestCase):
         self.assertEqual(first.cold_start_cost_factor, 3.0)
         self.assertEqual(first.unstarted_backstop_hours, 36)
 
-    def test_holds_flag_defaults_off(self):
-        """The shipped default, not the running value (B1b-2, SM Q1): the
-        settings are loaded in a fresh interpreter with BILLING_HOLDS_ENABLED
-        removed from its environment, so this holds whatever this run's
-        environment sets. No database is touched."""
-        env = {k: v for k, v in os.environ.items() if k != "BILLING_HOLDS_ENABLED"}
-        env["DJANGO_SETTINGS_MODULE"] = os.environ.get(
-            "DJANGO_SETTINGS_MODULE", "AutoGrader.settings"
-        )
-        script = (
-            "import sys; sys.argv = ['manage.py', 'test']; "
-            "from django.conf import settings; "
-            "print(repr(settings.BILLING_HOLDS_ENABLED))"
-        )
-        result = subprocess.run(  # nosec B603: a fixed script, no shell
-            [sys.executable, "-c", script],
-            cwd=settings.BASE_DIR,
-            env=env,
-            capture_output=True,
-            text=True,
-            timeout=120,
-            check=False,
-        )
-        self.assertEqual(result.returncode, 0, result.stderr[-2000:])
-        self.assertEqual(result.stdout.strip().splitlines()[-1], "False")
+    def test_holds_flag_defaults_on(self):
+        """The shipped default, not the running value (B1b-2, SM Q1; on
+        since the owner's order of 2026-11-18): the settings are loaded in a
+        fresh interpreter, as a server starts, with BILLING_HOLDS_ENABLED
+        removed from its environment and from .env, so this holds whatever
+        this run's environment sets. No database is touched."""
+        name = "BILLING_HOLDS_ENABLED"
+        self.assertIs(fresh_settings([name], strip=[name])[name], True)

@@ -402,6 +402,9 @@ METADATA_ALLOWLIST = {
     AuditAction.ACCOUNT_UNLOCK: frozenset(
         {"had_admin_lock", "had_login_lock", "cleared_failed_attempts"}
     ),
+    # Owner 2026-11-18: a dismissed batch item; the item's code is the
+    # event's own reason_code column.
+    AuditAction.BATCH_ITEM_DISMISSED: frozenset({"session_id", "item_id", "task_type"}),
     # Plus S1b's summary keys: a capped anonymous crash (SERVER_ERROR) is
     # summarised under its own action.
     AuditAction.STATE_CHANGE: frozenset(

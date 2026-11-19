@@ -18,7 +18,12 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
-from AutoGrader.reason_codes import CodedError, credit_refusal_variant, reason_of
+from AutoGrader.reason_codes import (
+    CodedError,
+    credit_refusal_variant,
+    is_user_error,
+    reason_of,
+)
 from AutoGrader.safe_logging import describe_error_for_log
 from billing.errors import InsufficientCreditsError
 from billing.refusals import is_permanent_refusal, log_refusal
@@ -329,6 +334,14 @@ def mark_processing_task_failure(
         meta = merge_task_meta(meta, {"message_variant": variant})
     if is_permanent_refusal(error):
         log_refusal(logger, f"Background task {processing_task_id}", error)
+    elif is_user_error(error):
+        # E2E F8: the user's error (an unreadable or unsupported file and
+        # the like) is an expected outcome: a warning, class only.
+        logger.warning(
+            "Background task %s failed (user error): %s",
+            processing_task_id,
+            describe_error_for_log(error),
+        )
     elif isinstance(error, BaseException):
         # H-208: the error's class (and, for a fault that is not a broker
         # outage, its frames), never its text or a traceback.
@@ -386,6 +399,37 @@ def record_refused_item(*, requested_by, task_type, error, **fields):
         requested_by=requested_by, task_type=task_type, **fields
     )
     mark_processing_task_failure(item.id, error)
+    item.refresh_from_db()
+    return item
+
+
+def record_parked_item(
+    *, requested_by, task_type, error, uploaded_file, relaunch=None, **fields
+):
+    """H-223: a batch file parked at the door for lack of credits. Its file
+    is kept like an accepted file's (owner, 2026-11-18): the KeptUpload row
+    is written with the refused item, in one transaction, so the teacher can
+    retry it by hand after a top-up with no re-upload. No hold and no charge.
+    Storage down: DoorFile's fallback (not kept, counted), and the item is
+    still recorded."""
+    from .kept_uploads import DoorFile
+
+    door_file = DoorFile(uploaded_file)
+    try:
+        with transaction.atomic():
+            item = create_processing_task(
+                requested_by=requested_by,
+                task_type=task_type,
+                file_name=uploaded_file.name,
+                **fields,
+            )
+            door_file.attach(item, relaunch=relaunch)
+            # The credit refusal is retryable from a kept file, so
+            # _discard_refused_kept_file leaves the file in place.
+            mark_processing_task_failure(item.id, error)
+    except BaseException:
+        door_file.discard()
+        raise
     item.refresh_from_db()
     return item
 

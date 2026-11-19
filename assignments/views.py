@@ -38,7 +38,11 @@ from ai_processor.serializers import AssignmentGeneratorSerializer
 from ai_processor.services import ai_processor  # pdf_service
 from assignments.exceptions import FileUnreadableError
 from assignments.upload_door import (
+    ITEM_ACCEPTED,
+    ITEM_PARKED,
+    ITEM_REFUSED,
     DoorHold,
+    batch_entry,
     batch_refusal_response,
     launch_at_door,
     parked_files,
@@ -70,6 +74,7 @@ from students.task_tracking import (
     create_processing_task,
     launch_processing_task,
     mark_processing_task_failure,
+    record_parked_item,
     record_refused_item,
 )
 from tags.assignment_field import filter_by_tags, prefetch_tags
@@ -100,6 +105,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     AssignmentSerializer,
     AssignmentTextSerializer,
     BatchUploadResponseSerializer,
+    DoorBatchUploadResponseSerializer,
     GeneratedAssignmentSerializer,
     PublishAllGradesResponseSerializer,
     SaveGeneratedAssignmentDraftSerializer,
@@ -1086,7 +1092,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             }
         },
         responses={
-            201: BatchUploadResponseSerializer,
+            201: DoorBatchUploadResponseSerializer,
             400: {
                 "description": "Bad Request. No files were uploaded or invalid file data.",
                 "example": {"error": "No files were uploaded."},
@@ -1171,13 +1177,17 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         # launch_processing_task dispatches at once, so a park recorded after
         # an earlier file's item STARTED would be read as a mid-batch stop
         # (batch_credit_refusal: the session stamped, the rest stopped).
+        # Owner 2026-11-18: each parked file is kept with the topic a retry
+        # needs, as an accepted one is, so it is retried by hand after a
+        # top-up with no re-upload.
         parked_items = {
-            index: record_refused_item(
+            index: record_parked_item(
                 requested_by=request.user,
                 task_type=BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD,
                 error=error,
+                uploaded_file=files[index],
+                relaunch={"topic_id": str(topic.id) if topic else None},
                 batch_session=session,
-                file_name=files[index].name,
                 item_index=index + 1,
             )
             for index, error in parked.items()
@@ -1197,13 +1207,14 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 except (PayloadTooLarge, PayloadEmpty) as exc:
                     refusal = exc
             if refusal is None and item_index - 1 in parked_items:
-                # H-223: parked (recorded above); uploaded again after a top-up.
+                # H-223: parked (recorded and kept above); retried after a top-up.
                 tasks_data.append(
-                    {
-                        "file_name": file_name,
-                        "task_id": None,
-                        "item_id": parked_items[item_index - 1].id,
-                    }
+                    batch_entry(
+                        file_name,
+                        parked_items[item_index - 1].id,
+                        ITEM_PARKED,
+                        error=parked[item_index - 1],
+                    )
                 )
                 continue
             if refusal is not None:
@@ -1216,7 +1227,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     item_index=item_index,
                 )
                 tasks_data.append(
-                    {"file_name": file_name, "task_id": None, "item_id": refused.id}
+                    batch_entry(file_name, refused.id, ITEM_REFUSED, error=refusal)
                 )
                 continue
 
@@ -1243,16 +1254,15 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             file_payload = door_file.payload()
             if not door.hold(processing_task, estimates.get(item_index - 1)):
                 # Epic B1a: the file's hold lost a race for the free balance.
-                mark_processing_task_failure(
-                    processing_task.id,
-                    door.refusal(estimates.get(item_index - 1)),
-                )
+                lost_race = door.refusal(estimates.get(item_index - 1))
+                mark_processing_task_failure(processing_task.id, lost_race)
                 tasks_data.append(
-                    {
-                        "file_name": uploaded_file.name,
-                        "task_id": None,
-                        "item_id": processing_task.id,
-                    }
+                    batch_entry(
+                        uploaded_file.name,
+                        processing_task.id,
+                        ITEM_PARKED,
+                        error=lost_race,
+                    )
                 )
                 continue
             task_id = launch_at_door(
@@ -1269,11 +1279,12 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 **({"category_id": str(category.id)} if category else {}),
             )
             tasks_data.append(
-                {
-                    "file_name": uploaded_file.name,
-                    "task_id": task_id,
-                    "item_id": processing_task.id,
-                }
+                batch_entry(
+                    uploaded_file.name,
+                    processing_task.id,
+                    ITEM_ACCEPTED,
+                    task_id=task_id,
+                )
             )
         # Door-close fix: every file this request will hold is attached.
         door.seal()
@@ -1283,7 +1294,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "message": f"Batch processing started for {len(files)} files",
             "tasks": tasks_data,
         }
-        serializer = BatchUploadResponseSerializer(data)
+        serializer = DoorBatchUploadResponseSerializer(data)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     def _number_draft_questions_in_order(self, assignment_data, path):

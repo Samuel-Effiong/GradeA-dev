@@ -2676,7 +2676,7 @@ class SelectIndividualPlanSerializer(serializers.Serializer):
             plan = SubscriptionPlan.objects.get(id=value)
         except SubscriptionPlan.DoesNotExist as exc:
             raise serializers.ValidationError(
-                f"No plan found with id {value!r}."
+                "That plan no longer exists. Please choose another plan."
             ) from exc
 
         if plan.category != PlanCategory.INDIVIDUAL:

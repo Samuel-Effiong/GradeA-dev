@@ -153,6 +153,7 @@ class OnlyPlainValuesTests(TestCase):
                 "rough_replay_ratio": estimates.rough_replay_ratio(days=90),
                 "drift_reasons": estimates.drift_reasons(estimates.backtest(days=90)),
                 "shape_of": estimates.shape_of(assignment),
+                "paper_call_estimate": estimates.paper_call_estimate(assignment, None),
                 "spendable_of": estimates.spendable_of(user),
                 "question_bucket": estimates.question_bucket(3),
                 "size_band": estimates.size_band(3),
@@ -391,8 +392,10 @@ class AdviceTests(TestCase):
     def test_the_payload(self):
         user = teacher("advice")
         assignment = make_assignment(user, "Advice")
-        papers(user, assignment, [100] * 8 + [300] * 2)
-        with patch.object(estimates, "spendable_of", return_value=700):
+        # Raw costs and balance are x1000, so the display figures (owner,
+        # 2026-11-18: the payload is in display credits) are 500 and 700.
+        papers(user, assignment, [100_000] * 8 + [300_000] * 2)
+        with patch.object(estimates, "spendable_of", return_value=700_000):
             result = estimates.advise(user, assignment, 5)
         self.assertEqual(
             {key: result[key] for key in ("p50", "verdict", "spendable", "n")},

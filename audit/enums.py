@@ -126,6 +126,9 @@ class AuditAction(models.TextChoices):
     CATEGORY_TEMPLATE_CHANGE = "CATEGORY_TEMPLATE_CHANGE", "Category template changed"
     WORK_EXCUSED = "WORK_EXCUSED", "Work excused"
     EXCUSE_REMOVED = "EXCUSE_REMOVED", "Excuse removed"
+    # Owner 2026-11-18: a teacher dismissed a failed batch item ("don't
+    # retry"); reason_code is the item's code.
+    BATCH_ITEM_DISMISSED = "BATCH_ITEM_DISMISSED", "Batch item dismissed"
 
 
 # Actions that always touch a student's record, so they are kept 3 years.

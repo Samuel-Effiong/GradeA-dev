@@ -169,6 +169,10 @@ class Course(models.Model):
         ]
 
     def __str__(self):
+        # E2E F2: a legacy course may have no session (new ones need one,
+        # H-295); it is then its name alone. The formatter prompt reads this.
+        if self.session_id is None:
+            return self.name
         return f"{self.session.name} - {self.name}"
 
 

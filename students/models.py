@@ -647,6 +647,10 @@ class BackgroundProcessingTask(models.Model):
         db_default=0,
         help_text=_("How many times this item was retried in place (S7b)."),
     )
+    # Owner 2026-11-18: the teacher dismissed this failed item ("don't
+    # retry"). It stays FAILURE with its code and error; who dismissed it is
+    # meta["dismissed_by"] and the audit event.
+    dismissed_at = models.DateTimeField(null=True, blank=True)
     item_index = models.PositiveIntegerField(
         null=True,
         blank=True,
@@ -766,6 +770,7 @@ class KeptUpload(models.Model):
     class PurgeReason(models.TextChoices):
         LIFETIME = "lifetime", "Reached the end of its lifetime"
         DISCARDED = "discarded", "Discarded: the item ended"
+        DISMISSED = "dismissed", "Dismissed: the teacher won't retry the item"
 
     #: Why the file went. "discarded" is written when discard() makes the row
     #: due (cancel, refusal, success), so a failed delete the hourly purge

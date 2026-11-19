@@ -951,6 +951,20 @@ class BatchUploadResponseSerializer(serializers.Serializer):
     tasks = TaskInfoSerializer(many=True)
 
 
+class DoorTaskInfoSerializer(TaskInfoSerializer):
+    """E2E F4: an entry of a batch upload through the door (answers,
+    assignments): what the door did with the file."""
+
+    # ACCEPTED (launched), PARKED (kept for credits) or REFUSED (by the
+    # door), with the item's reason_code (null when accepted).
+    status = serializers.ChoiceField(choices=["ACCEPTED", "PARKED", "REFUSED"])
+    reason_code = serializers.CharField(allow_null=True)
+
+
+class DoorBatchUploadResponseSerializer(BatchUploadResponseSerializer):
+    tasks = DoorTaskInfoSerializer(many=True)
+
+
 class AssignmentGenerationMessageSerializer(serializers.ModelSerializer):
     assignment_title = serializers.CharField(
         source="assignment.title",
