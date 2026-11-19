@@ -56,6 +56,12 @@ def _model():
     return KeptUpload
 
 
+def _storage_fault(exc):
+    """N2: the class of what the storage raised (the KeptFileError's cause),
+    for the log only: never its text, the key or the file name."""
+    return type(exc.__cause__ or exc).__name__
+
+
 class KeptFileLost(Exception):
     """The kept file is gone or corrupt: the item can't run from it."""
 
@@ -77,8 +83,11 @@ class DoorFile:
             return
         try:
             self.stored = kept_files.store(content)
-        except kept_files.KeptFileError:
-            logger.warning("Kept upload: storage unavailable; sending inline.")
+        except kept_files.KeptFileError as exc:
+            logger.warning(
+                "Kept upload: storage unavailable; sending inline (%s).",
+                _storage_fault(exc),
+            )
             audit_metrics.count("kept_upload_fallback")
             self.stored = None
 
@@ -158,8 +167,12 @@ def open_upload(file_payload):
 def _delete_then_mark(row_id, storage_key):
     try:
         kept_files.delete(storage_key)
-    except kept_files.KeptFileError:
-        logger.warning("Kept upload %s: delete failed; the purge retries.", row_id)
+    except kept_files.KeptFileError as exc:
+        logger.warning(
+            "Kept upload %s: delete failed; the purge retries (%s).",
+            row_id,
+            _storage_fault(exc),
+        )
         return False
     # One save: purged_at and, unless discard() already said why, "lifetime".
     model = _model()
