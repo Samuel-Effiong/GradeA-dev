@@ -33,6 +33,9 @@ A1-A4: OWNER_SHEET.md, all approved (owner, 2026-11-18).
    lock, writes audit entries only for grades that moved, and spends no
    credits. It is a clocked PeriodicTask, not a beat schedule entry, so the
    beat-lock pin does not move.
+   An assignment created already published with its due date past (no
+   task will fire) recomputes the course at once, under the same lock
+   (SM 2026-11-19).
    **Go-live:** stored grades are only rewritten by events, and the task is
    made only for due dates still ahead while the flag is on. So right after
    GRADE_CATEGORIES_ENABLED goes on, run `manage.py recalculate_missing_work`
