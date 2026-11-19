@@ -267,7 +267,7 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
         mock_record.assert_called_once()
         self.assertEqual(
             mock_record.call_args.kwargs.get("description"),
-            "Credit top-up – payment received, credits not added. We'll refund you.",
+            "Credit top-up — payment received, credits not added. We'll refund you.",
         )
 
     @patch("billing.stripe_service.BillingTransactionService.record")

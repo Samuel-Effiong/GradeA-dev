@@ -549,6 +549,6 @@ class LicenseFlowReceiptTests(TransactionTestCase):
         txn = txn_by(stripe_payment_intent_id="pi_lic_inactive")
         self.assertEqual(
             txn.description,
-            "Credit top-up – payment received, credits not added. We'll refund you.",
+            "Credit top-up — payment received, credits not added. We'll refund you.",
         )
         self.assertEqual(txn.receipt_url, pi_receipt("pi_lic_inactive"))

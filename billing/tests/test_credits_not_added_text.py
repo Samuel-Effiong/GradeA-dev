@@ -23,7 +23,7 @@ from billing.transaction_wording import (
     rewrite_credits_not_added_description,
 )
 
-NEW = "Credit top-up – payment received, credits not added. We'll refund you."
+NEW = "Credit top-up — payment received, credits not added. We'll refund you."
 OLD_INDIVIDUAL = (
     "Overage purchase paid but block cap already reached at "
     "grant time — credits NOT granted, needs manual refund."

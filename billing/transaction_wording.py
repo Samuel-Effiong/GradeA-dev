@@ -22,7 +22,7 @@ _CHECKOUT = re.compile(r"^Backfilled from checkout\.session\.completed \((.*)\)$
 # but the credits cannot be added. One source for both live paths and the
 # migration that rewrites the older rows.
 CREDITS_NOT_ADDED = (
-    "Credit top-up – payment received, credits not added. We'll refund you."
+    "Credit top-up — payment received, credits not added. We'll refund you."
 )
 _OLD_CAP_REACHED = (
     "Overage purchase paid but block cap already reached at "
