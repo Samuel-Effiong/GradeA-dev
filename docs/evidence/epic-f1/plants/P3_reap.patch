@@ -1,0 +1,12 @@
+diff --git a/departments/service.py b/departments/service.py
+index af1851fd7..44d905d11 100644
+--- a/departments/service.py
++++ b/departments/service.py
+@@ -308,6 +308,7 @@ def end_memberships(
+     a second call finds nothing and writes nothing. One REMOVE event per row.
+     Not swallowed: a failure here must abort the caller's change (fail
+     closed). Returns the number of memberships ended."""
++    return 0  # PLANT P3: the reap does nothing
+     rows = list(
+         DepartmentMembership.objects.filter(teacher_id=teacher_id)
+         .select_related("department")

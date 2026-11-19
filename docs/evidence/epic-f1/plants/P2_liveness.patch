@@ -1,0 +1,13 @@
+diff --git a/departments/access.py b/departments/access.py
+index 50d8c0b9c..2f5f077f9 100644
+--- a/departments/access.py
++++ b/departments/access.py
+@@ -38,7 +38,7 @@ def live_teachers(school_id):
+         user_id=OuterRef("pk"),
+         is_active=True,
+         is_admin_allocation=False,
+-        license_subscription_id=newest_license_id(school_id),
++        # PLANT P2: any active allocation counts, newest license ignored
+     )
+     return CustomUser.objects.filter(
+         user_type=UserTypes.TEACHER,

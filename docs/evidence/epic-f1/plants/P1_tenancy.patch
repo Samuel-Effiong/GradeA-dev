@@ -1,0 +1,14 @@
+diff --git a/departments/access.py b/departments/access.py
+index 50d8c0b9c..ad652f380 100644
+--- a/departments/access.py
++++ b/departments/access.py
+@@ -83,7 +83,5 @@ def visible_departments(user):
+     if school_id is not None:
+-        return Department.objects.filter(school_id=school_id)
++        return Department.objects.all()  # PLANT P1: school filter dropped
+     if user is not None and is_licensed_teacher_of(user, user.school_id):
+-        return Department.objects.filter(
+-            school_id=user.school_id, memberships__teacher_id=user.pk
+-        )
++        return Department.objects.all()  # PLANT P1: membership filter dropped
+     return Department.objects.none()
