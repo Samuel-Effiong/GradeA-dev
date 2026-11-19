@@ -23,7 +23,8 @@ import requests
 from django.conf import settings
 from django.test import SimpleTestCase, override_settings
 
-KEY = re.compile(r"^kept_uploads/[0-9a-f]{32}$")
+# Owner 2026-11-19: under the deployment's folder (tests_kept_files_env_folder).
+KEY = re.compile(r"^kept_uploads/[a-z0-9-]+/[0-9a-f]{32}$")
 
 
 def kept_files():

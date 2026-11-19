@@ -170,6 +170,10 @@ APPEND_SLASH = False
 # deployment which has not installed the package yet degrades to "no error
 # reporting" rather than failing to start.
 SENTRY_DSN = env.str("SENTRY_DSN", default="")
+# H-246: the deployment's own name ("beta" on beta, which runs with
+# ENVIRONMENT=prod); unset on production. Kept upload files are foldered by it
+# (students.kept_files); the Sentry init below reads the same variable.
+SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="")
 
 if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
     try:
@@ -1000,6 +1004,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "students.tasks.purge_kept_uploads",
         "schedule": crontab(minute=15),
     },
+    # Epic E2 automatic go-live (owner 2026-11-19): runs the missing-work
+    # recompute once, the first time GRADE_CATEGORIES_ENABLED is on; every
+    # later tick is one read (classrooms/missing_work_go_live.py).
+    "e2-missing-work-go-live-hourly": {
+        "task": "classrooms.tasks.run_missing_work_go_live",
+        "schedule": crontab(minute=25),
+    },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),
@@ -1202,6 +1213,7 @@ BEAT_HEALTH_EXPECTATIONS = {
     ),
     "sweep-stale-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
     "sweep-missing-receipt-urls": (timedelta(hours=1), timedelta(hours=3)),
+    "e2-missing-work-go-live-hourly": (timedelta(hours=1), timedelta(hours=3)),
     "escalate-stale-licence-stripe-intents": (
         timedelta(minutes=5),
         timedelta(minutes=30),
@@ -1578,14 +1590,22 @@ STUDENT_DATA_TOOLS_ENABLED = env.bool(
 )
 
 # Epic E2: grade categories, relative weights, excused and missing work
-# (plan docs/evidence/epic-e2/STEP0_PLAN.md). Off by default: grades use
-# today's formula, the category routes answer as an unknown URL does, and
-# assignment and course responses carry no new field.
-GRADE_CATEGORIES_ENABLED = env.bool("GRADE_CATEGORIES_ENABLED", default=False)
+# (plan docs/evidence/epic-e2/STEP0_PLAN.md). On by default (owner
+# 2026-11-19); off under tests unless a test turns it on. Set it false to
+# go back: grades use the old formula, the category routes answer as an
+# unknown URL does, and assignment and course responses carry no new field.
+# The first time it is on, the hourly go-live task recomputes missing work once
+# (classrooms.missing_work_go_live).
+GRADE_CATEGORIES_ENABLED = env.bool(
+    "GRADE_CATEGORIES_ENABLED", default=not _RUNNING_TESTS
+)
 
-# Epic E2: single and bulk assignment copy. Off by default: the copy routes
+# Epic E2: single and bulk assignment copy. On by default (owner 2026-11-19);
+# off under tests unless a test turns it on. Set it false and the copy routes
 # answer as an unknown URL does.
-ASSIGNMENT_COPY_ENABLED = env.bool("ASSIGNMENT_COPY_ENABLED", default=False)
+ASSIGNMENT_COPY_ENABLED = env.bool(
+    "ASSIGNMENT_COPY_ENABLED", default=not _RUNNING_TESTS
+)
 
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")

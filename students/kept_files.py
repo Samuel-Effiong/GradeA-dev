@@ -1,7 +1,10 @@
 """Kept upload files: where their bytes live (Epic B1b-5, 08b §3.2).
 
 Cloudinary, called through its SDK directly (B1b-0 spike, NOTES §0.4): raw,
-PRIVATE assets under `kept_uploads/<random hex>`. Standing rules (NOTES,
+PRIVATE assets under `kept_uploads/<deployment>/<random hex>` (owner,
+2026-11-19: one cloud is shared by every environment, so each keeps its own
+folder; rows stored before keep their `kept_uploads/<random hex>` key, and
+load and delete use whatever key a row holds). Standing rules (NOTES,
 switch-on checklist):
 
 * `type="private"`, never `use_filename`: the name never holds the student's
@@ -17,6 +20,7 @@ says the asset is gone.
 
 import hashlib
 import io
+import re
 import time
 import uuid
 from dataclasses import dataclass
@@ -58,9 +62,25 @@ def _memory():
     return settings.KEPT_UPLOADS_BACKEND == "memory"
 
 
+def deployment_folder():
+    """The folder this deployment's new kept files go under: the name Sentry
+    files its events under (H-246: SENTRY_ENVIRONMENT when it holds a name,
+    else ENVIRONMENT; beta runs with ENVIRONMENT=prod and only
+    SENTRY_ENVIRONMENT=beta tells it from production), as a lowercase slug of
+    letters, digits and single hyphens ("unknown" if nothing is left)."""
+    from AutoGrader.sentry_environment import sentry_environment
+
+    name = sentry_environment(
+        str(getattr(settings, "ENVIRONMENT", "") or ""),
+        getattr(settings, "SENTRY_ENVIRONMENT", ""),
+    )
+    slug = re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
+    return slug or "unknown"
+
+
 def store(content):
     """Keep `content` (bytes) under a new random key."""
-    key = KEY_PREFIX + uuid.uuid4().hex
+    key = f"{KEY_PREFIX}{deployment_folder()}/{uuid.uuid4().hex}"
     if _memory():
         MEMORY[key] = bytes(content)
     else:

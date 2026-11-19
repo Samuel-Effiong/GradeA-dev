@@ -45,6 +45,30 @@ A1-A4: OWNER_SHEET.md, all approved (owner, 2026-11-18).
    `missing_work_go_live`, no credits). A second run changes nothing. A
    student's released grade is computed on read, so it is right from the
    moment the flag is on.
+   **Automatic (owner 2026-11-19, "automatic"):** the same recompute now
+   runs once by itself. The hourly Beat entry `e2-missing-work-go-live-hourly`
+   (`classrooms.tasks.run_missing_work_go_live`, Beat lock HOURLY, health
+   expectation 1 h / 3 h) calls `classrooms/missing_work_go_live.py`. Flag
+   off: nothing, not even a read. Flag on and not yet done: it claims the
+   run-once marker (a `GoLiveRun` row, unique name, migration classrooms
+   0020) with a conditional UPDATE and a 10-minute lease renewed after each
+   course, recomputes each course in its own transaction, then sets
+   `completed_at`; every later tick is one indexed read. Interrupted: done
+   courses stay done, the claim is released on an error (a killed worker's
+   lease lapses), and the next tick redoes the list, which changes nothing
+   for the courses already done. Chosen over post_migrate (runs inside the
+   deploy's migrate step and on every test database; an earlier post_migrate
+   auto-seed was removed for that reason, `billing/checks.py`), over
+   AppConfig.ready (no DB access at import) and over a worker_ready hook
+   (one per worker; Beat already gives one caller under a lock). The manual
+   command reports the marker; a full `--apply` that finds it not done takes
+   the same claim (refused while the automatic run holds it) and marks it
+   done; once done, `--apply` still recomputes as a repair tool. Cites
+   BE-E-06 (idempotent recalculation, audited before and after), D-06 (the
+   schedule lives in the app's Beat, not a platform cron), BE-A-04 (the log
+   lines carry counts only). An environment where the flag was already on
+   before this lands runs it once on the first tick: harmless, as it only
+   changes grades that are out of date.
 5. **W6** applies to every door that makes an assignment: JSON create,
    create-async, PATCH (clearing or moving), both file uploads (a multipart
    `category`, checked before any charge and carried through the task and

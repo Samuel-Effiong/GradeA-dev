@@ -2,6 +2,8 @@ from celery import shared_task
 from django.utils import timezone
 
 from ai_processor.services import ai_processor
+from AutoGrader import beat_locks
+from AutoGrader.beat_locks import single_instance
 from classrooms.models import Course, StudentCourse
 from students.exceptions import TaskCancelledError
 from students.task_tracking import (
@@ -130,3 +132,19 @@ def recalculate_missing_work(assignment_id):
     from classrooms import grade_categories
 
     return len(grade_categories.run_missing_work_task(assignment_id))
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
+def run_missing_work_go_live(self):
+    """Hourly (Epic E2 automatic go-live, owner 2026-11-19): the first time
+    GRADE_CATEGORIES_ENABLED is on, recompute the stored course grades so
+    missing work counts, once (classrooms/missing_work_go_live.py). Flag off
+    or already done: one cheap read at most, nothing written."""
+    from classrooms import missing_work_go_live
+
+    result = missing_work_go_live.run()
+    return (
+        f"missing work go-live: {result['status']}, courses checked "
+        f"{result['courses_checked']}, grades changed {result['grades_changed']}"
+    )

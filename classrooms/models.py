@@ -601,3 +601,26 @@ class StudentCourse(models.Model):
         else:
             self.full_clean()
         super().save(*args, **kwargs)
+
+
+class GoLiveRun(models.Model):
+    """Run-once marker for a one-time job (Epic E2 automatic go-live, owner
+    2026-11-19). One row per job `name` (unique). A run claims the row with a
+    conditional UPDATE that sets `claim_token` and a short lease in
+    `claimed_until`, renewing it as it goes; `completed_at` set means the job
+    never runs again by itself. A crashed run's lease lapses, so the next run
+    takes over (the job itself is idempotent). See
+    classrooms/missing_work_go_live.py."""
+
+    name = models.CharField(max_length=64, unique=True)
+    claim_token = models.CharField(max_length=64, blank=True, default="")
+    claimed_until = models.DateTimeField(null=True, blank=True)
+    started_at = models.DateTimeField(null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+    courses_checked = models.PositiveIntegerField(default=0)
+    grades_changed = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        state = "done" if self.completed_at else "pending"
+        return f"{self.name} ({state})"
