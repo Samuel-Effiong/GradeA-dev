@@ -431,6 +431,22 @@ def connect():
 _REQUEST_ACTOR = object()
 
 
+def _end_department_memberships(model, pks):
+    """Epic F1 (plan 6.2): a bulk write of school or role ends the department
+    memberships it makes invalid, by stored state, in the same transaction.
+    Not swallowed (fail closed)."""
+    from users.models import CustomUser
+
+    if model is not CustomUser:
+        return
+    from departments.service import SOURCE_ACCOUNT_CHANGE, end_memberships
+
+    for pk, school_id, user_type in CustomUser.objects.filter(pk__in=pks).values_list(
+        "pk", "school_id", "user_type"
+    ):
+        end_memberships(pk, school_id, user_type, source=SOURCE_ACCOUNT_CHANGE)
+
+
 def record_bulk(queryset, *, actor=_REQUEST_ACTOR, **changes) -> int:
     """`queryset.update(**changes)`, plus one history event per row whose
     tracked values changed. Returns the number of rows updated, as `.update()`
@@ -473,6 +489,8 @@ def record_bulk(queryset, *, actor=_REQUEST_ACTOR, **changes) -> int:
                 .update(**changes)
             )
         after = _stored(spec, pks)
+        if {"school", "school_id", "user_type"} & set(changes):
+            _end_department_memberships(spec.model_class(), pks)
         for pk in pks:
             if pk not in before or pk not in after:
                 continue

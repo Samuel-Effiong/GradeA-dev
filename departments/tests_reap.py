@@ -32,6 +32,11 @@ def removals():
     return list(AuditEvent.objects.filter(action=AuditAction.DEPARTMENT_MEMBER_REMOVE))
 
 
+def listed(response):
+    """The rows of a list reply (the envelope shows an empty list as {})."""
+    return response.json().get("data") or []
+
+
 def remove_from_license(license_sub, teacher):
     LicenseSubscriptionService.remove_teacher_from_license(license_sub, teacher)
 
@@ -50,7 +55,7 @@ class RemovalReapTests(APITestCase):
 
     def test_removal_ends_every_membership_and_access_with_one_event_each(self):
         self.client.force_authenticate(self.t1)
-        self.assertEqual(len(self.client.get("/api/v1/departments").json()), 2)
+        self.assertEqual(len(listed(self.client.get("/api/v1/departments"))), 2)
         remove_from_license(self.license, self.t1)
         self.assertFalse(DepartmentMembership.objects.filter(teacher=self.t1).exists())
         events = removals()
@@ -59,7 +64,7 @@ class RemovalReapTests(APITestCase):
         self.assertEqual({e.metadata["teacher_id"] for e in events}, {str(self.t1.id)})
         self.t1.refresh_from_db()
         self.client.force_authenticate(self.t1)
-        self.assertEqual(self.client.get("/api/v1/departments").json(), [])
+        self.assertEqual(listed(self.client.get("/api/v1/departments")), [])
         self.assertEqual(
             self.client.get(f"/api/v1/departments/{self.d1.id}/roster").status_code,
             404,
@@ -106,7 +111,7 @@ class RemovalReapTests(APITestCase):
         self.t1.save()
         LicenseSubscriptionService._enroll_teacher_internal(self.license, self.t1)
         self.client.force_authenticate(self.t1)
-        self.assertEqual(self.client.get("/api/v1/departments").json(), [])
+        self.assertEqual(listed(self.client.get("/api/v1/departments")), [])
         self.assertEqual(list(member_department_ids(self.t1)), [])
 
 
@@ -179,7 +184,7 @@ class AccountChangeReapTests(TestCase):
         moved = self._fresh(self.t1)
         moved.school = self.other
         moved.save()
-        add_member(make_department(self.other, "Elsewhere"), self.t1)
+        add_member(make_department(self.other, "Elsewhere"), self._fresh(self.t1))
         stale.refresh_from_db()
         stale.save()
         self.assertEqual(

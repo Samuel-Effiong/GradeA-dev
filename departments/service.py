@@ -11,7 +11,7 @@ from audit.emitter import emit
 from audit.enums import AuditAction
 from AutoGrader.reason_codes import CodedError
 from billing.models import SchoolCreditAllocation
-from users.models import CustomUser
+from users.models import CustomUser, UserTypes
 
 from .access import live_teachers, newest_license_id
 from .models import Department, DepartmentMembership
@@ -289,5 +289,50 @@ def remove_member(actor, department, membership, request=None):
         )
 
 
-def end_memberships(teacher_id, new_school_id, new_user_type, *, source, **extra):
-    raise NotImplementedError
+#: "do not judge this dimension" for `end_memberships`.
+KEEP = object()
+
+
+def end_memberships(
+    teacher_id,
+    new_school_id=KEEP,
+    new_user_type=KEEP,
+    *,
+    source,
+    actor=None,
+    request=None,
+):
+    """End the memberships that would be invalid once the teacher has
+    `new_school_id` and `new_user_type` (plan 6.2, R1: by state, never by a
+    diff, so a stale caller can at worst look and find nothing). Idempotent:
+    a second call finds nothing and writes nothing. One REMOVE event per row.
+    Not swallowed: a failure here must abort the caller's change (fail
+    closed). Returns the number of memberships ended."""
+    rows = list(
+        DepartmentMembership.objects.filter(teacher_id=teacher_id)
+        .select_related("department")
+        .select_for_update(of=("self",))
+        .order_by("pk")
+    )
+    leaves_teaching = new_user_type is not KEEP and new_user_type != UserTypes.TEACHER
+    ended = 0
+    for membership in rows:
+        department = membership.department
+        wrong_school = new_school_id is not KEEP and (
+            department.school_id != new_school_id
+        )
+        if not (leaves_teaching or wrong_school):
+            continue
+        membership_id = membership.id
+        membership.delete()
+        _emit(
+            AuditAction.DEPARTMENT_MEMBER_REMOVE,
+            actor,
+            department,
+            target_type="DepartmentMembership",
+            target_id=membership_id,
+            request=request,
+            metadata={"teacher_id": str(teacher_id), "source": source},
+        )
+        ended += 1
+    return ended
