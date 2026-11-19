@@ -363,6 +363,159 @@ class D0Differential(TestCase):
         self.assertEqual(sorted(PINNED_READ_ROUTES - live), [], "routes gone")
 
 
+@flag_on
+class D0DepartmentRoutesColdWarm(TestCase):
+    """SM after slice 6: the cached department routes, cold against warm.
+
+    Every actor's department views are read once to warm the cache, then a
+    department, membership or license change is made; each actor's next read
+    (served warm where the cache still holds an entry) must equal a cold read
+    of the same URL taken alone after clearing the cache. Cold reads are taken
+    one actor at a time, so a key shared between viewers cannot poison the
+    reference. Covers add, flag change, rename, member removal, department
+    delete, and the reap (a teacher taken off the license, then live at
+    another school)."""
+
+    w: Any
+
+    @classmethod
+    def setUpTestData(cls):
+        with override_settings(DEPARTMENTS_ENABLED=True):
+            cls.w = build_world()
+
+    def setUp(self):
+        cache.clear()
+        self.addCleanup(cache.clear)
+        patcher = patch("celery.app.task.Task.apply_async")
+        patcher.start()
+        self.addCleanup(patcher.stop)
+
+    def actors(self):
+        w = self.w
+        return [w.t1, w.t2, w.t3, w.t4, w.t5, w.t8, w.i1]
+
+    def urls(self):
+        from django.urls import reverse
+
+        urls = [reverse("departments-mine")]
+        for department in (self.w.d1, self.w.d2, self.w.d3):
+            urls.append(
+                reverse("departments-roster", kwargs={"department_id": department.id})
+            )
+        return urls
+
+    def read(self, user):
+        client = jwt_client(user)
+        out = {}
+        for url in self.urls():
+            response = client.get(url)
+            out[url] = (response.status_code, content(response))
+        return out
+
+    def warm_all(self):
+        cache.clear()
+        for user in self.actors():
+            self.read(user)
+            self.read(user)
+
+    def assert_fresh(self, what):
+        served = {user.email: self.read(user) for user in self.actors()}
+        for user in self.actors():
+            cache.clear()
+            cold = self.read(user)
+            changed = differences(cold, served[user.email])
+            with self.subTest(change=what, user=user.email):
+                self.assertEqual(changed, [], f"{what}: stale for {user.email}")
+
+    def admin(self, method, name, body=None, **kwargs):
+        from django.urls import reverse
+
+        response = getattr(jwt_client(self.w.a1), method)(
+            reverse(name, kwargs=kwargs), body, format="json"
+        )
+        self.assertLess(response.status_code, 300, content(response))
+        return response
+
+    def membership(self, department, teacher):
+        from departments.models import DepartmentMembership
+
+        return DepartmentMembership.objects.get(department=department, teacher=teacher)
+
+    def test_every_change_leaves_no_stale_department_view(self):
+        from departments.tests_matrix_fixture import add_to_license, remove_from_license
+
+        w = self.w
+        self.assert_fresh("baseline")
+        steps = [
+            (
+                "add T4 to D1",
+                lambda: self.admin(
+                    "post",
+                    "departments-admin-members",
+                    {"teacher_ids": [str(w.t4.id)]},
+                    department_id=w.d1.id,
+                ),
+            ),
+            (
+                "T2 made editable",
+                lambda: self.admin(
+                    "patch",
+                    "departments-admin-member-detail",
+                    {"can_edit": True},
+                    department_id=w.d1.id,
+                    membership_id=self.membership(w.d1, w.t2).id,
+                ),
+            ),
+            (
+                "rename D2",
+                lambda: self.admin(
+                    "patch",
+                    "departments-admin-detail",
+                    {"name": "Renamed Humanities"},
+                    department_id=w.d2.id,
+                ),
+            ),
+            (
+                "remove T5 from D2",
+                lambda: self.admin(
+                    "delete",
+                    "departments-admin-member-detail",
+                    department_id=w.d2.id,
+                    membership_id=self.membership(w.d2, w.t5).id,
+                ),
+            ),
+            (
+                "delete D2",
+                lambda: self.admin(
+                    "delete", "departments-admin-detail", department_id=w.d2.id
+                ),
+            ),
+            ("reap: T1 off L1", lambda: remove_from_license(w.a1, w.l1, w.t1)),
+            (
+                "reap: T5 off L1, then live at S2 in no department",
+                lambda: (
+                    remove_from_license(w.a1, w.l1, w.t5),
+                    add_to_license(w.a2, w.l2, [w.t5]),
+                ),
+            ),
+        ]
+        for what, change in steps:
+            self.warm_all()
+            change()
+            self.assert_fresh(what)
+        # The changes really happened (the comparison is not vacuous).
+        from django.urls import reverse
+
+        mine = reverse("departments-mine")
+        cache.clear()
+        self.assertEqual(
+            [r["id"] for r in jwt_client(w.t4).get(mine).json()], [str(w.d1.id)]
+        )
+        self.assertEqual(jwt_client(w.t3).get(mine).json(), [])
+        self.assertEqual(jwt_client(w.t5).get(mine).json(), [])
+        self.assertEqual(jwt_client(w.t1).get(mine).json(), [])
+
+
 class D0ComparisonNotices(TestCase):
     def test_one_changed_field_is_noticed(self):
         before = {"/x": (200, json.dumps({"id": 1, "name": "a"}))}

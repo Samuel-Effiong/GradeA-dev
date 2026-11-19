@@ -304,6 +304,23 @@ class M15Caches(_MatrixCase):
         self.assertEqual({row["id"] for row in t1}, {str(self.w.d1.id)})
         self.assertEqual({row["id"] for row in t3}, {str(self.w.d2.id)})
 
+    def test_two_members_of_one_department_never_get_each_others_cached_list(self):
+        """T1 (can edit) and T2 (restricted) belong to exactly D1, so every
+        department counter in their keys is the same; only the viewer tells
+        their cached lists apart."""
+        url = reverse("departments-mine")
+        expected = {self.w.t1: True, self.w.t2: False}
+        for order in ((self.w.t1, self.w.t2), (self.w.t2, self.w.t1)):
+            cache.clear()
+            for _ in range(2):  # cold, then warm
+                for user in order:
+                    with self.subTest(first=order[0].email, user=user.email):
+                        rows = self.get(user, url).json()
+                        self.assertEqual(
+                            [(r["id"], r["can_edit"]) for r in rows],
+                            [(str(self.w.d1.id), expected[user])],
+                        )
+
     def test_existing_cached_lists_do_not_change_when_a_member_is_added(self):
         url = f"{API}/course"
         before = body(self.get(self.w.t4, url))

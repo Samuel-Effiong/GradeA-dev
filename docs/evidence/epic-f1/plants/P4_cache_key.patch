@@ -1,0 +1,9 @@
+diff --git a/departments/cache.py b/departments/cache.py
+index 0e501b57c..143fa1946 100644
+--- a/departments/cache.py
++++ b/departments/cache.py
+@@ -34,3 +34,3 @@ def my_departments_key(user_id, department_ids):
+     return versioned_key(
+-        f"departments:list:user={user_id}",
++        "departments:list",
+         [(SCOPE_USER, user_id), *[(SCOPE_DEPARTMENT, d) for d in department_ids]],

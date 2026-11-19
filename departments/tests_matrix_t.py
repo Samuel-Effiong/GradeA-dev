@@ -16,12 +16,14 @@ import threading
 import time
 import uuid
 from typing import Any
+from urllib.parse import urlencode
 
 from django.core.cache import cache
 from django.db import connection, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
+from departments.tests_differential import normalize
 from departments.tests_matrix_fixture import (
     API,
     all_users,
@@ -102,6 +104,81 @@ class _WorldCase(TestCase):
             ("patch", member_url(d1, m)),
             ("delete", member_url(d1, m)),
         ]
+
+
+@flag_on
+class T04DeleteOutOfScope(_WorldCase):
+    """SM after slice 5: a delete, with any content choice, cannot reach
+    another school's department, and a reassign cannot target one. Another
+    school's department is the house 404 of any other out-of-scope lookup; a
+    foreign reassign target is answered exactly like a target that does not
+    exist (plan section 7: "fails as not found, never as belongs to someone
+    else"). Nothing is deleted and no delete event is written."""
+
+    def setUp(self):
+        super().setUp()
+        from audit.models import AuditEvent
+        from departments.models import Department, DepartmentMembership
+
+        self.departments = Department.objects.count()
+        self.memberships = DepartmentMembership.objects.count()
+        self.events = AuditEvent.objects.filter(action="DEPARTMENT_DELETE").count()
+
+    def delete(self, user, department_id, **params):
+        url = admin_detail_url(department_id)
+        if params:
+            url = f"{url}?{urlencode(params)}"
+        return jwt_client(user).delete(url)
+
+    def assert_nothing_deleted(self):
+        from audit.models import AuditEvent
+        from departments.models import Department, DepartmentMembership
+
+        self.assertEqual(Department.objects.count(), self.departments)
+        self.assertEqual(DepartmentMembership.objects.count(), self.memberships)
+        self.assertEqual(
+            AuditEvent.objects.filter(action="DEPARTMENT_DELETE").count(), self.events
+        )
+
+    def test_another_schools_department_is_the_house_404_for_every_choice(self):
+        w = self.w
+        house = self.get(w.a1, admin_detail_url(uuid.uuid4()))
+        self.assertEqual(house.status_code, 404)
+        choices = [
+            {},
+            {"content": "refuse"},
+            {"content": "delete"},
+            {"content": "reassign", "target": str(w.d3.id)},
+            {"content": "reassign", "target": str(w.d2.id)},
+        ]
+        for user, department in ((w.a2, w.d1), (w.a1, w.d3), (w.a0, w.d1)):
+            for params in choices:
+                with self.subTest(
+                    admin=user.email, department=department.name, **params
+                ):
+                    response = self.delete(user, department.id, **params)
+                    self.assertEqual(response.status_code, 404, response.content)
+                    self.assertEqual(response.content, house.content)
+        self.assert_nothing_deleted()
+
+    def test_a_foreign_reassign_target_is_answered_like_one_that_does_not_exist(self):
+        w = self.w
+        for admin, department, foreign in ((w.a1, w.d2, w.d3), (w.a2, w.d3, w.d1)):
+            with self.subTest(admin=admin.email):
+                unknown = self.delete(
+                    admin, department.id, content="reassign", target=str(uuid.uuid4())
+                )
+                self.assertGreaterEqual(unknown.status_code, 400, unknown.content)
+                self.assert_nothing_deleted()
+                smuggled = self.delete(
+                    admin, department.id, content="reassign", target=str(foreign.id)
+                )
+                self.assertEqual(smuggled.status_code, unknown.status_code)
+                self.assertEqual(
+                    normalize(smuggled.content.decode()),
+                    normalize(unknown.content.decode()),
+                )
+                self.assert_nothing_deleted()
 
 
 @flag_on
