@@ -87,8 +87,8 @@ class MembershipEmailTests(TestCase):
                 with mock.patch(
                     "departments.service._emit", side_effect=RuntimeError("boom")
                 ):
-                    with self.assertRaises(RuntimeError):
-                        self.add(self.t1)
+                    response = self.add(self.t1)
+        self.assertEqual(response.status_code, 500)
         send.assert_not_called()
         self.assertFalse(DepartmentMembership.objects.exists())
 

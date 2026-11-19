@@ -13,6 +13,7 @@ from AutoGrader.reason_codes import CodedError
 from billing.models import SchoolCreditAllocation
 from users.models import CustomUser, UserTypes
 
+from . import notifications
 from .access import live_teachers, newest_license_id
 from .models import Department, DepartmentMembership
 from .normalize import MAX_NAME_LENGTH, clean_department_name
@@ -220,6 +221,7 @@ def _add_one(actor, department, raw_id, request):
                 request=request,
                 metadata={"teacher_id": str(teacher.id), "source": SOURCE_ADMIN},
             )
+            notifications.send_added_to_department_email(teacher, department)
     except CustomUser.DoesNotExist:
         return not_on_license
     return None
@@ -275,6 +277,7 @@ def remove_member(actor, department, membership, request=None):
         )
         if membership is None:
             return
+        teacher = membership.teacher
         teacher_id = membership.teacher_id
         membership_id = membership.id
         membership.delete()
@@ -287,6 +290,7 @@ def remove_member(actor, department, membership, request=None):
             request=request,
             metadata={"teacher_id": str(teacher_id), "source": SOURCE_ADMIN},
         )
+        notifications.send_removed_from_department_email(teacher, department)
 
 
 #: "do not judge this dimension" for `end_memberships`.
