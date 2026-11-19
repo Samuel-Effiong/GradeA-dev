@@ -27,12 +27,13 @@ from users.models import CustomUser, UserTypes
 from . import cache as department_cache
 from . import service, wording
 from .access import (
+    admin_department,
     admin_school_id,
     is_licensed_teacher_of,
     live_teachers,
     visible_departments,
 )
-from .models import Department, DepartmentMembership
+from .models import DepartmentMembership
 from .serializers import (
     AddMembersSerializer,
     AdminMemberRowSerializer,
@@ -75,12 +76,7 @@ def _full_name(first, last):
 
 
 def _admin_department(user, department_id):
-    school_id = admin_school_id(user)
-    if school_id is None:
-        raise NotFound()
-    department = Department.objects.filter(
-        pk=_uuid_or_404(department_id), school_id=school_id
-    ).first()
+    department = admin_department(user, _uuid_or_404(department_id))
     if department is None:
         raise NotFound()
     return department

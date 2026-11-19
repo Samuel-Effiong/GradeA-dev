@@ -89,6 +89,14 @@ def visible_departments(user):
     return Department.objects.none()
 
 
+def admin_department(user, department_pk):
+    """The department `department_pk` when `user` is an admin of its school,
+    else None (one answer for unknown, malformed and foreign ids)."""
+    if admin_school_id(user) is None:
+        return None
+    return visible_departments(user).filter(pk=department_pk).first()
+
+
 def live_memberships(user):
     """The live teacher's memberships (empty for anyone else)."""
     if user is None or not is_licensed_teacher_of(user, user.school_id):
