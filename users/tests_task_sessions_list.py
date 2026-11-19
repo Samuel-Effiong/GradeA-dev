@@ -320,6 +320,17 @@ class Filters(SessionsFixture, TestCase):
             self.ids(task_type=BatchUploadType.GRADE), [str(self.grading.id)]
         )
 
+    def test_task_type_in_any_case(self):
+        # E2E F7: the values are lowercase; ?task_type=GRADE found nothing.
+        for value in ("GRADE", "Grade", " grade "):
+            self.assertEqual(self.ids(task_type=value), [str(self.grading.id)], value)
+
+    def test_an_unknown_task_type_matches_nothing(self):
+        # As an unknown assignment_id does (this list has no 400 for a filter).
+        response = self.api.get(reverse("task-sessions"), {"task_type": "bogus"})
+        self.assertEqual(response.status_code, 200, response.content[:300])
+        self.assertEqual(response.json()["data"]["results"], [])
+
 
 class QueryCount(SessionsFixture, TestCase):
     def fill(self, count):
