@@ -718,7 +718,8 @@ class KeptUpload(models.Model):
         on_delete=models.CASCADE,
         related_name="kept_upload",
     )
-    #: The asset's random public id, `kept_uploads/<hex>`; never a file name.
+    #: The asset's random public id, `kept_uploads/<deployment>/<hex>`
+    #: (`kept_uploads/<hex>` before 2026-11-19); never a file name.
     storage_key = models.CharField(max_length=255, unique=True)
     original_name = models.CharField(max_length=255)
     content_type = models.CharField(max_length=255, blank=True, default="")
