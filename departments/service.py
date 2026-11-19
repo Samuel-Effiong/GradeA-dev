@@ -13,7 +13,7 @@ from AutoGrader.reason_codes import CodedError
 from billing.models import SchoolCreditAllocation
 from users.models import CustomUser, UserTypes
 
-from . import notifications, registry
+from . import cache, notifications, registry
 from .access import live_teachers, newest_license_id
 from .models import Department, DepartmentMembership
 from .normalize import MAX_NAME_LENGTH, clean_department_name
@@ -122,6 +122,7 @@ def update_department(actor, department, name=None, description=None, request=No
                 request=request,
                 metadata={"changed_fields": changed},
             )
+            cache.bump([department.id])
     return department
 
 
@@ -204,6 +205,7 @@ def delete_department(actor, department, content=None, target_id=None, request=N
             department_id=department_id,
             metadata=metadata,
         )
+        cache.bump([department_id], member_ids)
     return {"deleted": True, "member_count": len(member_ids)}
 
 
@@ -271,6 +273,7 @@ def _add_one(actor, department, raw_id, request):
                 metadata={"teacher_id": str(teacher.id), "source": SOURCE_ADMIN},
             )
             notifications.send_added_to_department_email(teacher, department)
+            cache.bump([department.id], [teacher.id])
     except CustomUser.DoesNotExist:
         return not_on_license
     return None
@@ -314,6 +317,7 @@ def set_member_edit(actor, department, membership, can_edit, request=None):
                 after={"can_edit": can_edit},
                 metadata={"source": "department"},
             )
+            cache.bump([department.id], [membership.teacher_id])
     return membership
 
 
@@ -340,6 +344,7 @@ def remove_member(actor, department, membership, request=None):
             metadata={"teacher_id": str(teacher_id), "source": SOURCE_ADMIN},
         )
         notifications.send_removed_from_department_email(teacher, department)
+        cache.bump([department.id], [teacher_id])
 
 
 #: "do not judge this dimension" for `end_memberships`.
@@ -388,4 +393,5 @@ def end_memberships(
             metadata={"teacher_id": str(teacher_id), "source": source},
         )
         ended += 1
+        cache.bump([department.id], [teacher_id])
     return ended

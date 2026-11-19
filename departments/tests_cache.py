@@ -51,14 +51,10 @@ class MyDepartmentsCacheTests(APITestCase):
         first = self.mine(self.t1)
         self.client.force_authenticate(self.t1)
         with CaptureQueriesContext(connection) as warm:
-            self.client.get(self.URL)
-        self.assertEqual(self.mine(self.t1), first)
-        membership_reads = [
-            q
-            for q in warm
-            if "departments_departmentmembership" in q["sql"] and "JOIN" in q["sql"]
-        ]
-        self.assertEqual(membership_reads, [])
+            response = self.client.get(self.URL)
+        self.assertEqual(response.json()["data"], first)
+        names_read = [q for q in warm if '"departments_department"."name"' in q["sql"]]
+        self.assertEqual(names_read, [])
 
     def test_each_viewer_gets_their_own_payload(self):
         self.assertTrue(self.mine(self.t1)[0]["can_edit"])

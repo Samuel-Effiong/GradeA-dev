@@ -10,6 +10,7 @@ role: `/school-admin/departments` (school admins only) and `/departments`
 import uuid
 
 from django.conf import settings
+from django.core.cache import cache as django_cache
 from django.db.models import Count
 from drf_spectacular.utils import extend_schema
 from rest_framework import status
@@ -23,8 +24,14 @@ from AutoGrader.reason_codes import coded_entry
 from classrooms.permissions import IsSchoolAdmin, IsTeacher
 from users.models import CustomUser, UserTypes
 
+from . import cache as department_cache
 from . import service, wording
-from .access import admin_school_id, live_teachers, visible_departments
+from .access import (
+    admin_school_id,
+    is_licensed_teacher_of,
+    live_teachers,
+    visible_departments,
+)
 from .models import Department, DepartmentMembership
 from .serializers import (
     AddMembersSerializer,
@@ -244,19 +251,43 @@ class TeacherBase(DarkUntilEnabled, APIView):
 @extend_schema(tags=["Departments"])
 class MyDepartmentsView(TeacherBase):
     def get(self, request):
-        rows = list(
+        user = request.user
+        # The permission decision first, never from the cache.
+        if not is_licensed_teacher_of(user, user.school_id):
+            return Response([])
+        ids = list(
             DepartmentMembership.objects.filter(
-                department__in=visible_departments(request.user),
-                teacher_id=request.user.pk,
+                teacher_id=user.pk, department__school_id=user.school_id
             )
-            .select_related("department")
-            .order_by("department__name_key", "department_id")
+            .order_by("department_id")
+            .values_list("department_id", flat=True)
         )
-        data = [
-            {"id": m.department_id, "name": m.department.name, "can_edit": m.can_edit}
-            for m in rows
-        ]
-        return Response(MyDepartmentSerializer(data, many=True).data)
+        if not ids:
+            return Response([])
+        key = department_cache.my_departments_key(user.pk, ids)
+        payload = django_cache.get(key)
+        if payload is None:
+            rows = list(
+                DepartmentMembership.objects.filter(
+                    teacher_id=user.pk, department_id__in=ids
+                )
+                .select_related("department")
+                .order_by("department__name_key", "department_id")
+            )
+            payload = MyDepartmentSerializer(
+                [
+                    {
+                        "id": m.department_id,
+                        "name": m.department.name,
+                        "can_edit": m.can_edit,
+                    }
+                    for m in rows
+                ],
+                many=True,
+            ).data
+            payload = [dict(row) for row in payload]
+            django_cache.set(key, payload, department_cache.MY_DEPARTMENTS_TTL)
+        return Response(payload)
 
 
 @extend_schema(tags=["Departments"])
