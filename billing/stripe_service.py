@@ -3336,8 +3336,8 @@ class StripeWebhookHandler:
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             description=(
-                f"Overage purchase — "
-                f"{quantity * plan.display_overage_block_size:,} AI credit(s)"
+                f"Credit top-up — "
+                f"{quantity * plan.display_overage_block_size:,} AI credits"
             ),
         )
         schedule_receipt_url_fill(billing_transaction)
@@ -3616,9 +3616,9 @@ class StripeWebhookHandler:
             stripe_checkout_session_id=session.get("id"),
             performed_by=intent.initiated_by,
             description=(
-                f"Overage purchase — "
+                f"Credit top-up — "
                 f"{intent.total_blocks * (intent.block_size_snapshot // CONVERSION_FACTOR):,} "
-                f"AI credit(s) across {len(intent.allocations)} teacher(s)"
+                f"AI credits across {len(intent.allocations)} teacher(s)"
                 + (
                     " "
                     + departed_share_refund.text("history_suffix_card", n=len(skipped))

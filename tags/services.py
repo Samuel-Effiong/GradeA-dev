@@ -107,6 +107,23 @@ def get_or_create_tag(teacher, tag_type, name):
     return tag, True
 
 
+def _refresh_assignment_lists(*, tag_id=None, course_ids=None):
+    """The teacher's cached assignment lists and details carry each
+    assignment's tags and answer ?tags=, so a tag change must bump the same
+    scopes an assignment save does (S15). One query for the courses (or none
+    when the caller already has them) and one pipelined bump, whatever the
+    number of assignments. bump_many repeats the bump after the commit."""
+    from assignments.signals import bump_assignment_course_scopes_bulk
+
+    if course_ids is None:
+        course_ids = (
+            AssignmentTag.objects.filter(tag_id=tag_id)
+            .values_list("assignment__course_id", flat=True)
+            .distinct()
+        )
+    bump_assignment_course_scopes_bulk(list(course_ids))
+
+
 def rename_tag(tag, name):
     """Rename the tag. A name that normalizes to another of the teacher's
     tags of this type is refused, never merged (TAG_NAME_TAKEN)."""
@@ -137,6 +154,7 @@ def rename_tag(tag, name):
             target_id=locked.pk,
             metadata={"tag_type": locked.tag_type},
         )
+        _refresh_assignment_lists(tag_id=locked.pk)
     tag.name, tag.normalized_name = display, key
     return tag
 
@@ -161,6 +179,12 @@ def delete_tag(tag, expected_count):
             if count != expected_count:
                 raise CodedError("TAG_CHANGED_SINCE_CHECK")
             tag_id, actor = locked.pk, locked.teacher
+            # Before the delete: the links go with the tag.
+            course_ids = list(
+                AssignmentTag.objects.filter(tag_id=tag_id)
+                .values_list("assignment__course_id", flat=True)
+                .distinct()
+            )
             locked.delete()
         _audit(
             AuditAction.TAG_DELETE,
@@ -169,6 +193,7 @@ def delete_tag(tag, expected_count):
             target_id=tag_id,
             metadata={"tag_type": locked.tag_type, "affected_count": count},
         )
+        _refresh_assignment_lists(course_ids=course_ids)
     return count
 
 
@@ -237,6 +262,7 @@ def set_assignment_tags(assignment, tag_ids, *, teacher):
             after={"tag_ids": sorted(str(i) for i in wanted)},
             metadata={"course_id": str(assignment.course_id)},
         )
+        _refresh_assignment_lists(course_ids=[assignment.course_id])
     return [found[tag_id] for tag_id in ids]
 
 

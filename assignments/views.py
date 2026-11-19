@@ -72,7 +72,7 @@ from students.task_tracking import (
     mark_processing_task_failure,
     record_refused_item,
 )
-from tags.assignment_field import prefetch_tags
+from tags.assignment_field import filter_by_tags, prefetch_tags
 from users.mixins import UserCacheMixin
 from users.models import UserTypes
 from users.permissions import HasCreditBalance
@@ -155,6 +155,12 @@ def _not_graded_entries(submissions):
                 type=OpenApiTypes.INT,
                 location=OpenApiParameter.QUERY,
                 description="Number of results per page (max 100)",
+            ),
+            OpenApiParameter(
+                name="tags",
+                type=OpenApiTypes.UUID,
+                location=OpenApiParameter.QUERY,
+                many=True,
             ),
         ],
         responses={
@@ -363,7 +369,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             # otherwise multiply the count.
             # prefetch_tags: Epic C1's `tags` field, only while the flag is
             # on (one query for the page, none per row).
-            return prefetch_tags(
+            queryset = prefetch_tags(
                 Assignment.objects.select_related("course__teacher")
                 .annotate(
                     annotated_submission_count=Count("submissions", distinct=True)
@@ -383,6 +389,10 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 # boundaries can shuffle between requests.
                 .order_by("title", "id")
             )
+            if self.action == "list":
+                # S13: ?tags= (ignored while the tag flag is off).
+                queryset = filter_by_tags(queryset, self.request)
+            return queryset
         elif user.user_type == UserTypes.STUDENT:
             # The enrollment_status filter is the access boundary, not a
             # tidy-up. Matching on "an enrollment row exists" alone let a

@@ -1111,7 +1111,8 @@ address with no account is locked and answered exactly the same way.
                         "This link is incomplete. Open the link from your email again, or request a new one.",
                     ),
                     _auth_error_example(
-                        "Wrong email or code", "Invalid email or token."
+                        "Wrong email or code",
+                        "This verification link is invalid or has expired. Request a new one.",
                     ),
                     _auth_error_example(
                         "Expired code",
@@ -1238,7 +1239,11 @@ address with no account is locked and answered exactly the same way.
 
         user = CustomUser.objects.filter(email=email, activation_token=token)
         if not user.exists():
-            refuse("Invalid email or token.", account_for_email(email), "INVALID_CODE")
+            refuse(
+                "This verification link is invalid or has expired. Request a new one.",
+                account_for_email(email),
+                "INVALID_CODE",
+            )
 
         user = user.first()
 
@@ -1246,17 +1251,29 @@ address with no account is locked and answered exactly the same way.
         # or signed in by a code: the wrong-code refusal, the attempt spent,
         # nothing written.
         if not user.email_verified_at and _holds_admin_power(user):
-            refuse("Invalid email or token.", user, "INVALID_CODE")
+            refuse(
+                "This verification link is invalid or has expired. Request a new one.",
+                user,
+                "INVALID_CODE",
+            )
 
         # H-202: a verified account that was switched off is not switched back
         # on or signed in by a code: the same refusal, nothing written.
         if user.email_verified_at and not user.is_active:
-            refuse("Invalid email or token.", user, "INVALID_CODE")
+            refuse(
+                "This verification link is invalid or has expired. Request a new one.",
+                user,
+                "INVALID_CODE",
+            )
 
         # H-34: an account a super admin locked is not verified, switched on
         # or signed in by a code: the same refusal, nothing written.
         if user.is_admin_locked:
-            refuse("Invalid email or token.", user, "ACCOUNT_LOCKED_BY_ADMIN")
+            refuse(
+                "This verification link is invalid or has expired. Request a new one.",
+                user,
+                "ACCOUNT_LOCKED_BY_ADMIN",
+            )
 
         if user.activation_expires and timezone.now() > user.activation_expires:
             refuse("Activation link has expired.", user, "CODE_EXPIRED")
@@ -2687,6 +2704,13 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
             # tokens here rather than through the login serializer.
             stamp_last_login(user)
             refresh = EpochRefreshToken.for_user(user)
+            # Distinct sign-in days and the teacher's BetaProfile, as the
+            # login serializer records them (S17). Bookkeeping, so a failure
+            # here must not turn a good sign-in into an error.
+            try:
+                AnalyticsService.track_activity(user)
+            except Exception:
+                logger.exception("Could not record Google sign-in activity")
             sign_in_succeeded(request, user, "google")
 
             return Response(
@@ -3439,6 +3463,7 @@ class BetaWhitelistViewSet(viewsets.ModelViewSet):
         ],
         responses={200: WaitlistSerializer(many=True)},
     ),
+    create=extend_schema(tags=["Waitlist"]),
     retrieve=extend_schema(
         tags=["Waitlist"],
         summary="Retrieve a waitlist entry",

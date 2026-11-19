@@ -292,7 +292,7 @@ def _reload(pk):
 # --------------------------------------------------------------------------
 
 
-def create_request(teacher, requested_blocks, message="", ai_job=None):
+def create_request(teacher, requested_blocks, message=""):
     allocation = _active_allocation(teacher.pk)
     if allocation is None:
         raise CreditRequestError(text("error_no_license"), 400)
@@ -303,7 +303,6 @@ def create_request(teacher, requested_blocks, message="", ai_job=None):
                 license_subscription=allocation.license_subscription,
                 requested_blocks=requested_blocks,
                 message=message or "",
-                ai_job=ai_job,
             )
     except IntegrityError as exc:
         # The partial unique index: one open request per teacher.

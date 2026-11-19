@@ -12,6 +12,7 @@ must get the verdict INSUFFICIENT (FR-B-04's 0 boundary).
 """
 
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema, inline_serializer
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -68,9 +69,30 @@ class EstimateRequestSerializer(serializers.Serializer):
     submission_ids = _SubmissionIds()
 
 
+ESTIMATE_REPLY = inline_serializer(
+    "EstimateReply",
+    {
+        "p50": serializers.IntegerField(),
+        "p90": serializers.IntegerField(),
+        "verdict": serializers.ChoiceField(
+            choices=["SUFFICIENT", "MARGINAL", "INSUFFICIENT"]
+        ),
+        "spendable": serializers.IntegerField(),
+        "projected_remaining_p50": serializers.IntegerField(),
+        "projected_remaining_p90": serializers.IntegerField(),
+        "source": serializers.CharField(),
+        "shape_basis": serializers.CharField(),
+        "sample_size": serializers.IntegerField(),
+        "n": serializers.IntegerField(),
+    },
+)
+
+
+@extend_schema(tags=["Billing"])
 class BillingEstimateView(APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
+    @extend_schema(request=EstimateRequestSerializer, responses=ESTIMATE_REPLY)
     def post(self, request):
         body = EstimateRequestSerializer(data=request.data)
         if not body.is_valid():

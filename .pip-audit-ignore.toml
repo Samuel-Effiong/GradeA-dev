@@ -163,6 +163,9 @@ ids = [
     "PYSEC-2026-3072",
     "PYSEC-2026-4170",
     "PYSEC-2026-4171",
+    # Published 13 Nov; parked with the rest by the owner on 17 Nov (H-258).
+    "GHSA-4j63-6c4x-wfg4",
+    "GHSA-mmhr-3c5m-f64f",
 ]
 reason = "upgrade awaiting the owner's ruling (H-258 report)"
 review_by = 2026-11-30

@@ -15,6 +15,7 @@ import logging
 from django.core.management.base import BaseCommand
 
 from billing.billing_transaction_service import BillingTransactionService
+from billing.invoice_wording import invoice_description
 from billing.models import (
     BillingTransactionMethod,
     BillingTransactionSource,
@@ -25,8 +26,10 @@ from billing.models import (
     LicenseSubscription,
     StripeEvent,
     StripeEventStatus,
+    SubscriptionPlan,
     UserSubscription,
 )
+from billing.transaction_wording import checkout_description
 from users.models import CustomUser
 
 logger = logging.getLogger(__name__)
@@ -151,6 +154,19 @@ class Command(BaseCommand):
                 user=user, is_active=True
             ).first()
 
+        plan = SubscriptionPlan.objects.filter(
+            id=metadata.get("plan_id") or metadata.get("new_plan_id") or None
+        ).first()
+        if plan is None and user_subscription is not None:
+            plan = user_subscription.plan
+        if plan is None and license_subscription is not None:
+            plan = license_subscription.plan
+        plan_name = (plan.display_name or plan.name) if plan else None
+        credits = None
+        quantity = str(metadata.get("quantity") or "")
+        if plan is not None and quantity.isdigit() and int(quantity) > 0:
+            credits = int(quantity) * plan.display_overage_block_size
+
         if dry_run:
             self.stdout.write(
                 f"[dry-run] {flow_to_type[flow]} — session {session.get('id')}"
@@ -171,7 +187,9 @@ class Command(BaseCommand):
             stripe_payment_intent_id=session.get("payment_intent"),
             stripe_checkout_session_id=session.get("id"),
             stripe_subscription_id=session.get("subscription"),
-            description=f"Backfilled from checkout.session.completed ({flow})",
+            description=checkout_description(
+                flow, plan_name=plan_name, credits=credits
+            ),
             occurred_at=event.processed_at,
         )
         return True
@@ -240,7 +258,11 @@ class Command(BaseCommand):
             license_subscription=license_subscription,
             stripe_invoice_id=invoice.get("id"),
             stripe_subscription_id=subscription_id,
-            description=f"Backfilled from invoice.payment_{'succeeded' if succeeded else 'failed'} ({billing_reason})",
+            description=invoice_description(
+                billing_reason=billing_reason,
+                paid=succeeded,
+                license=bool(license_sub),
+            ),
             occurred_at=event.processed_at,
         )
         return True

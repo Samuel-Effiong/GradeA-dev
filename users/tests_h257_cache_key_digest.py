@@ -34,7 +34,9 @@ class CacheKeyDigestTests(SimpleTestCase):
         view = Widgets()
         view.request = SimpleNamespace(  # type: ignore[assignment]
             user=SimpleNamespace(id=7),
-            query_params=SimpleNamespace(dict=lambda: query),
+            query_params=SimpleNamespace(
+                lists=lambda: [(name, [value]) for name, value in query.items()]
+            ),
         )
         view.kwargs = {}
         # The generation segment is not this test's subject: the base the

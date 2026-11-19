@@ -89,7 +89,8 @@ def help_text(name):
 #: The sorts taken from the user list (users.user_list.SORT_KEYS), each with
 #: or without "-".
 SORT_KEYS = ("credit_usage", "credits_left", "papers_graded", "assignments_created",
-             "activated_at")  # fmt: skip
+             "activated_at", "plan_tier", "plan_category", "plan_interval",
+             "last_login")  # fmt: skip
 SORT_VALUES = tuple(v for key in SORT_KEYS for v in (key, f"-{key}"))
 
 
@@ -98,13 +99,10 @@ def apply_sort(queryset, ordering):
     value the user list sorts on, empty ones last both ways, then user id."""
     descending = ordering.startswith("-")
     target = user_list.SORT_KEYS[ordering.lstrip("-")]
-    value = Subquery(
-        user_list.ensure(
-            CustomUser.objects.filter(pk=OuterRef("user_id")), target, annotate=True
-        )
-        .order_by()
-        .values(target)[:1]
-    )
+    people = CustomUser.objects.filter(pk=OuterRef("user_id"))
+    if target != "last_login":  # a column of the user, not a computed value
+        people = user_list.ensure(people, target, annotate=True)
+    value = Subquery(people.order_by().values(target)[:1])
     queryset = queryset.annotate(lead_sort_value=value)
     expression = F("lead_sort_value")
     return queryset.order_by(

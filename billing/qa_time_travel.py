@@ -978,6 +978,7 @@ class BillingTimeTravelView(APIView):
     permission_classes = [IsAuthenticated, IsSuperAdmin]
 
     @extend_schema(
+        tags=["QA"],
         summary="QA: simulate subscription renewal (time travel)",
         description=(
             "QA-only. Requires ENABLE_BILLING_TIME_TRAVEL=True, a Stripe "
