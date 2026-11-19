@@ -104,6 +104,7 @@ from .serializers import (  # RubricSerializer,; AssignmentGradeAllSubmissionsSe
     AssignmentSerializer,
     AssignmentTextSerializer,
     BatchUploadResponseSerializer,
+    DoorBatchUploadResponseSerializer,
     GeneratedAssignmentSerializer,
     PublishAllGradesResponseSerializer,
     SaveGeneratedAssignmentDraftSerializer,
@@ -1072,7 +1073,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             }
         },
         responses={
-            201: BatchUploadResponseSerializer,
+            201: DoorBatchUploadResponseSerializer,
             400: {
                 "description": "Bad Request. No files were uploaded or invalid file data.",
                 "example": {"error": "No files were uploaded."},
@@ -1265,7 +1266,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "message": f"Batch processing started for {len(files)} files",
             "tasks": tasks_data,
         }
-        serializer = BatchUploadResponseSerializer(data)
+        serializer = DoorBatchUploadResponseSerializer(data)
         return Response(serializer.data, status=status.HTTP_202_ACCEPTED)
 
     def _number_draft_questions_in_order(self, assignment_data, path):

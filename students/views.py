@@ -41,7 +41,7 @@ from rest_framework.status import (
 from assignments.exceptions import SubmissionEmptyError
 from assignments.models import Assignment, AssignmentStatus
 from assignments.serializers import (
-    BatchUploadResponseSerializer,
+    DoorBatchUploadResponseSerializer,
     ScheduledGradingResponseSerializer,
     ScheduleGradingSerializer,
 )
@@ -1458,7 +1458,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
         responses={
             202: OpenApiResponse(
                 description="Batch upload accepted and background tasks started.",
-                response=BatchUploadResponseSerializer,
+                response=DoorBatchUploadResponseSerializer,
             ),
             400: OpenApiResponse(
                 description="Bad request. No files were uploaded or invalid request format.",
@@ -1639,7 +1639,7 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             "tasks": tasks_data,
         }
 
-        serializer = BatchUploadResponseSerializer(data)
+        serializer = DoorBatchUploadResponseSerializer(data)
 
         return Response(
             serializer.data,

@@ -926,10 +926,6 @@ class TaskInfoSerializer(serializers.Serializer):
     # large for the batch); its result is in session-results under item_id.
     task_id = serializers.UUIDField(allow_null=True)
     item_id = serializers.UUIDField(required=False)
-    # E2E F4: ACCEPTED (launched), PARKED (kept for credits) or REFUSED (by
-    # the door), with the item's reason_code (null when accepted).
-    status = serializers.CharField(required=False)
-    reason_code = serializers.CharField(required=False, allow_null=True)
 
 
 class BatchUploadResponseSerializer(serializers.Serializer):
@@ -941,6 +937,20 @@ class BatchUploadResponseSerializer(serializers.Serializer):
     session_id = serializers.UUIDField()
     message = serializers.CharField()
     tasks = TaskInfoSerializer(many=True)
+
+
+class DoorTaskInfoSerializer(TaskInfoSerializer):
+    """E2E F4: an entry of a batch upload through the door (answers,
+    assignments): what the door did with the file."""
+
+    # ACCEPTED (launched), PARKED (kept for credits) or REFUSED (by the
+    # door), with the item's reason_code (null when accepted).
+    status = serializers.ChoiceField(choices=["ACCEPTED", "PARKED", "REFUSED"])
+    reason_code = serializers.CharField(allow_null=True)
+
+
+class DoorBatchUploadResponseSerializer(BatchUploadResponseSerializer):
+    tasks = DoorTaskInfoSerializer(many=True)
 
 
 class AssignmentGenerationMessageSerializer(serializers.ModelSerializer):
