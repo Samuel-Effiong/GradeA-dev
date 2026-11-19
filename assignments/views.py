@@ -1968,6 +1968,7 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
         summary="Publish all graded submissions for an assignment",
         description="Release grades and feedback for all submissions that have been graded. "
         "Ungraded submissions are ignored.",
+        request=None,
         responses={200: PublishAllGradesResponseSerializer},
     )
     @action(
