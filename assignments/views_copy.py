@@ -9,6 +9,7 @@ cannot reach is "not found" (single copy: 404; bulk: that item's result).
 from typing import TYPE_CHECKING
 
 from django.conf import settings
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -50,6 +51,7 @@ class BulkCopyRequestSerializer(serializers.Serializer):
         return value
 
 
+@extend_schema(tags=["Assignments"])
 class AssignmentCopyView(DarkUntilCopy, APIView):
     """POST assignments/{id}/copy {course_id}: one copy, as a draft."""
 
@@ -77,6 +79,7 @@ class AssignmentCopyView(DarkUntilCopy, APIView):
         )
 
 
+@extend_schema(tags=["Assignments"])
 class AssignmentBulkCopyView(DarkUntilCopy, APIView):
     """POST assignments/bulk-copy {assignment_ids, course_id}: up to 50
     (Q9); each item succeeds or fails on its own, with a reason code."""

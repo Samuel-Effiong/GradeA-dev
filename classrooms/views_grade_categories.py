@@ -22,6 +22,7 @@ from django.conf import settings
 from django.db import IntegrityError, transaction
 from django.db.models import Q
 from django.shortcuts import get_object_or_404
+from drf_spectacular.utils import extend_schema
 from rest_framework import serializers, status
 from rest_framework.exceptions import NotFound, PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -102,6 +103,7 @@ def _items(request):
     ]
 
 
+@extend_schema(tags=["Grade Categories"])
 class CourseCategoriesView(_CourseView):
     """GET / PUT course/{id}/categories: the whole set, replaced as one.
     The weights add up to 100, or there are none (FR-E-04)."""
@@ -127,6 +129,7 @@ class CourseCategoriesView(_CourseView):
         return Response(self._payload(course))
 
 
+@extend_schema(tags=["Grade Categories"])
 class CategoryPreviewView(_CourseView):
     """POST course/{id}/categories/preview: the grades a proposed set would
     give, now and proposed. Writes nothing (FR-E-12)."""
@@ -156,6 +159,7 @@ class CategoryPreviewView(_CourseView):
         )
 
 
+@extend_schema(tags=["Grade Categories"])
 class GradeBreakdownView(_CourseView):
     """GET course/{id}/grade-breakdown?student={id}: one student's grade by
     category; the contributions add up to the final grade (FR-E-13)."""
@@ -200,6 +204,7 @@ class GradingPolicySerializer(serializers.Serializer):
     missing_counts_as_zero = serializers.BooleanField()
 
 
+@extend_schema(tags=["Grade Categories"])
 class GradingPolicyView(_CourseView):
     """GET / PATCH course/{id}/grading-policy: how excused, missing,
     ungraded and uncategorized work count, in the approved words
@@ -227,6 +232,7 @@ class ExcuseSerializer(serializers.Serializer):
     student = serializers.UUIDField()
 
 
+@extend_schema(tags=["Assignments"])
 class ExcusedWorkView(DarkUntilCategories, APIView):
     """POST / DELETE assignments/{id}/excused (student in the body, or
     ?student= on DELETE): excuse a student from the assignment, or take the
@@ -376,6 +382,7 @@ class _TemplateBase(DarkUntilCategories, APIView):
             ) from None
 
 
+@extend_schema(tags=["Grade Categories"])
 class CategoryTemplateListView(_TemplateBase):
     """GET / POST category-templates."""
 
@@ -405,6 +412,7 @@ class CategoryTemplateListView(_TemplateBase):
         )
 
 
+@extend_schema(tags=["Grade Categories"])
 class CategoryTemplateDetailView(_TemplateBase):
     """GET / PATCH / DELETE category-templates/{id}. A teacher reads their
     school's templates but changes only their own."""
