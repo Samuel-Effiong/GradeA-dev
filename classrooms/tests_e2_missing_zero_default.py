@@ -21,6 +21,7 @@ from django.db.migrations.executor import MigrationExecutor
 from django.test import TestCase, TransactionTestCase
 from django_celery_beat.models import PeriodicTask
 
+from assignments.models import AssignmentStatus
 from audit.enums import AuditAction
 from audit.models import AuditEvent
 from classrooms import grade_categories, grade_service
@@ -245,3 +246,60 @@ class GoLiveTest(TestCase):
             ),
             before,
         )
+
+
+class CreatingAQualifyingAssignmentTest(TestCase):
+    """SM 2026-11-19: an assignment created already published, its due date
+    past, in a course that counts missing work (flag on), recomputes the
+    course's stored grades at once (audit only on change, no credits)."""
+
+    def setUp(self):
+        self.teacher = make_teacher()
+        self.course = make_course(self.teacher)
+        self.student = make_student()
+        enroll(self.student, self.course)
+        with categories_on:
+            grade(self.student, make_assignment(self.course, due_date=past()), 80)
+
+    def changes(self):
+        return AuditEvent.objects.filter(action=AuditAction.GRADE_CHANGE)
+
+    @categories_on
+    def test_a_qualifying_create_updates_the_stored_grade(self):
+        from billing.models import BillingTransaction
+
+        before = self.changes().count()
+        transactions = BillingTransaction.objects.count()
+        make_assignment(self.course, "Backdated", due_date=past())
+        self.assertEqual(stored_grade(self.student, self.course), D("40.00"))
+        change = self.changes().order_by("-id").first()
+        self.assertEqual(self.changes().count(), before + 1)
+        self.assertEqual(change.metadata["source"], "assignment")
+        self.assertEqual(BillingTransaction.objects.count(), transactions)
+
+    @categories_on
+    def test_a_draft_does_not_recompute(self):
+        make_assignment(
+            self.course, "Draft", due_date=past(), status=AssignmentStatus.DRAFT
+        )
+        self.assertEqual(stored_grade(self.student, self.course), D("80.00"))
+
+    @categories_on
+    def test_a_future_due_date_does_not_recompute(self):
+        make_assignment(self.course, "Later", due_date=future())
+        self.assertEqual(stored_grade(self.student, self.course), D("80.00"))
+
+    @categories_on
+    def test_a_course_that_switched_it_off_does_not_recompute(self):
+        self.course.missing_counts_as_zero = False
+        self.course.save()
+        before = self.changes().count()
+        make_assignment(self.course, "Backdated", due_date=past())
+        self.assertEqual(stored_grade(self.student, self.course), D("80.00"))
+        self.assertEqual(self.changes().count(), before)
+
+    def test_the_flag_off_does_not_recompute(self):
+        with categories_off:
+            make_assignment(self.course, "Backdated", due_date=past())
+        with categories_on:
+            self.assertEqual(stored_grade(self.student, self.course), D("80.00"))
