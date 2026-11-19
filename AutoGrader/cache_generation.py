@@ -69,6 +69,10 @@ SCOPE_USER = "usr"
 SCOPE_SCHOOL = "sch"
 SCOPE_COURSE = "crs"
 SCOPE_GLOBAL = "global"
+#: Epic F1: one department changed (its name, its members, its flags). The
+#: name holds none of "user", "school", "course", "settings" or "admin", so no
+#: legacy wildcard pattern can reach it (the namespace-safety test covers it).
+SCOPE_DEPARTMENT = "dpt"
 
 #: ENTITY-CLASS scopes: "any row of this model changed", rather than "this
 #: particular row changed". They exist for the superadmin dashboards whose
@@ -93,6 +97,7 @@ VALID_SCOPES = frozenset(
         SCOPE_USER,
         SCOPE_SCHOOL,
         SCOPE_COURSE,
+        SCOPE_DEPARTMENT,
         SCOPE_GLOBAL,
         SCOPE_ANY_SCHOOL,
         SCOPE_ANY_USER,
