@@ -18,6 +18,29 @@ _INVOICE = re.compile(r"^Backfilled from invoice\.payment_(succeeded|failed) \((
 _CHECKOUT = re.compile(r"^Backfilled from checkout\.session\.completed \((.*)\)$")
 
 
+# Brief 4 (owner, 19 Nov): shown to the teacher when a credit purchase is paid
+# but the credits cannot be added. One source for both live paths and the
+# migration that rewrites the older rows.
+CREDITS_NOT_ADDED = (
+    "Credit top-up – payment received, credits not added. We'll refund you."
+)
+_OLD_CAP_REACHED = (
+    "Overage purchase paid but block cap already reached at "
+    "grant time — credits NOT granted, needs manual refund."
+)
+_OLD_LICENSE_INACTIVE = re.compile(
+    r"^Overage purchase \([\d,]+ AI credit\(s\)\) paid but license was inactive "
+    r"at fulfillment time — credits NOT granted, needs manual refund\.$"
+)
+
+
+def rewrite_credits_not_added_description(old: str) -> Optional[str]:
+    """New text for either old staff-wording description, else None."""
+    if old == _OLD_CAP_REACHED or _OLD_LICENSE_INACTIVE.match(old or ""):
+        return CREDITS_NOT_ADDED
+    return None
+
+
 def checkout_description(
     flow: str, *, plan_name: Optional[str], credits: Optional[int]
 ) -> str:
