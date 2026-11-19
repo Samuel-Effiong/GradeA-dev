@@ -69,6 +69,10 @@ OBJ = "44444444-4444-4444-4444-444444444444"
 #: embeds, in order. The scope names are the `AutoGrader.cache_generation`
 #: constant names, as they appear in the code.
 FAMILIES = {
+    # departments/cache.py - my departments (Epic F1). The key also carries one
+    # SCOPE_DEPARTMENT per department the viewer is in (a starred list the scan
+    # cannot see); every department and membership write bumps both scopes.
+    "departments:list:user=<>": ("SCOPE_USER",),
     # classrooms/views.py - my_courses (family 11)
     "courses:user_id__<>": ("SCOPE_USER", "SCOPE_GLOBAL"),
     # Superadmin dashboards, families 15-22.
