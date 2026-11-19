@@ -18,7 +18,12 @@ from AutoGrader.error_messages import (
     DEFAULT_ERROR_MESSAGE,
     describe_background_task_error,
 )
-from AutoGrader.reason_codes import CodedError, credit_refusal_variant, reason_of
+from AutoGrader.reason_codes import (
+    CodedError,
+    credit_refusal_variant,
+    is_user_error,
+    reason_of,
+)
 from AutoGrader.safe_logging import describe_error_for_log
 from billing.errors import InsufficientCreditsError
 from billing.refusals import is_permanent_refusal, log_refusal
@@ -329,6 +334,14 @@ def mark_processing_task_failure(
         meta = merge_task_meta(meta, {"message_variant": variant})
     if is_permanent_refusal(error):
         log_refusal(logger, f"Background task {processing_task_id}", error)
+    elif is_user_error(error):
+        # E2E F8: the user's error (an unreadable or unsupported file and
+        # the like) is an expected outcome: a warning, class only.
+        logger.warning(
+            "Background task %s failed (user error): %s",
+            processing_task_id,
+            describe_error_for_log(error),
+        )
     elif isinstance(error, BaseException):
         # H-208: the error's class (and, for a fault that is not a broker
         # outage, its frames), never its text or a traceback.

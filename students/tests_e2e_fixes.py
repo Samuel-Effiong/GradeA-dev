@@ -415,7 +415,7 @@ class ExpectedUserErrorsAreNotLoggedAsFaults(TestCase):
     def test_the_marker_class_is_the_catalogue_s_user_class(self):
         from AutoGrader import reason_codes
 
-        ExpectedUserError = reason_codes.ExpectedUserError  # type: ignore[attr-defined]
+        ExpectedUserError = reason_codes.ExpectedUserError
 
         for error in (
             FileUnreadableError(params={"file_name": "a.pdf"}),
