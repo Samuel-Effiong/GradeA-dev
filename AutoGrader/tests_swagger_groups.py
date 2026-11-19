@@ -30,6 +30,25 @@ APPROVED = {
     ("post", "/api/v1/waitlist"): "Waitlist",
 }
 
+# Epic E2 (owner, 19 Nov, docs only): its 15 endpoints get their group too.
+E2_APPROVED = {
+    ("post", "/api/v1/assignments/{id}/copy"): "Assignments",
+    ("post", "/api/v1/assignments/bulk-copy"): "Assignments",
+    ("post", "/api/v1/assignments/{id}/excused"): "Assignments",
+    ("delete", "/api/v1/assignments/{id}/excused"): "Assignments",
+    ("get", "/api/v1/category-templates"): "Grade Categories",
+    ("post", "/api/v1/category-templates"): "Grade Categories",
+    ("get", "/api/v1/category-templates/{id}"): "Grade Categories",
+    ("patch", "/api/v1/category-templates/{id}"): "Grade Categories",
+    ("delete", "/api/v1/category-templates/{id}"): "Grade Categories",
+    ("get", "/api/v1/course/{id}/categories"): "Grade Categories",
+    ("put", "/api/v1/course/{id}/categories"): "Grade Categories",
+    ("post", "/api/v1/course/{id}/categories/preview"): "Grade Categories",
+    ("get", "/api/v1/course/{id}/grade-breakdown"): "Grade Categories",
+    ("get", "/api/v1/course/{id}/grading-policy"): "Grade Categories",
+    ("patch", "/api/v1/course/{id}/grading-policy"): "Grade Categories",
+}
+
 
 class SwaggerGroupsTests(APITestCase):
     schema: dict
@@ -181,3 +200,12 @@ class SwaggerGroupsTests(APITestCase):
         op = self.schema["paths"]["/api/v1/billing/credit-requests"]["get"]
         self.assertIn("status", {p["name"] for p in op.get("parameters", [])})
         self.assertIn("id", self.properties(self.success(op)))
+
+    def test_each_of_the_e2_fifteen_has_its_approved_tag(self):
+        wrong = []
+        for (method, path), tag in E2_APPROVED.items():
+            op = self.schema["paths"].get(path, {}).get(method)
+            tags = op.get("tags") if op else None
+            if tags != [tag]:
+                wrong.append(f"{method.upper()} {path}: {tags} != {[tag]}")
+        self.assertEqual(wrong, [])
