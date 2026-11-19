@@ -20,6 +20,7 @@ from AutoGrader.handlers import json_404
 from classrooms.permissions import IsTeacher
 
 from . import copy as copying
+from . import docs_copy
 from .serializers import AssignmentDetailSerializer
 
 if TYPE_CHECKING:
@@ -58,6 +59,7 @@ class AssignmentCopyView(DarkUntilCopy, APIView):
     permission_classes = (IsAuthenticated, IsTeacher)
     http_method_names = ["post", "options"]
 
+    @docs_copy.copy_assignment
     def post(self, request, pk):
         body = CopyRequestSerializer(data=request.data)
         body.is_valid(raise_exception=True)
@@ -87,6 +89,7 @@ class AssignmentBulkCopyView(DarkUntilCopy, APIView):
     permission_classes = (IsAuthenticated, IsTeacher)
     http_method_names = ["post", "options"]
 
+    @docs_copy.bulk_copy_assignments
     def post(self, request):
         body = BulkCopyRequestSerializer(data=request.data)
         body.is_valid(raise_exception=True)

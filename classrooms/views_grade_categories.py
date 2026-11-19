@@ -33,6 +33,7 @@ from assignments.models import Assignment
 from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome
 from AutoGrader.handlers import json_404
+from classrooms import docs_grade_categories as docs
 from classrooms import grade_categories, grade_service
 from classrooms.models import (
     CategoryTemplate,
@@ -118,9 +119,11 @@ class CourseCategoriesView(_CourseView):
             "policy": grade_categories.grading_policy(course),
         }
 
+    @docs.get_categories
     def get(self, request, pk):
         return Response(self._payload(self.course(pk)))
 
+    @docs.put_categories
     def put(self, request, pk):
         course = self.course(pk)
         grade_categories.set_course_categories(
@@ -136,6 +139,7 @@ class CategoryPreviewView(_CourseView):
 
     http_method_names = ["post", "options"]
 
+    @docs.preview_categories
     def post(self, request, pk):
         course = self.course(pk)
         items = _items(request)
@@ -166,6 +170,7 @@ class GradeBreakdownView(_CourseView):
 
     http_method_names = ["get", "options"]
 
+    @docs.grade_breakdown
     def get(self, request, pk):
         course = self.course(pk)
         try:
@@ -213,9 +218,11 @@ class GradingPolicyView(_CourseView):
 
     http_method_names = ["get", "patch", "options"]
 
+    @docs.get_policy
     def get(self, request, pk):
         return Response(grade_categories.grading_policy(self.course(pk)))
 
+    @docs.patch_policy
     def patch(self, request, pk):
         course = self.course(pk)
         body = GradingPolicySerializer(data=request.data)
@@ -262,6 +269,7 @@ class ExcusedWorkView(DarkUntilCategories, APIView):
             raise ValidationError({"student": [grade_categories.W11_NOT_IN_COURSE]})
         return assignment, enrollment.student
 
+    @docs.excuse
     def post(self, request, pk):
         assignment, student = self._target(request, pk, request.data)
         row, created = grade_categories.excuse_work(
@@ -277,6 +285,7 @@ class ExcusedWorkView(DarkUntilCategories, APIView):
             status=status.HTTP_201_CREATED if created else status.HTTP_200_OK,
         )
 
+    @docs.unexcuse
     def delete(self, request, pk):
         data = request.data if request.data else request.query_params
         assignment, student = self._target(request, pk, data)
@@ -388,12 +397,14 @@ class CategoryTemplateListView(_TemplateBase):
 
     http_method_names = ["get", "post", "options"]
 
+    @docs.list_templates
     def get(self, request):
         templates = _templates_visible_to(request.user).order_by(
             "owner_type", "name", "id"
         )
         return Response(CategoryTemplateSerializer(templates, many=True).data)
 
+    @docs.create_template
     def post(self, request):
         serializer = CategoryTemplateSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -419,6 +430,7 @@ class CategoryTemplateDetailView(_TemplateBase):
 
     http_method_names = ["get", "patch", "delete", "options"]
 
+    @docs.get_template
     def get(self, request, pk):
         template = get_object_or_404(_templates_visible_to(request.user), pk=pk)
         return Response(CategoryTemplateSerializer(template).data)
@@ -429,6 +441,7 @@ class CategoryTemplateDetailView(_TemplateBase):
             raise PermissionDenied()
         return template
 
+    @docs.patch_template
     def patch(self, request, pk):
         template = self._managed(request, pk)
         serializer = CategoryTemplateSerializer(
@@ -441,6 +454,7 @@ class CategoryTemplateDetailView(_TemplateBase):
         self._audit(template, "update")
         return Response(CategoryTemplateSerializer(template).data)
 
+    @docs.delete_template
     def delete(self, request, pk):
         template = self._managed(request, pk)
         template_id = template.pk
