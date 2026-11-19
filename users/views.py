@@ -1567,9 +1567,9 @@ the plain rate limit (10 requests/hour per IP) does not.
                         "Reset done",
                         value={
                             "success": True,
-                            "message": "Password has been reset successfully. You are now logged in.",
+                            "message": "Your password has been reset. You're now signed in.",
                             "data": {
-                                "detail": "Password has been reset successfully. You are now logged in.",
+                                "detail": "Your password has been reset. You're now signed in.",
                                 "access": "<jwt access token>",
                                 "refresh": "<jwt refresh token>",
                             },
@@ -1761,7 +1761,7 @@ the plain rate limit (10 requests/hour per IP) does not.
 
         return Response(
             {
-                "detail": "Password has been reset successfully. You are now logged in.",
+                "detail": "Your password has been reset. You're now signed in.",
                 "access": str(refresh.access_token),
                 "refresh": str(refresh),
             },
@@ -1965,7 +1965,7 @@ Need help? Contact us at {settings.SUPPORT_EMAIL}
                     "properties": {
                         "detail": {
                             "type": "string",
-                            "example": "Authentication credentials were not provided.",
+                            "example": "Please sign in to continue.",
                         }
                     },
                 },

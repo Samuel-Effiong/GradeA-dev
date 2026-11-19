@@ -45,6 +45,7 @@ from AutoGrader.error_messages import describe_stripe_error, stripe_error_label
 from AutoGrader.reason_codes import CodedError
 from billing.errors import BillingRequestError
 from billing.invoice_wording import invoice_description
+from billing.transaction_wording import CREDITS_NOT_ADDED
 from classrooms.models import School
 from users.models import CustomUser
 
@@ -3309,10 +3310,7 @@ class StripeWebhookHandler:
                 stripe_invoice_id=session.get("invoice"),
                 stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
-                description=(
-                    "Overage purchase paid but block cap already reached at "
-                    "grant time — credits NOT granted, needs manual refund."
-                ),
+                description=CREDITS_NOT_ADDED,
             )
 
             return
@@ -3506,12 +3504,7 @@ class StripeWebhookHandler:
                 stripe_payment_intent_id=session.get("payment_intent"),
                 stripe_checkout_session_id=session.get("id"),
                 performed_by=intent.initiated_by,
-                description=(
-                    f"Overage purchase "
-                    f"({intent.total_blocks * (intent.block_size_snapshot // CONVERSION_FACTOR):,} "
-                    f"AI credit(s)) paid but license was inactive at fulfillment "
-                    f"time — credits NOT granted, needs manual refund."
-                ),
+                description=CREDITS_NOT_ADDED,
             )
             schedule_receipt_url_fill(billing_transaction)
             return

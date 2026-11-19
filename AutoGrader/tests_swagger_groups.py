@@ -181,3 +181,43 @@ class SwaggerGroupsTests(APITestCase):
         op = self.schema["paths"]["/api/v1/billing/credit-requests"]["get"]
         self.assertIn("status", {p["name"] for p in op.get("parameters", [])})
         self.assertIn("id", self.properties(self.success(op)))
+
+
+COURSE_OPERATIONS = (
+    ("get", "/api/v1/course"),
+    ("post", "/api/v1/course"),
+    ("get", "/api/v1/course/{id}"),
+    ("patch", "/api/v1/course/{id}"),
+    ("delete", "/api/v1/course/{id}"),
+    ("post", "/api/v1/course/{id}/bulk-add-students"),
+    ("post", "/api/v1/course/{id}/direct-add-student"),
+    ("get", "/api/v1/course/{id}/student-summary"),
+    ("delete", "/api/v1/course/{id}/student/{student_id}"),
+    ("post", "/api/v1/course/{id}/students"),
+    ("post", "/api/v1/course/{id}/topics"),
+    ("get", "/api/v1/course/my-courses"),
+    ("post", "/api/v1/course/renew-student-token"),
+)
+
+
+class CourseGroupTests(SwaggerGroupsTests):
+    """Brief 3 (owner, 19 Nov): "02 Course" is now just "Course"."""
+
+    def test_the_thirteen_course_operations_are_in_the_course_group(self):
+        wrong = []
+        for method, path in COURSE_OPERATIONS:
+            op = self.schema["paths"].get(path, {}).get(method)
+            tags = op.get("tags") if op else None
+            if tags != ["Course"]:
+                wrong.append(f"{method.upper()} {path}: {tags}")
+        self.assertEqual(wrong, [])
+
+    def test_no_operation_carries_the_old_group_name(self):
+        old = [
+            f"{method.upper()} {path}"
+            for path, item in self.schema["paths"].items()
+            for method, op in item.items()
+            if method in {"get", "post", "put", "patch", "delete"}
+            and "02 Course" in (op.get("tags") or [])
+        ]
+        self.assertEqual(old, [])

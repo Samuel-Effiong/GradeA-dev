@@ -547,5 +547,8 @@ class LicenseFlowReceiptTests(TransactionTestCase):
         intent.refresh_from_db()
         self.assertEqual(intent.status, LicenseOveragePurchaseStatus.FAILED)
         txn = txn_by(stripe_payment_intent_id="pi_lic_inactive")
-        self.assertIn("needs manual refund", txn.description)
+        self.assertEqual(
+            txn.description,
+            "Credit top-up — payment received, credits not added. We'll refund you.",
+        )
         self.assertEqual(txn.receipt_url, pi_receipt("pi_lic_inactive"))
