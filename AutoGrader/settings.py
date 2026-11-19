@@ -395,6 +395,7 @@ INSTALLED_APPS = [
     "billing",
     "audit",
     "tags",
+    "departments",
     "django_celery_results",
     "django_celery_beat",
     # Third-party packages

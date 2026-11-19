@@ -315,7 +315,7 @@ Content authored by a removed teacher stays because content is **owned by the De
 
 ### 7.1 Fixture (NFR-TST-08, the first deliverable)
 
-`departments/tests/matrix_fixture.py`: two schools S1, S2. S1: admin A1, teachers T1 (D1 member, editable), T2 (D1 member, **restricted**), T3 (D2 only), T4 (no department), T5 (D1 and D2), T6 (**removed** ex-member, still has a user but off the school), T7 (on S1 with lapsed license). S2: admin A2, teacher T8 (member of D3). Individual teacher I1. Student ST. Super admin SU. Anonymous. Admin with no school A0. Each teacher has courses, enrolled students, submissions, grades, a credit wallet with a **unique canary balance**, a course title and a student name carrying canary text. Three departments D1, D2 (S1), D3 (S2), D1 and D2 overlapping on T5. Two concurrent Sessions, one Course that outlives a Session (to prove departments do not reset).
+`departments/tests_matrix_fixture.py`: two schools S1, S2. S1: admin A1, teachers T1 (D1 member, editable), T2 (D1 member, **restricted**), T3 (D2 only), T4 (no department), T5 (D1 and D2), T6 (**removed** ex-member, still has a user but off the school), T7 (on S1 with lapsed license). S2: admin A2, teacher T8 (member of D3). Individual teacher I1. Student ST. Super admin SU. Anonymous. Admin with no school A0. Each teacher has courses, enrolled students, submissions, grades, a credit wallet with a **unique canary balance**, a course title and a student name carrying canary text. Three departments D1, D2 (S1), D3 (S2), D1 and D2 overlapping on T5. Two concurrent Sessions, one Course that outlives a Session (to prove departments do not reset).
 
 ### 7.2 One test plan (draft 2): T-rows (new F1 surfaces), M-rows (existing paths), D0 (the differential), and guards
 
@@ -415,7 +415,7 @@ Gate 2 breaks one protection at a time, so a missing reap is **not** folded into
 2. Asks the **registry** (§7.3) for each registered content type's count. In F1 the registry is empty, so a delete of an empty or member-only department just works; the choice flow, the 409 and the reassign path are built and tested **against a test-only registered dummy content model** so that D, F2, C2 inherit working behavior instead of writing it.
 3. If content exists and `content` is absent: **409 `DEPARTMENT_CONTENT_CHOICE_REQUIRED`** with counts per type. Nothing changes.
 4. `reassign`: content moves to `target` (must be another department of the same school, not itself): one transaction, one audit event per content type moved plus the delete. `delete`: deletes content explicitly (admin confirmed in the UI; the API requires the explicit parameter), counts audited. Everything is in one transaction: all or nothing.
-5. Members: memberships are removed with the department. **One** DEPARTMENT_DELETE event carries `member_count`, `member_ids` (capped at 50, with `member_ids_truncated` true beyond that), `content_count` and the choice (D10 below, changed in draft 2).
+5. Members: memberships are removed with the department. **One** DEPARTMENT_DELETE event carries `member_count`, `member_ids` (capped at 50, with `member_ids_truncated` true beyond that), `item_count` and the choice (D10 below, changed in draft 2).
 
 | Option | Trade-off |
 |---|---|
@@ -423,7 +423,7 @@ Gate 2 breaks one protection at a time, so a missing reap is **not** folded into
 | B. Soft delete (`archived_at`) | Undo possible; but then every query needs the archived filter (another quiet leak surface), `UNIQUE(school, name_key)` gets conditional, and "delete" never frees the name. It is also the pattern most likely to leave archived content visible to ex-members |
 | C. Cascade | Content vanishes silently; forbidden by BE-F-12 |
 
-Audit of a delete (D10, **changed in draft 2 after the cross-review**): (A) **one DEPARTMENT_DELETE event with `member_count`, capped `member_ids`, `content_count`, `content_choice` and the target (chosen; the challenge's compromise)**; (B) N+1 events (draft 1). I now prefer A: FR-A-01's acceptance is "each listed action produces **exactly one** well-formed event", and the action here is the department delete; the route-coverage sweep also expects one event per write route. Who was in the department on that day is still reconstructable from the stream of earlier MEMBER_ADD/MEMBER_REMOVE events (adds minus removes), which is complete because every membership change is logged. A teacher *leaving the license* is different: each membership removed there is its own membership change, so it keeps **one MEMBER_REMOVE per department left**.
+Audit of a delete (D10, **changed in draft 2 after the cross-review**): (A) **one DEPARTMENT_DELETE event with `member_count`, capped `member_ids`, `item_count`, `delete_choice` and the target (chosen; the challenge's compromise)**; (B) N+1 events (draft 1). I now prefer A: FR-A-01's acceptance is "each listed action produces **exactly one** well-formed event", and the action here is the department delete; the route-coverage sweep also expects one event per write route. Who was in the department on that day is still reconstructable from the stream of earlier MEMBER_ADD/MEMBER_REMOVE events (adds minus removes), which is complete because every membership change is logged. A teacher *leaving the license* is different: each membership removed there is its own membership change, so it keeps **one MEMBER_REMOVE per department left**.
 
 ---
 
@@ -435,7 +435,7 @@ Use the **existing** actions; no new enum values needed (owner-approved labels a
 |---|---|---|---|
 | `DEPARTMENT_CREATE` | create | `Department` | `item_count`? none needed; `department_id` is the event's own field |
 | `DEPARTMENT_UPDATE` | rename/describe | `Department` | `changed_fields`; before/after `name` (see D11) |
-| `DEPARTMENT_DELETE` | delete (one event, includes counts) | `Department` | `member_count`, `member_ids` (list, capped at 50), `member_ids_truncated`, `content_count`, `content_choice`, `target_department_id` |
+| `DEPARTMENT_DELETE` | delete (one event, includes counts) | `Department` | `member_count`, `member_ids` (list, capped at 50), `member_ids_truncated`, `item_count`, `delete_choice`, `target_department_id` |
 | `DEPARTMENT_MEMBER_ADD` | add (one per teacher) | `DepartmentMembership` | `teacher_id`, `source` |
 | `DEPARTMENT_MEMBER_REMOVE` | admin remove, left license (one per department left), role/school change | `DepartmentMembership` | `teacher_id`, `source` (`admin`, `left_license`, `account_change`) |
 | `PERMISSION_CHANGE` | flag change | `DepartmentMembership` | before/after `can_edit` (extend the before/after allow-list, today user fields only; 05 §3.4 names this action) |

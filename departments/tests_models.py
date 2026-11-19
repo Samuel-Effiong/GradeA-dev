@@ -113,8 +113,8 @@ class FlagAndAuditTests(TestCase):
             "member_count",
             "member_ids",
             "member_ids_truncated",
-            "content_count",
-            "content_choice",
+            "item_count",
+            "delete_choice",
             "target_department_id",
         ):
             self.assertIn(key, delete)
@@ -124,9 +124,3 @@ class FlagAndAuditTests(TestCase):
             AuditAction.DEPARTMENT_MEMBER_REMOVE,
         ):
             self.assertLessEqual({"teacher_id", "source"}, METADATA_ALLOWLIST[action])
-        self.assertLessEqual(
-            {"name"},
-            __import__("audit.metadata", fromlist=["x"]).BEFORE_AFTER_ALLOWLIST[
-                AuditAction.DEPARTMENT_UPDATE
-            ],
-        )

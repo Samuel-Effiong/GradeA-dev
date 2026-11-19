@@ -80,7 +80,7 @@ def make_license(school, admin, *, is_active=True, **extra):
         billing_method=LicenseBillingMethod.OFFLINE,
         is_active=is_active,
         auto_renew=False,
-        **extra,
+        **{"max_seats": 0, **extra},
     )
 
 
