@@ -171,8 +171,8 @@ APPEND_SLASH = False
 # reporting" rather than failing to start.
 SENTRY_DSN = env.str("SENTRY_DSN", default="")
 # H-246: the deployment's own name ("beta" on beta, which runs with
-# ENVIRONMENT=prod); unset on production. Sentry files events under it, and
-# kept upload files are foldered by it (students.kept_files).
+# ENVIRONMENT=prod); unset on production. Kept upload files are foldered by it
+# (students.kept_files); the Sentry init below reads the same variable.
 SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="")
 
 if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
@@ -206,7 +206,9 @@ if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
             # H-246: beta runs with ENVIRONMENT=prod; SENTRY_ENVIRONMENT=beta
             # there keeps its events apart from production's. The release is
             # read by the SDK itself from SENTRY_RELEASE.
-            environment=sentry_environment(ENVIRONMENT, SENTRY_ENVIRONMENT),
+            environment=sentry_environment(
+                ENVIRONMENT, env.str("SENTRY_ENVIRONMENT", default="")
+            ),
             integrations=[
                 DjangoIntegration(),
                 CeleryIntegration(),
