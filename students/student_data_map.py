@@ -202,7 +202,8 @@ STUDENT_DATA_MAP = {
     ("students.ExcusedWork", "student"): Entry(
         Role.DELETE,
         "Assignments a teacher excused the student from",
-        export=False,
+        # Owner 2026-11-19: exported as excused-work.json.
+        export=True,
         course_scoped=True,
     ),
     ("students.ExcusedWork", "excused_by"): _staff("Teacher who excused the work"),

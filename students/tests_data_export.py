@@ -102,6 +102,8 @@ APPROVED_NAMES = {
     "ai_processor.ChatSession": "assistant-chats.json",
     "users.UserActivity": "activity.json",
     "users.Settings": "settings.json",
+    # Owner-approved 2026-11-19.
+    "students.ExcusedWork": "excused-work.json",
     "messages": "messages",
     # Owner text #18 (2026-11-10), in EXPORT_NAMES from B1b-8.
     "kept_file": "kept_file",
@@ -337,9 +339,12 @@ class FieldListGuardTests(TestCase):
                     self.assertTrue(why.strip())
 
     def test_no_field_list_for_a_table_that_is_not_exported(self):
+        # A table is exported when any entry exports it: ExcusedWork's
+        # staff entry (excused_by) is not, its student entry is.
+        exported = {label for (label, _), e in STUDENT_DATA_MAP.items() if e.export}
         not_exported = {
             label for (label, _), e in STUDENT_DATA_MAP.items() if not e.export
-        }
+        } - exported
         for registry in (
             data_export.EXPORT_FIELDS,
             data_export.EXPORT_CONDITIONAL,
