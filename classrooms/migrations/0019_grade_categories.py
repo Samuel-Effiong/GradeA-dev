@@ -1,7 +1,9 @@
 # expand-contract-step: expand
 """Epic E2: grade categories (plan docs/evidence/epic-e2/STEP0_PLAN.md §2).
 
-* `Course.missing_counts_as_zero` (Q2), with a database default.
+* `Course.missing_counts_as_zero` (Q2), with a database default of true:
+  every course, existing ones included, counts missing work as 0 (owner
+  2026-11-19, option 1). E2 had not been applied anywhere when this changed.
 * `CourseCategory` repaired (03a §2.8, H-6): course, weight, position,
   created at, each with a database default or nullable, so code older than
   this migration can still insert a row (H-56).
@@ -46,7 +48,7 @@ class Migration(migrations.Migration):
         migrations.AddField(
             model_name="course",
             name="missing_counts_as_zero",
-            field=models.BooleanField(db_default=False, default=False),
+            field=models.BooleanField(db_default=True, default=True),
         ),
         migrations.AlterModelOptions(
             name="coursecategory",

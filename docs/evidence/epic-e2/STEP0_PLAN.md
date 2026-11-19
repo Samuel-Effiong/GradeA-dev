@@ -17,14 +17,14 @@ SM brief 2026-11-12. Branch `task/epic-e2` from staging bcdd1c0c6. Sources: PHAS
 - **classrooms 0019:**
   - `CourseCategory` gains `course` (nullable, CASCADE), `weight_percent` (CHECK 0-100), `position`, `created_at`, and UNIQUE(course, name).
   - New `CategoryTemplate` per 03a §2.7.
-  - `Course.missing_counts_as_zero`, default False (Q2).
+  - `Course.missing_counts_as_zero`, default False (Q2). **Changed 2026-11-19 (owner, option 1): default True for every course, new and existing; a teacher can switch it off.**
 - **assignments 0042:** `category` (SET_NULL) and `relative_weight` (default 1.00, CHECK > 0).
 - **students 0042:** `ExcusedWork`(student, assignment, by, at; unique pair). It is a table, not a submission status, because a placeholder submission row would change every submission count. Missing work is derived (the H-237 rule, not graded, not excused) and never stored.
 - **Later contract step:** `CourseCategory.course` becomes NOT NULL once Q7 is settled.
 
 ## 3. Maths (only in `grade_service`)
 
-- **A course with no categories, no excuses and missing work not counted takes today's code path unchanged.** It is byte-identical under the E1a oracle, snapshots, budget and parity command.
+- **A course with no categories, no excuses and missing work not counted takes today's code path unchanged.** (Since 2026-11-19 missing work counts by default, so only a course that has switched it off takes this path.) It is byte-identical under the E1a oracle, snapshots, budget and parity command.
 - **Categories:**
   - Category grade = Σ(relative_weight × %) / Σ relative_weight.
   - Final grade = Σ(weight × category grade) / Σ weight over the categories with graded work (Q4).

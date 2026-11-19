@@ -395,11 +395,15 @@ class FlagOffKeepsTodayTest(_CategoryCourse):
 
 @categories_on
 class MissingWorkTest(TestCase):
-    """Q2: missing work counts as 0 only when the course says so."""
+    """Q2: missing work counts as 0 only when the course says so. Each test
+    starts from a course that has switched it off; the default (on, owner
+    2026-11-19) is pinned in tests_e2_missing_zero_default."""
 
     def setUp(self):
         self.teacher = make_teacher()
         self.course = make_course(self.teacher)
+        self.course.missing_counts_as_zero = False
+        self.course.save()
         self.student = make_student()
         enroll(self.student, self.course)
         done = make_assignment(self.course, "Done", due_date=past())
@@ -411,7 +415,7 @@ class MissingWorkTest(TestCase):
             self.course, "Draft", due_date=past(), status=AssignmentStatus.DRAFT
         )
 
-    def test_missing_work_doesnt_count_by_default(self):
+    def test_missing_work_doesnt_count_when_switched_off(self):
         self.assertEqual(stored_grade(self.student, self.course), D("80.00"))
 
     def test_course_setting_counts_missing_work_as_zero(self):
@@ -466,6 +470,8 @@ class MissingWorkDueDateTaskTest(TestCase):
 
     def test_no_task_when_the_course_doesnt_count_missing_work(self):
         other = make_course(self.teacher)
+        other.missing_counts_as_zero = False
+        other.save()
         later = make_assignment(other, "Elsewhere", due_date=future())
         self.assertIsNone(self.task(later))
 

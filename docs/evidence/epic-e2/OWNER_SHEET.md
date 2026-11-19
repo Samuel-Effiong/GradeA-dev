@@ -24,6 +24,7 @@ Nothing changes until we switch it on. A course that never sets up categories ke
 
 - **Q1.** Some dashboard "average grade" figures count a 5-point quiz the same as a 100-point exam, while the final grade weighs by points. On 6 Nov you chose to make them one formula in this piece of work. Those dashboard numbers will move once, for every course, when we switch it on. Go ahead? *Suggested: yes.*
 - **Q2.** Should missing work (published, past due, not handed in) count as 0? *Suggested: the teacher chooses per course, and the default is "doesn't count", which is how it works today.*
+  **Decided 2026-11-19 (option 1):** missing work counts as 0 by default for every course, new and existing. A teacher can still switch it off per course.
 - **Q3.** In a course with categories, what about an assignment with no category? *Suggested: it doesn't count, the teacher sees a warning naming it, and new assignments in that course must pick a category.*
 - **Q4.** If a category has nothing graded yet, for example no exam given so far, what should happen? *Suggested: its weight is shared among the other categories, so students aren't marked down for work that hasn't happened.*
 - **Q5.** Should school admins make school templates now, or teachers only? *Suggested: both now.*

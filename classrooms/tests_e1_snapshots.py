@@ -206,8 +206,15 @@ class Fixture:
         return self
 
     def course(self, teacher, name, term):
+        # Missing work is switched off, so the flag-on snapshots keep
+        # pinning today's final grades; E2 counts it by default since
+        # 2026-11-19 (owner), pinned in tests_e2_missing_zero_default.
         course = Course.objects.create(
-            name=name, teacher=teacher, session=term, is_active=True
+            name=name,
+            teacher=teacher,
+            session=term,
+            is_active=True,
+            missing_counts_as_zero=False,
         )
         return self.label(course, f"course:{name}")
 
@@ -546,8 +553,8 @@ class GradeFigureSnapshotTest(TestCase):
 class GradeFigureSnapshotFlagOnTest(GradeFigureSnapshotTest):
     """Epic E2: the same endpoints with GRADE_CATEGORIES_ENABLED on, against
     their own golden files (classrooms/e2_snapshots). The fixture has no
-    categories, excuses or missing-work setting, so every final grade is
-    today's; only the D1 figures (the plain means, owner Q1) move to the
+    categories or excuses and its courses switch missing work off, so every
+    final grade is today's; only the D1 figures (the plain means, owner Q1) move to the
     points-weighted formula. Which files differ from e1_snapshots, and why,
     is recorded in docs/evidence/epic-e2/NOTES.md. Re-record the same way,
     with E1_RECORD_SNAPSHOTS=1."""

@@ -250,7 +250,8 @@ class CourseCategoriesApiTest(_Api):
             response.data["rules"],
             [
                 "Excused work doesn't count toward the grade.",
-                "Missing work doesn't count until it's handed in.",
+                # Missing work counts by default (owner 2026-11-19).
+                "Missing work counts as 0.",
                 "Work that isn't graded yet doesn't count.",
             ],
         )
@@ -260,10 +261,18 @@ class CourseCategoriesApiTest(_Api):
         enroll(student, self.course)
         grade(student, make_assignment(self.course, due_date=past()), 80)
         make_assignment(self.course, "Missed", due_date=past())
+        url = f"/api/v1/course/{self.course.pk}/grading-policy"
         response = self.client.patch(
-            f"/api/v1/course/{self.course.pk}/grading-policy",
-            {"missing_counts_as_zero": True},
-            format="json",
+            url, {"missing_counts_as_zero": False}, format="json"
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(
+            response.data["rules"][1],
+            "Missing work doesn't count until it's handed in.",
+        )
+        self.assertEqual(stored_grade(student, self.course), D("80.00"))
+        response = self.client.patch(
+            url, {"missing_counts_as_zero": True}, format="json"
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.data["rules"][1], "Missing work counts as 0.")
