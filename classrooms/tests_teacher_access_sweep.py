@@ -364,7 +364,19 @@ class TasksNamespaceSweepTests(SimpleTestCase):
         self.assertGreaterEqual(len(actions), 4)
         for action in actions:
             with self.subTest(action=action.name):
-                self.assertIn("teacher_may_reach", ast.unparse(action))
+                source = ast.unparse(action)
+                # A list has no one object to check: GET tasks/sessions
+                # filters by students.session_list.teacher_sessions instead.
+                self.assertTrue(
+                    "teacher_may_reach" in source
+                    or "session_list.teacher_sessions" in source,
+                    action.name,
+                )
+
+    def test_the_sessions_list_filters_by_reachable_courses(self):
+        functions = _functions("students/session_list.py")
+        self.assertIn("reachable_sessions_q(user)", functions["teacher_sessions"])
+        self.assertIn("reachable_courses(user)", functions["reachable_sessions_q"])
 
     def test_every_grading_dispatch_checks_reachability(self):
         tasks = _functions("assignments/tasks.py")
