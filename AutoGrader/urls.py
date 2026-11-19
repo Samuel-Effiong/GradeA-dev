@@ -48,6 +48,8 @@ core_urlpatterns = [
     path("", include("dashboard.urls")),
     # Epic C1: dark until TAGS_ENABLED (tags/views.py).
     path("", include("tags.urls")),
+    # Epic F1: dark until DEPARTMENTS_ENABLED (departments/views.py).
+    path("", include("departments.urls")),
     path("auth/login", TokenObtainPairView.as_view(), name="login"),
     path("auth/refresh", TokenRefreshView.as_view(), name="refresh"),
     path("health", health, name="health"),

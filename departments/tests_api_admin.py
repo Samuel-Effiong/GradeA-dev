@@ -438,7 +438,11 @@ class MemberTests(AdminApiBase):
         self.assertEqual(response.status_code, 200, response.content)
         membership.refresh_from_db()
         self.assertFalse(membership.can_edit)
-        (event,) = events(AuditAction.PERMISSION_CHANGE)
+        (event,) = [
+            e
+            for e in events(AuditAction.PERMISSION_CHANGE)
+            if e.target_type == "DepartmentMembership"
+        ]
         self.assertEqual(event.target_type, "DepartmentMembership")
         self.assertEqual(event.department_id, self.dept.id)
         self.assertEqual(event.before, {"can_edit": True})

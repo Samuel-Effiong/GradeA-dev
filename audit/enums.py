@@ -321,6 +321,26 @@ class ReasonCode(models.TextChoices):
     TAG_NAME_MISSING = "TAG_NAME_MISSING", "Tag name missing"
     TAG_NAME_TOO_LONG = "TAG_NAME_TOO_LONG", "Tag name too long"
     TOO_MANY_TAGS = "TOO_MANY_TAGS", "Too many tags"
+    # Epic F1: departments.
+    DEPARTMENT_NAME_TAKEN = "DEPARTMENT_NAME_TAKEN", "Department name taken"
+    DEPARTMENT_NAME_INVALID = "DEPARTMENT_NAME_INVALID", "Department name invalid"
+    DEPARTMENT_ALREADY_MEMBER = "DEPARTMENT_ALREADY_MEMBER", "Already in department"
+    DEPARTMENT_CONTENT_CHOICE_REQUIRED = (
+        "DEPARTMENT_CONTENT_CHOICE_REQUIRED",
+        "Department delete needs a choice",
+    )
+    DEPARTMENT_REASSIGN_TARGET_INVALID = (
+        "DEPARTMENT_REASSIGN_TARGET_INVALID",
+        "Department move target invalid",
+    )
+    DEPARTMENT_TOO_MANY_TEACHERS = (
+        "DEPARTMENT_TOO_MANY_TEACHERS",
+        "Too many teachers in department",
+    )
+    DEPARTMENT_BATCH_TOO_LARGE = (
+        "DEPARTMENT_BATCH_TOO_LARGE",
+        "Too many teachers in one add",
+    )
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

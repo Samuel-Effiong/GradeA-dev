@@ -74,6 +74,12 @@ CONCEALED_ROUTES = frozenset(
         # Epic C1: while TAGS_ENABLED is off (as under the test runner) the tag routes
         # answer everyone as an unknown URL does (tags/views.py; SM ruling 1).
         "tag-list",
+        # Epic F1: while DEPARTMENTS_ENABLED is off (as under the test runner)
+        # the department routes answer everyone as an unknown URL does.
+        "departments-admin-list",
+        "departments-admin-detail",
+        "departments-admin-members",
+        "departments-admin-member-detail",
         "tag-detail",
         "assignment-tags",
         # NFR-CMP-04: while STUDENT_DATA_TOOLS_ENABLED is off (test runner)
