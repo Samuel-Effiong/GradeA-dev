@@ -287,3 +287,7 @@ def remove_member(actor, department, membership, request=None):
             request=request,
             metadata={"teacher_id": str(teacher_id), "source": SOURCE_ADMIN},
         )
+
+
+def end_memberships(teacher_id, new_school_id, new_user_type, *, source, **extra):
+    raise NotImplementedError
