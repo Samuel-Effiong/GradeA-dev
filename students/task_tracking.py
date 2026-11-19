@@ -322,11 +322,15 @@ def mark_processing_task_success(processing_task_id, meta=None):
 
 
 def mark_processing_task_failure(
-    processing_task_id, error, meta=None, *, fallback_message=None
+    processing_task_id, error, meta=None, *, fallback_message=None, parked=False
 ):
     # FR-A-07 (S7c): a credit refusal after part of the batch already ran is
-    # the mid-batch code, and it stops the rest of the batch.
-    error = batch_credit_refusal(processing_task_id, error)
+    # the mid-batch code, and it stops the rest of the batch. N1 (owner,
+    # 2026-11-19): not for a file parked at the door (`parked`), including
+    # one whose door hold lost the race for the free balance. Only that file
+    # is affected; its siblings hold their own credits.
+    if not parked:
+        error = batch_credit_refusal(processing_task_id, error)
     # H-281: session-results re-derives the remediation from the stored code
     # alone, so an individual teacher's credit refusal stores its variant.
     variant = credit_refusal_variant(error)
@@ -426,7 +430,7 @@ def record_parked_item(
             door_file.attach(item, relaunch=relaunch)
             # The credit refusal is retryable from a kept file, so
             # _discard_refused_kept_file leaves the file in place.
-            mark_processing_task_failure(item.id, error)
+            mark_processing_task_failure(item.id, error, parked=True)
     except BaseException:
         door_file.discard()
         raise

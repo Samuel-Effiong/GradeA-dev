@@ -28,8 +28,7 @@ from rest_framework.test import APITestCase
 from billing import holds as credit_holds
 from billing.errors import InsufficientCreditsError
 from billing.models import CreditWallet
-from billing.services import ManualCreditService
-from billing.testing.holds import holds
+from billing.testing.holds import fund, holds
 from billing.tests.test_holds_door import (
     DOOR_ESTIMATE,
     door_check_passes,
@@ -173,7 +172,7 @@ class ThreeBatchesRaceForATightBalance(APITestCase):
         self.assertEqual(entry["reason_code"], PARKED_CODE)
         self.assertIs(entry["retryable"], True)
 
-        ManualCreditService.top_up_credits(self.teacher, 10, reason="test")
+        fund(self.teacher, 10 * DOOR_ESTIMATE)  # the top-up
         with fixed_estimate(), patch(
             "students.item_retry.launch_processing_task"
         ) as launch:
