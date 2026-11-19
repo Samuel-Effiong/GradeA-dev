@@ -701,6 +701,7 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         dept_wording.CONTENT_CHOICE_REQUIRED,
         "",
         retryable=False,
+        params=frozenset({"item_count"}),
     ),
     ReasonCode.DEPARTMENT_REASSIGN_TARGET_INVALID: ReasonSpec(
         ErrorClass.VALIDATION,

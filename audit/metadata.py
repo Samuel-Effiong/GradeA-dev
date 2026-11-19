@@ -184,7 +184,7 @@ MAX_KEYS = 20
 MAX_STRING = 128
 MAX_LIST_ITEMS = 50
 MAX_ITEM_STRING = 64
-MAX_BYTES = 2048
+MAX_BYTES = 4096
 
 _SAFE_KEY = re.compile(r"[a-z][a-z0-9_]{0,39}")
 _EMAIL_SHAPED = re.compile(r"\S+@\S+")

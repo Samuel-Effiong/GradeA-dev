@@ -13,7 +13,7 @@ from AutoGrader.reason_codes import CodedError
 from billing.models import SchoolCreditAllocation
 from users.models import CustomUser, UserTypes
 
-from . import notifications
+from . import notifications, registry
 from .access import live_teachers, newest_license_id
 from .models import Department, DepartmentMembership
 from .normalize import MAX_NAME_LENGTH, clean_department_name
@@ -125,10 +125,56 @@ def update_department(actor, department, name=None, description=None, request=No
     return department
 
 
-def delete_department(actor, department, request=None):
-    """Remove the department and, with it, its memberships. One event."""
+def _lock_delete_targets(department, target_id):
+    """Lock the department (and the reassign target) in one pk-ordered
+    statement so two crossing reassigns cannot deadlock. Returns
+    (department, target or None); a bad target is one error whatever the
+    reason (unknown, malformed, itself, other school)."""
+    target_uuid = _parse_uuid(target_id) if target_id is not None else None
+    wanted = [department.pk] + ([target_uuid] if target_uuid else [])
+    rows = {
+        d.pk: d
+        for d in Department.objects.select_for_update()
+        .filter(pk__in=wanted)
+        .order_by("pk")
+    }
+    locked = rows[department.pk]
+    if target_id is None:
+        return locked, None
+    target = rows.get(target_uuid) if target_uuid else None
+    if target is None or target.pk == locked.pk or target.school_id != locked.school_id:
+        raise CodedError("DEPARTMENT_REASSIGN_TARGET_INVALID")
+    return locked, target
+
+
+def delete_department(actor, department, content=None, target_id=None, request=None):
+    """Remove the department and, with it, its memberships. One event.
+    Content (registered kinds) needs an explicit choice: `content` is
+    "delete" or "reassign" (with `target_id`); anything else with content
+    present is a 409 and nothing changes. All or nothing."""
     with transaction.atomic():
-        department = Department.objects.select_for_update().get(pk=department.pk)
+        department, target = _lock_delete_targets(
+            department, target_id if content == "reassign" else None
+        )
+        if content == "reassign" and target is None:
+            raise CodedError("DEPARTMENT_REASSIGN_TARGET_INVALID")
+        item_count = sum(registry.counts(department).values())
+        if item_count and content not in ("delete", "reassign"):
+            raise CodedError(
+                "DEPARTMENT_CONTENT_CHOICE_REQUIRED",
+                params={"item_count": item_count},
+            )
+        choice = content if item_count else "none"
+        if content == "reassign" and not item_count:
+            choice = "reassign"
+        if content == "delete" and not item_count:
+            choice = "delete"
+        if item_count:
+            for kind in registry.kinds():
+                if content == "reassign":
+                    kind.move(department, target)
+                else:
+                    kind.delete(department)
         member_ids = [
             str(pk)
             for pk in DepartmentMembership.objects.filter(department=department)
@@ -140,8 +186,11 @@ def delete_department(actor, department, request=None):
             "member_count": len(member_ids),
             "member_ids": member_ids[:MEMBER_IDS_CAP],
             "member_ids_truncated": len(member_ids) > MEMBER_IDS_CAP,
-            "item_count": 0,
+            "item_count": item_count,
+            "delete_choice": choice,
         }
+        if content == "reassign" and target is not None:
+            metadata["target_department_id"] = str(target.id)
         department_id = department.id
         school_id = department.school_id
         department.delete()

@@ -167,7 +167,13 @@ class AdminDepartmentDetailView(AdminBase):
 
     def delete(self, request, department_id):
         department = _admin_department(request.user, department_id)
-        summary = service.delete_department(request.user, department, request=request)
+        summary = service.delete_department(
+            request.user,
+            department,
+            content=request.query_params.get("content"),
+            target_id=request.query_params.get("target"),
+            request=request,
+        )
         return Response(summary)
 
 
