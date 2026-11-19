@@ -1562,6 +1562,12 @@ EXPOSE_CLIENT_DIAGNOSTICS = env.bool("EXPOSE_CLIENT_DIAGNOSTICS", default=False)
 # field. The backfill command does not depend on it.
 TAGS_ENABLED = env.bool("TAGS_ENABLED", default=not _RUNNING_TESTS)
 
+# Epic F1: departments (plan docs/evidence/epic-f1/STEP0_PLAN.md). On by
+# default (owner rule, 2026-11-18); off only under the test runner, where tests
+# turn it on themselves. Set DEPARTMENTS_ENABLED=false on a server to turn it
+# off: the routes then answer exactly as an unknown URL does.
+DEPARTMENTS_ENABLED = env.bool("DEPARTMENTS_ENABLED", default=not _RUNNING_TESTS)
+
 # NFR-CMP-04: a student's data export and erasure. On by default (owner,
 # 2026-11-18); off only under the test runner, where tests turn it on
 # themselves. Set STUDENT_DATA_TOOLS_ENABLED=false on a server to turn it
