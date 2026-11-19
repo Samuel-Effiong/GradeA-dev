@@ -12,7 +12,6 @@ import uuid
 from django.conf import settings
 from django.core.cache import cache as django_cache
 from django.db.models import Count
-from drf_spectacular.utils import extend_schema
 from rest_framework import status
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
@@ -25,7 +24,7 @@ from classrooms.permissions import IsSchoolAdmin, IsTeacher
 from users.models import CustomUser, UserTypes
 
 from . import cache as department_cache
-from . import service, wording
+from . import docs, service, wording
 from .access import (
     admin_department,
     admin_school_id,
@@ -99,8 +98,8 @@ class AdminBase(DarkUntilEnabled, APIView):
         return "Department", self.kwargs.get("department_id")
 
 
-@extend_schema(tags=["School Admin Departments"])
 class AdminDepartmentListView(AdminBase):
+    @docs.list_departments
     def get(self, request):
         school_id = admin_school_id(request.user)
         if school_id is None:
@@ -113,6 +112,7 @@ class AdminDepartmentListView(AdminBase):
         data = [_row(d, d.n) for d in rows]
         return Response(DepartmentRowSerializer(data, many=True).data)
 
+    @docs.create_department
     def post(self, request):
         if admin_school_id(request.user) is None:
             raise NotFound()
@@ -130,8 +130,8 @@ class AdminDepartmentListView(AdminBase):
         )
 
 
-@extend_schema(tags=["School Admin Departments"])
 class AdminDepartmentDetailView(AdminBase):
+    @docs.get_department
     def get(self, request, department_id):
         department = _admin_department(request.user, department_id)
         members = (
@@ -154,6 +154,7 @@ class AdminDepartmentDetailView(AdminBase):
         data["members"] = AdminMemberRowSerializer(rows, many=True).data
         return Response(data)
 
+    @docs.update_department
     def patch(self, request, department_id):
         department = _admin_department(request.user, department_id)
         body = DepartmentRenameSerializer(data=request.data)
@@ -168,6 +169,7 @@ class AdminDepartmentDetailView(AdminBase):
         count = DepartmentMembership.objects.filter(department=department).count()
         return Response(DepartmentRowSerializer(_row(department, count)).data)
 
+    @docs.delete_department
     def delete(self, request, department_id):
         department = _admin_department(request.user, department_id)
         summary = service.delete_department(
@@ -180,8 +182,8 @@ class AdminDepartmentDetailView(AdminBase):
         return Response(summary)
 
 
-@extend_schema(tags=["School Admin Departments"])
 class AdminMembersView(AdminBase):
+    @docs.add_members
     def post(self, request, department_id):
         department = _admin_department(request.user, department_id)
         body = AddMembersSerializer(data=request.data)
@@ -205,7 +207,6 @@ class AdminMembersView(AdminBase):
         )
 
 
-@extend_schema(tags=["School Admin Departments"])
 class AdminMemberDetailView(AdminBase):
     def _membership(self, request, department_id, membership_id):
         department = _admin_department(request.user, department_id)
@@ -216,6 +217,7 @@ class AdminMemberDetailView(AdminBase):
             raise NotFound()
         return department, membership
 
+    @docs.edit_member
     def patch(self, request, department_id, membership_id):
         department, membership = self._membership(request, department_id, membership_id)
         body = MemberEditSerializer(data=request.data)
@@ -231,6 +233,7 @@ class AdminMemberDetailView(AdminBase):
             {"membership_id": membership.id, "can_edit": membership.can_edit}
         )
 
+    @docs.remove_member
     def delete(self, request, department_id, membership_id):
         department, membership = self._membership(request, department_id, membership_id)
         service.remove_member(request.user, department, membership, request=request)
@@ -244,8 +247,8 @@ class TeacherBase(DarkUntilEnabled, APIView):
     permission_classes = [IsTeacher]
 
 
-@extend_schema(tags=["Departments"])
 class MyDepartmentsView(TeacherBase):
+    @docs.my_departments
     def get(self, request):
         user = request.user
         # The permission decision first, never from the cache.
@@ -286,8 +289,8 @@ class MyDepartmentsView(TeacherBase):
         return Response(payload)
 
 
-@extend_schema(tags=["Departments"])
 class RosterView(TeacherBase):
+    @docs.roster
     def get(self, request, department_id):
         department = (
             visible_departments(request.user)
