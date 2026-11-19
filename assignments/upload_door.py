@@ -42,7 +42,7 @@ from rest_framework.response import Response
 
 from ai_processor.services import ai_processor
 from assignments.services import AssignmentProcessingService
-from AutoGrader.reason_codes import credit_refusal_message
+from AutoGrader.reason_codes import credit_refusal_message, reason_of
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.uploads import validate_upload_size
 from billing import holds as credit_holds
@@ -246,6 +246,29 @@ class _DoorLaunchOnCommit:
             mark_processing_task_failure(row.id, exc)
         if row.job_id is not None and row.hold_state == HoldState.HELD:
             credit_holds.fail_item(row.job, item=row)
+
+
+# E2E F4: what the door did with each file of a batch, as a machine field
+# beside its reason_code (no human text; the item's message is in
+# session-results). ACCEPTED: launched; PARKED: kept for credits, retried by
+# hand after a top-up (a door hold that lost the race is parked too: the file
+# is kept and retryable); REFUSED: turned away by the door (too large, empty,
+# unreadable).
+ITEM_ACCEPTED = "ACCEPTED"
+ITEM_PARKED = "PARKED"
+ITEM_REFUSED = "REFUSED"
+
+
+def batch_entry(file_name, item_id, door_status, *, task_id=None, error=None):
+    """One entry of a batch upload's 202 `tasks` list."""
+    reason = reason_of(error) if error is not None else None
+    return {
+        "file_name": file_name,
+        "task_id": task_id,
+        "item_id": item_id,
+        "status": door_status,
+        "reason_code": str(getattr(reason[0], "value", reason[0])) if reason else None,
+    }
 
 
 class DoorHoldRefused(Exception):

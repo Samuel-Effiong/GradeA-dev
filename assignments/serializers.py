@@ -926,6 +926,10 @@ class TaskInfoSerializer(serializers.Serializer):
     # large for the batch); its result is in session-results under item_id.
     task_id = serializers.UUIDField(allow_null=True)
     item_id = serializers.UUIDField(required=False)
+    # E2E F4: ACCEPTED (launched), PARKED (kept for credits) or REFUSED (by
+    # the door), with the item's reason_code (null when accepted).
+    status = serializers.CharField(required=False)
+    reason_code = serializers.CharField(required=False, allow_null=True)
 
 
 class BatchUploadResponseSerializer(serializers.Serializer):

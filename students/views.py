@@ -53,8 +53,12 @@ from assignments.tasks import (
     upload_answers_engine_async,
 )
 from assignments.upload_door import (
+    ITEM_ACCEPTED,
+    ITEM_PARKED,
+    ITEM_REFUSED,
     DoorHold,
     DoorHoldRefused,
+    batch_entry,
     batch_refusal_response,
     launch_at_door,
     parked_files,
@@ -1548,22 +1552,19 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                     item_index=item_index,
                 )
                 tasks_data.append(
-                    {
-                        "file_name": uploaded_file.name,
-                        "task_id": None,
-                        "item_id": refused.id,
-                    }
+                    batch_entry(uploaded_file.name, refused.id, ITEM_REFUSED, error=exc)
                 )
                 continue
 
             if item_index - 1 in parked_items:
                 # H-223: parked (recorded and kept above); retried after a top-up.
                 tasks_data.append(
-                    {
-                        "file_name": uploaded_file.name,
-                        "task_id": None,
-                        "item_id": parked_items[item_index - 1].id,
-                    }
+                    batch_entry(
+                        uploaded_file.name,
+                        parked_items[item_index - 1].id,
+                        ITEM_PARKED,
+                        error=parked[item_index - 1],
+                    )
                 )
                 continue
 
@@ -1588,16 +1589,15 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             file_payload = door_file.payload()
             if not door.hold(processing_task, estimates.get(item_index - 1)):
                 # Epic B1a: the file's hold lost a race for the free balance.
-                mark_processing_task_failure(
-                    processing_task.id,
-                    door.refusal(estimates.get(item_index - 1)),
-                )
+                lost_race = door.refusal(estimates.get(item_index - 1))
+                mark_processing_task_failure(processing_task.id, lost_race)
                 tasks_data.append(
-                    {
-                        "file_name": uploaded_file.name,
-                        "task_id": None,
-                        "item_id": processing_task.id,
-                    }
+                    batch_entry(
+                        uploaded_file.name,
+                        processing_task.id,
+                        ITEM_PARKED,
+                        error=lost_race,
+                    )
                 )
                 continue
             task_id = launch_at_door(
@@ -1612,11 +1612,12 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
                 file_name=uploaded_file.name,
             )
             tasks_data.append(
-                {
-                    "file_name": uploaded_file.name,
-                    "task_id": task_id,
-                    "item_id": processing_task.id,
-                }
+                batch_entry(
+                    uploaded_file.name,
+                    processing_task.id,
+                    ITEM_ACCEPTED,
+                    task_id=task_id,
+                )
             )
             task_ids.append(task_id)
         # Door-close fix: every file this request will hold is attached.
