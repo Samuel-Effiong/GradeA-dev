@@ -1589,8 +1589,10 @@ class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             file_payload = door_file.payload()
             if not door.hold(processing_task, estimates.get(item_index - 1)):
                 # Epic B1a: the file's hold lost a race for the free balance.
+                # N1 (owner, 2026-11-19): parked, as a file parked at the door is;
+                # its siblings keep their holds and run (no mid-batch stop).
                 lost_race = door.refusal(estimates.get(item_index - 1))
-                mark_processing_task_failure(processing_task.id, lost_race)
+                mark_processing_task_failure(processing_task.id, lost_race, parked=True)
                 tasks_data.append(
                     batch_entry(
                         uploaded_file.name,
