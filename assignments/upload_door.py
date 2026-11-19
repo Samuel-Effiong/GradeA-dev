@@ -5,7 +5,8 @@ A student's answer file, a teacher's batch of answer files and a teacher's
 assignment files are queued as billed tasks. The permission class refuses a
 wallet at 0 or below; the billing gate in AIProcessor.execute_graded_task,
 which runs later inside the task, refuses a balance below the call's ESTIMATE
-(the file's tokens plus a flat 20,000) as a final refusal. A student whose
+(the call's tokens plus its task type's headroom; a flat 20,000 until E2E
+F1) as a final refusal. A student whose
 teacher's wallet sat between the two was told "Answer Extraction Started" and
 lost their file.
 
@@ -13,10 +14,13 @@ This door asks the same question earlier. For each file it builds the content
 the task will build (AssignmentProcessingService.prepare_ai_content), asks the
 SAME method the gate asks (AIProcessor.estimate_messages_cost) and compares
 the answer with the balance the gate reads (the wallet's
-total_remaining_credits). Its number is a LOWER bound of the task's (the task
-adds its system prompt, the assignment's questions and the roster), so the
-door only turns away an upload the task would certainly refuse; the gate in
-the task stays the authority.
+total_remaining_credits). The gate in the task stays the authority.
+
+E2E F1 (option C, owner 2026-11-19): the door's number used to be a LOWER
+bound (the file alone), so the task grew each item's hold to its full call
+and refused files the door had let in. It now counts the calls the task makes
+for the file (ai_processor.call_estimates.upload_item_estimate): the same
+messages for a one-call file, every chunk of a long PDF.
 
 Said plainly, as limits:
   * the window between the door and the task stays: another job can spend the
@@ -40,7 +44,11 @@ from django.db import connection, transaction
 from rest_framework import status
 from rest_framework.response import Response
 
-from ai_processor.services import ai_processor
+from ai_processor.call_estimates import (
+    EXTRACT_ANSWER,
+    EXTRACT_ASSIGNMENT,
+    upload_item_estimate,
+)
 from assignments.services import AssignmentProcessingService
 from AutoGrader.reason_codes import credit_refusal_message, reason_of
 from AutoGrader.safe_logging import describe_error_for_log
@@ -87,14 +95,21 @@ def _refusal_response(request_user, refusal):
     )
 
 
-def _estimate_for(uploaded_file, prompt):
-    """The shared method's number for the file, or None when the file cannot
-    be read here (the task turns that into its own final refusal)."""
+def _estimate_for(uploaded_file, prompt, assignment=None):
+    """The shared estimate of the task's calls for the file, or None when the
+    file cannot be read here (the task turns that into its own final
+    refusal). E2E F1 (option C): the calls the task will make, counted by the
+    function its gate asks, chunk for chunk
+    (ai_processor.call_estimates.upload_item_estimate): an answer file when
+    the route names an assignment, an assignment file when it does not (the
+    assignment upload route)."""
     try:
         validate_upload_size(uploaded_file)
         content = AssignmentProcessingService.prepare_ai_content(uploaded_file, prompt)
-        return ai_processor.estimate_messages_cost(
-            None, None, [{"role": "user", "content": content}]
+        return upload_item_estimate(
+            EXTRACT_ANSWER if assignment is not None else EXTRACT_ASSIGNMENT,
+            content,
+            assignment=assignment,
         )
     except Exception as exc:  # noqa: BLE001 - any failure means "cannot say"
         logger.warning(
@@ -122,7 +137,7 @@ def upload_refusal_if_unaffordable(
         return None
     balance = _balance(wallet)
     for index, uploaded_file in enumerate(uploaded_files):
-        estimate = _estimate_for(uploaded_file, prompt)
+        estimate = _estimate_for(uploaded_file, prompt, assignment)
         if estimates_out is not None:
             estimates_out[index] = estimate
         if estimate is None or balance >= estimate:
@@ -154,7 +169,7 @@ def parked_files(request_user, assignment, uploaded_files, prompt, estimates_out
     for index, uploaded_file in enumerate(uploaded_files):
         if not isinstance(uploaded_file, UploadedFile):
             continue  # its own item in the route (FR-A-07)
-        estimate = _estimate_for(uploaded_file, prompt)
+        estimate = _estimate_for(uploaded_file, prompt, assignment)
         if estimates_out is not None:
             estimates_out[index] = estimate
         if estimate is None:

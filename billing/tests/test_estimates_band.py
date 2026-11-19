@@ -153,6 +153,7 @@ class OnlyPlainValuesTests(TestCase):
                 "rough_replay_ratio": estimates.rough_replay_ratio(days=90),
                 "drift_reasons": estimates.drift_reasons(estimates.backtest(days=90)),
                 "shape_of": estimates.shape_of(assignment),
+                "paper_call_estimate": estimates.paper_call_estimate(assignment, None),
                 "spendable_of": estimates.spendable_of(user),
                 "question_bucket": estimates.question_bucket(3),
                 "size_band": estimates.size_band(3),

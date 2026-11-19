@@ -37,6 +37,7 @@ from PIL import Image
 from rest_framework import status
 from rest_framework.test import APITestCase
 
+from ai_processor.call_estimates import CALL_HEADROOM
 from ai_processor.services import AIProcessor
 from assignments.models import Assignment, AssignmentStatus
 from assignments.tasks import upload_answers_engine_async
@@ -242,7 +243,9 @@ class StudentUploadDoorTest(APITestCase):
             )
         self.assertEqual(len(spy.values), 1)
         estimate = spy.values[0]
-        self.assertGreater(estimate, 20_000)
+        # E2E F1: the whole call (system prompt, questions, roster, file)
+        # plus the extract_answer headroom, no longer the flat 20,000.
+        self.assertGreater(estimate, CALL_HEADROOM["extract_answer"])
 
         _, below_student, _, below_assignment = _classroom("below", estimate - 1)
         _, exact_student, _, exact_assignment = _classroom("exact", estimate)
@@ -478,8 +481,9 @@ class TheGateAsksTheSameMethodTest(ExecuteGradedTaskTestBase):
             )
 
         self.assertEqual(value, 777)
+        # E2E F1: with the call's task_type, for its headroom (none here).
         total.assert_called_once_with(
-            "user text system text message text", [b"img"], [b"pdf"]
+            "user text system text message text", [b"img"], [b"pdf"], task_type=None
         )
 
 

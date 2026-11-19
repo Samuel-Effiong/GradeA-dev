@@ -133,7 +133,10 @@ def estimate_for(prompt=PROMPT):
     """What execute_graded_task estimates for a call with this user prompt."""
     from ai_processor.services import ai_processor
 
-    return ai_processor.estimate_messages_cost(prompt, None, None)
+    # E2E F1: call_ai and real_billed_call are grade_assignment calls.
+    return ai_processor.estimate_messages_cost(
+        prompt, None, None, task_type="grade_assignment"
+    )
 
 
 def call_ai(teacher, *, prompt=PROMPT):

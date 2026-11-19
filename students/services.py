@@ -1400,6 +1400,15 @@ def notify_students_of_assignment_edit(assignment):
             )
 
 
+def answer_assignment_context(assignment):
+    """The assignment context an answer extraction sends; the upload door
+    counts the same text (E2E F1, ai_processor.call_estimates)."""
+    return f"""
+    This is the Assignment Context to use in properly extracting the student submissions
+    {assignment.questions}
+    """
+
+
 def upload_answers_engine(
     assignment,
     content,
@@ -1412,10 +1421,7 @@ def upload_answers_engine(
     """`file_name` names the file in a coded refusal (S6c). `upload_outcome`,
     when given, receives replaced_existing: whether this upload overwrote an
     existing (ungraded) submission instead of creating one (F3)."""
-    assignment_context = f"""
-    This is the Assignment Context to use in properly extracting the student submissions
-    {assignment.questions}
-    """
+    assignment_context = answer_assignment_context(assignment)
 
     # Refuse BEFORE the billed extraction call when the student is already
     # locked out (graded, or out of attempts). Not the authoritative check
@@ -1767,10 +1773,7 @@ def update_submission_from_raw_text(
     ensure_submission_open(submission, told_to_student=told_to_student)
     ensure_task_not_cancelled(processing_task_id)
 
-    assignment_context = f"""
-    This is the Assignment Context to use in properly extracting the student submissions
-    {assignment.questions}
-    """
+    assignment_context = answer_assignment_context(assignment)
     content = [
         {"type": "text", "text": RAW_TEXT_EXTRACTION_PROMPT},
         {"type": "text", "text": raw_input},
