@@ -91,6 +91,7 @@ from students.models import (
     BackgroundProcessingTask,
     BackgroundTaskStatus,
     BatchUploadSession,
+    BatchUploadType,
     KeptUpload,
 )
 from students.task_access import teacher_may_reach
@@ -3096,12 +3097,16 @@ class TaskViewSet(viewsets.ViewSet):
                 assignment_id = uuid.UUID(str(assignment_id))
             except ValueError:
                 assignment_id = False  # matches nothing
+        # E2E F7: task_type in any case; an unknown one matches nothing, as
+        # a malformed assignment_id does (this list has no 400 for filters).
+        task_type = (request.query_params.get("task_type") or "").strip().lower()
+        unknown_task_type = bool(task_type) and task_type not in BatchUploadType.values
         sessions = session_list.teacher_sessions(
             request.user,
             assignment_id=assignment_id or None,
-            task_type=request.query_params.get("task_type") or None,
+            task_type=task_type or None,
         )
-        if assignment_id is False:
+        if assignment_id is False or unknown_task_type:
             sessions = sessions.none()
         resumable = (request.query_params.get("resumable") or "").lower()
         if resumable in ("true", "false"):

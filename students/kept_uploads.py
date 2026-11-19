@@ -69,6 +69,12 @@ class DoorFile:
         uploaded_file.seek(0)
         self.content = content
         self.row = None
+        if not content:
+            # E2E F6: a 0-byte file is the user's error (it fails as its item
+            # with FILE_EMPTY / SUBMISSION_EMPTY), not a storage fault: nothing
+            # to keep, no warning, no kept_upload_fallback count.
+            self.stored = None
+            return
         try:
             self.stored = kept_files.store(content)
         except kept_files.KeptFileError:
