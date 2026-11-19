@@ -1579,14 +1579,22 @@ STUDENT_DATA_TOOLS_ENABLED = env.bool(
 )
 
 # Epic E2: grade categories, relative weights, excused and missing work
-# (plan docs/evidence/epic-e2/STEP0_PLAN.md). Off by default: grades use
-# today's formula, the category routes answer as an unknown URL does, and
-# assignment and course responses carry no new field.
-GRADE_CATEGORIES_ENABLED = env.bool("GRADE_CATEGORIES_ENABLED", default=False)
+# (plan docs/evidence/epic-e2/STEP0_PLAN.md). On by default (owner
+# 2026-11-19); off under tests unless a test turns it on. Set it false to
+# go back: grades use the old formula, the category routes answer as an
+# unknown URL does, and assignment and course responses carry no new field.
+# The first time it is on, the hourly go-live task recomputes missing work once
+# (classrooms.missing_work_go_live).
+GRADE_CATEGORIES_ENABLED = env.bool(
+    "GRADE_CATEGORIES_ENABLED", default=not _RUNNING_TESTS
+)
 
-# Epic E2: single and bulk assignment copy. Off by default: the copy routes
+# Epic E2: single and bulk assignment copy. On by default (owner 2026-11-19);
+# off under tests unless a test turns it on. Set it false and the copy routes
 # answer as an unknown URL does.
-ASSIGNMENT_COPY_ENABLED = env.bool("ASSIGNMENT_COPY_ENABLED", default=False)
+ASSIGNMENT_COPY_ENABLED = env.bool(
+    "ASSIGNMENT_COPY_ENABLED", default=not _RUNNING_TESTS
+)
 
 MAILERLITE_API_KEY = env.str("MAILERLITE_API_KEY", default="")
 MAILERLITE_GROUP_ID_TEACHER = env.str("MAILERLITE_GROUP_ID_TEACHER", default="")
