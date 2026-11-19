@@ -345,7 +345,14 @@ def recalculate_on_grade_input_change(sender, instance, created, **kwargs):
     grade_categories.sync_missing_work_task(
         instance, course_counts_missing=counts_missing
     )
-    if created or before is None:
+    if created:
+        # SM 2026-11-19: made already counting as missing (published, due
+        # date past): no task will fire, so recompute now.
+        grade_categories.recalculate_if_missing_now(
+            instance, course_counts_missing=counts_missing
+        )
+        return
+    if before is None:
         return
     changed = {
         field

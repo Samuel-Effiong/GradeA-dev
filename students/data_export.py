@@ -77,6 +77,8 @@ EXPORT_NAMES = {
     "ai_processor.ChatSession": "assistant-chats.json",
     "users.UserActivity": "activity.json",
     "users.Settings": "settings.json",
+    # Owner-approved 2026-11-19 (Epic E2 excused work).
+    "students.ExcusedWork": "excused-work.json",
     "messages": "messages",
     # Owner text #18 (2026-11-10), in with B1b-8: a file-uploads row's
     # kept file, nested under this key.
@@ -90,7 +92,8 @@ README_TEXT = (
     "This download holds the data we keep about one student, as of the time"
     " in manifest.json.\n"
     "Each .json file lists one kind of record: enrollments, submissions,"
-    " at-risk status, file uploads, assistant chats, activity and settings."
+    " at-risk status, file uploads, assistant chats, activity, settings and"
+    " excused work."
     " profile.json holds the student's account details, and profile-picture"
     " is their profile picture, if they set one.\n"
     "If a teacher made this download, it covers only that teacher's"
@@ -173,6 +176,9 @@ EXPORT_FIELDS = {
         "updated_at",
     ),
     "ai_processor.ChatMessage": ("role", "content", "timestamp"),
+    # Owner 2026-11-19: the assignment as submissions.json names it, plus
+    # its course (EXPORT_DERIVED) as enrollments.json names it.
+    "students.ExcusedWork": ("id", "assignment", "excused_at"),
     "users.UserActivity": ("timestamp",),
     "users.Settings": (
         "theme",
@@ -208,8 +214,17 @@ EXPORT_CONDITIONAL = {
     ),
 }
 
+#: Columns that are not on the model, with how each is read.
+EXPORT_DERIVED = {
+    "students.ExcusedWork": {"course": lambda row: row.assignment.course_id},
+}
+
 #: Every column left out, with the reason.
 EXPORT_OMITTED = {
+    "students.ExcusedWork": {
+        "student": "the student themselves",
+        "excused_by": "the teacher who excused it (staff)",
+    },
     "students.KeptUpload": {
         "id": "internal row id",
         "processing_task": "the file-uploads row it is nested in",
@@ -319,7 +334,7 @@ COURSE_PATH = {
     "students.BackgroundProcessingTask": "assignment__course_id",  # E-Q2
     # Epic B1b-5: through the processing task it was kept for.
     "students.KeptUpload": "processing_task__assignment__course_id",
-    # Epic E2: erased, not exported (see the data map).
+    # Epic E2 (exported since 2026-11-19).
     "students.ExcusedWork": "assignment__course_id",
 }
 
@@ -328,6 +343,7 @@ ORDERING = {
     "classrooms.StudentCourse": ("created_at", "id"),
     "students.StudentSubmission": ("submission_date", "id"),
     "students.BackgroundProcessingTask": ("created_at", "id"),
+    "students.ExcusedWork": ("excused_at", "id"),
     "ai_processor.ChatSession": ("created_at", "id"),
     "ai_processor.ChatMessage": ("timestamp", "id"),
     "users.UserActivity": ("timestamp", "id"),
@@ -413,7 +429,10 @@ def _value(label, obj, field_name, released_grades):
 
 def _row(label, obj, released_grades=None):
     names = EXPORT_FIELDS[label] + EXPORT_CONDITIONAL.get(label, ())
-    return {name: _value(label, obj, name, released_grades) for name in names}
+    row = {name: _value(label, obj, name, released_grades) for name in names}
+    for name, read in EXPORT_DERIVED.get(label, {}).items():
+        row[name] = read(obj)
+    return row
 
 
 def _rows(label, field_name, student, scope):
@@ -422,7 +441,7 @@ def _rows(label, field_name, student, scope):
     if scope.course_ids is not None:
         queryset = queryset.filter(**{f"{COURSE_PATH[label]}__in": scope.course_ids})
     queryset = queryset.order_by(*ORDERING.get(label, ("pk",)))
-    if label == "students.StudentSubmission":
+    if label in ("students.StudentSubmission", "students.ExcusedWork"):
         queryset = queryset.select_related("assignment")
     released_grades: Optional[Callable] = None
     if label == "classrooms.StudentCourse":

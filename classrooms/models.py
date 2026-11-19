@@ -152,9 +152,10 @@ class Course(models.Model):
     description = models.TextField(blank=True, db_index=True)
     is_active = models.BooleanField(default=True, db_index=True)
     # Epic E2 (Q2): whether published work past its due date that a student
-    # never handed in counts as 0. Off (today's rule): it doesn't count.
+    # never handed in counts as 0. On by default for every course, new and
+    # existing (owner 2026-11-19, option 1); a teacher can switch it off.
     # Read only while GRADE_CATEGORIES_ENABLED is on.
-    missing_counts_as_zero = models.BooleanField(default=False, db_default=False)
+    missing_counts_as_zero = models.BooleanField(default=True, db_default=True)
 
     created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 

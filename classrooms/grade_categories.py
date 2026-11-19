@@ -383,6 +383,26 @@ def sync_course_missing_work_tasks(course):
         )
 
 
+def recalculate_if_missing_now(assignment, *, course_counts_missing):
+    """A new assignment that already counts as missing work (the flag on,
+    the course counting it, published, due date past): recompute the course
+    under its lock, as the due-date task would. Audit only on change, no
+    credits. Otherwise nothing."""
+    from assignments.models import AssignmentStatus
+
+    if not (
+        grade_service.categories_enabled()
+        and course_counts_missing
+        and assignment.status == AssignmentStatus.PUBLISHED
+        and assignment.due_date is not None
+        and assignment.due_date <= timezone.now()
+    ):
+        return []
+    with transaction.atomic():
+        Course.objects.select_for_update().filter(pk=assignment.course_id).first()
+        return recalculate_course(assignment.course_id, source="assignment")
+
+
 def delete_missing_work_task(assignment_id):
     PeriodicTask.objects.filter(name=missing_work_task_name(assignment_id)).delete()
 

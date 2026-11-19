@@ -18,6 +18,11 @@ A1-A4: OWNER_SHEET.md, all approved (owner, 2026-11-18).
    set and past, no submission row, not excused. It counts as 0 out of
    `total_points` only when `Course.missing_counts_as_zero` is on, in the
    staff and the released grade alike.
+   **Default on (owner 2026-11-19, option 1):** every course counts it,
+   new and existing (classrooms 0019 adds the field with default and
+   db_default True; 0019 had not been applied on any database, the local
+   dev DB stopping at 0018). A teacher can switch it off per course; W13
+   shows the line that matches the course's setting.
 4. **D2 exception: the missing-work task.** In a course that counts missing
    work, the stored grade changes when a due date passes, with nothing
    saved at that moment. A one-off clocked task (`classrooms.tasks
@@ -28,6 +33,18 @@ A1-A4: OWNER_SHEET.md, all approved (owner, 2026-11-18).
    lock, writes audit entries only for grades that moved, and spends no
    credits. It is a clocked PeriodicTask, not a beat schedule entry, so the
    beat-lock pin does not move.
+   An assignment created already published with its due date past (no
+   task will fire) recomputes the course at once, under the same lock
+   (SM 2026-11-19).
+   **Go-live:** stored grades are only rewritten by events, and the task is
+   made only for due dates still ahead while the flag is on. So right after
+   GRADE_CATEGORIES_ENABLED goes on, run `manage.py recalculate_missing_work`
+   (dry run) and then `--apply`: for every course that counts missing work
+   it makes the tasks for due dates still ahead and recomputes the course
+   under its lock (GRADE_CHANGE audit only for grades that move, source
+   `missing_work_go_live`, no credits). A second run changes nothing. A
+   student's released grade is computed on read, so it is right from the
+   moment the flag is on.
 5. **W6** applies to every door that makes an assignment: JSON create,
    create-async, PATCH (clearing or moving), both file uploads (a multipart
    `category`, checked before any charge and carried through the task and
