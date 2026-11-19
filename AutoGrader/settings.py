@@ -170,6 +170,10 @@ APPEND_SLASH = False
 # deployment which has not installed the package yet degrades to "no error
 # reporting" rather than failing to start.
 SENTRY_DSN = env.str("SENTRY_DSN", default="")
+# H-246: the deployment's own name ("beta" on beta, which runs with
+# ENVIRONMENT=prod); unset on production. Kept upload files are foldered by it
+# (students.kept_files); the Sentry init below reads the same variable.
+SENTRY_ENVIRONMENT = env.str("SENTRY_ENVIRONMENT", default="")
 
 if SENTRY_DSN and ENVIRONMENT in ("prod", "dev"):
     try:
