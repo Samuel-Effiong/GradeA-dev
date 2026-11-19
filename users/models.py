@@ -341,7 +341,63 @@ class CustomUser(AbstractUser):
         finally:
             self._rehashing = False
 
+    # Epic F1: the values this instance had when it was loaded, to decide
+    # cheaply whether a save could end department memberships. They only say
+    # whether to look; what is ended is decided by the stored state.
+    _loaded_school_id = None
+    _loaded_user_type = None
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        instance._loaded_school_id = instance.__dict__.get("school_id")
+        instance._loaded_user_type = instance.__dict__.get("user_type")
+        return instance
+
+    def _department_reap_arguments(self, update_fields):
+        """(school, type) to judge memberships by, or None when this save
+        cannot end any (R2): the field is not written, the stored school was
+        null, or a teacher stays a teacher."""
+        if self._state.adding:
+            return None
+        writes = update_fields is None
+        fields = set(update_fields or ())
+        school_written = writes or bool(fields & {"school", "school_id"})
+        type_written = writes or "user_type" in fields
+        school_changes = (
+            school_written
+            and self._loaded_school_id is not None
+            and self._loaded_school_id != self.school_id
+        )
+        leaves = (
+            type_written
+            and self._loaded_user_type == UserTypes.TEACHER
+            and self.user_type != UserTypes.TEACHER
+        )
+        if not (school_changes or leaves):
+            return None
+        from departments.service import KEEP
+
+        return (
+            self.school_id if school_written else KEEP,
+            self.user_type if type_written else KEEP,
+        )
+
     def save(self, *args, **kwargs):
+        reap = self._department_reap_arguments(kwargs.get("update_fields"))
+        if reap is None:
+            self._save_account(*args, **kwargs)
+        else:
+            from departments.service import SOURCE_ACCOUNT_CHANGE, end_memberships
+
+            with transaction.atomic():
+                CustomUser.objects.select_for_update().filter(pk=self.pk).first()
+                end_memberships(self.pk, reap[0], reap[1], source=SOURCE_ACCOUNT_CHANGE)
+                self._save_account(*args, **kwargs)
+        self._loaded_school_id = self.__dict__.get("school_id")
+        self._loaded_user_type = self.__dict__.get("user_type")
+
+    def _save_account(self, *args, **kwargs):
         update_fields = kwargs.get("update_fields")
         # H-270: a newly assigned picture is not in storage yet; store it as
         # WebP with no metadata. A save that keeps the picture finds it

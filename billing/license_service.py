@@ -2004,6 +2004,19 @@ class LicenseSubscriptionService:
         # (`_create_pending_student` reads `course.teacher.school`). Guarded
         # by equality so a teacher already re-pointed at a different school
         # by the time this runs is never clobbered.
+        # Epic F1 (plan 6.2): the teacher's department memberships end here,
+        # after the allocation row and with the teacher row locked, before the
+        # school link goes and before any wallet lock. Not swallowed: a failure
+        # undoes the whole removal.
+        from departments import service as department_service
+
+        CustomUser.objects.select_for_update().filter(pk=teacher.pk).first()
+        department_service.end_memberships(
+            teacher.pk,
+            (None if teacher.school_id == license_sub.school_id else teacher.school_id),
+            teacher.user_type,
+            source=department_service.SOURCE_LEFT_LICENSE,
+        )
         if teacher.school_id == license_sub.school_id:
             teacher.school = None
             teacher.save(update_fields=["school"])

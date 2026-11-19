@@ -46,6 +46,7 @@ from billing.errors import (
     INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
     INSUFFICIENT_CREDITS_MESSAGE,
 )
+from departments import wording as dept_wording
 
 #: The keys a coded body adds next to "error". The renderer hides them from
 #: the display message (users/renderers.py).
@@ -672,6 +673,54 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         ErrorClass.VALIDATION,
         status.HTTP_400_BAD_REQUEST,
         "An assignment can have up to 50 tags.",
+        "",
+        retryable=False,
+    ),
+    # Epic F1 departments (owner-approved wording W1-W6, W13, 2026-11-19; the
+    # texts live in departments/wording.py). Remediation stays empty: each
+    # message already says what to do.
+    ReasonCode.DEPARTMENT_NAME_TAKEN: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        dept_wording.NAME_TAKEN,
+        "",
+        retryable=False,
+        params=frozenset({"name"}),
+    ),
+    ReasonCode.DEPARTMENT_NAME_INVALID: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        dept_wording.NAME_INVALID,
+        "",
+        retryable=False,
+    ),
+    ReasonCode.DEPARTMENT_ALREADY_MEMBER: _item_spec(dept_wording.ALREADY_MEMBER, ""),
+    ReasonCode.DEPARTMENT_CONTENT_CHOICE_REQUIRED: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        dept_wording.CONTENT_CHOICE_REQUIRED,
+        "",
+        retryable=False,
+        params=frozenset({"item_count"}),
+    ),
+    ReasonCode.DEPARTMENT_REASSIGN_TARGET_INVALID: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        dept_wording.REASSIGN_TARGET_INVALID,
+        "",
+        retryable=False,
+    ),
+    ReasonCode.DEPARTMENT_TOO_MANY_TEACHERS: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_409_CONFLICT,
+        dept_wording.TOO_MANY_TEACHERS,
+        "",
+        retryable=False,
+    ),
+    ReasonCode.DEPARTMENT_BATCH_TOO_LARGE: ReasonSpec(
+        ErrorClass.VALIDATION,
+        status.HTTP_400_BAD_REQUEST,
+        dept_wording.BATCH_TOO_LARGE,
         "",
         retryable=False,
     ),

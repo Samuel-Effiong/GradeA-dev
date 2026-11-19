@@ -186,6 +186,11 @@ STUDENT_DATA_MAP = {
     ("billing.SchoolCreditAllocation", "user"): _staff("Teacher on a license"),
     ("billing.UserSubscription", "user"): _staff("Teacher subscription"),
     ("classrooms.Course", "teacher"): _staff("Course owner"),
+    ("departments.Department", "created_by_id"): _staff("School admin who created it"),
+    ("departments.DepartmentMembership", "teacher"): _staff("Teacher in a department"),
+    ("departments.DepartmentMembership", "added_by_id"): _staff(
+        "School admin who placed the teacher"
+    ),
     ("classrooms.Session", "teacher"): _staff("Session owner"),
     ("classrooms.Session", "created_by"): _staff("Session creator"),
     ("dashboard.TeacherInactivityAlertState", "teacher"): _staff(

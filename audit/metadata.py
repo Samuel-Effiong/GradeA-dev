@@ -169,6 +169,14 @@ ALLOWED_KEYS = frozenset(
         "had_admin_lock",
         "had_login_lock",
         "cleared_failed_attempts",
+        # Epic F1: departments. Ids, counts and a switch only, never names.
+        "member_count",
+        "member_ids",
+        "member_ids_truncated",
+        "delete_choice",
+        "target_department_id",
+        "teacher_id",
+        "can_edit",
     }
 )
 
@@ -176,7 +184,7 @@ MAX_KEYS = 20
 MAX_STRING = 128
 MAX_LIST_ITEMS = 50
 MAX_ITEM_STRING = 64
-MAX_BYTES = 2048
+MAX_BYTES = 4096
 
 _SAFE_KEY = re.compile(r"[a-z][a-z0-9_]{0,39}")
 _EMAIL_SHAPED = re.compile(r"\S+@\S+")
@@ -368,10 +376,21 @@ METADATA_ALLOWLIST = {
         {"blocks", "license_id", "decision", "reason_label"}
     ),
     AuditAction.DEPARTMENT_CREATE: frozenset(),
-    AuditAction.DEPARTMENT_UPDATE: frozenset(),
-    AuditAction.DEPARTMENT_DELETE: frozenset(),
-    AuditAction.DEPARTMENT_MEMBER_ADD: frozenset(),
-    AuditAction.DEPARTMENT_MEMBER_REMOVE: frozenset(),
+    AuditAction.DEPARTMENT_UPDATE: frozenset({"changed_fields"}),
+    # Epic F1: one event for the whole delete (FR-A-01); member_ids is capped
+    # at 50 by the caller and member_ids_truncated says so.
+    AuditAction.DEPARTMENT_DELETE: frozenset(
+        {
+            "member_count",
+            "member_ids",
+            "member_ids_truncated",
+            "item_count",
+            "delete_choice",
+            "target_department_id",
+        }
+    ),
+    AuditAction.DEPARTMENT_MEMBER_ADD: frozenset({"teacher_id", "source"}),
+    AuditAction.DEPARTMENT_MEMBER_REMOVE: frozenset({"teacher_id", "source"}),
     AuditAction.LIBRARY_ADD: frozenset(),
     AuditAction.LIBRARY_EDIT: frozenset(),
     AuditAction.LIBRARY_COPY: frozenset(),
@@ -490,7 +509,15 @@ BEFORE_AFTER_ALLOWLIST = {
     # Not token_epoch (SM note 1): logout, password change and reset have
     # their own events, and it would add a second event to each of them.
     AuditAction.PERMISSION_CHANGE: frozenset(
-        {"user_type", "is_active", "is_staff", "is_superuser", "school_id"}
+        {
+            "user_type",
+            "is_active",
+            "is_staff",
+            "is_superuser",
+            "school_id",
+            # Epic F1: a department member's edit switch.
+            "can_edit",
+        }
     ),
     AuditAction.SUBSCRIPTION_CHANGE: frozenset(
         {
