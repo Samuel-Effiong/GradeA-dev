@@ -27,6 +27,7 @@ from departments.tests_matrix_fixture import (
     all_users,
     build_world,
     jwt_client,
+    make_license,
     private_canaries,
 )
 
@@ -497,6 +498,44 @@ class T21MovingSchools(_WorldCase):
             t5.first_name,
             self.get(self.w.t1, roster_url(self.w.d1.id)).content.decode(),
         )
+
+
+@flag_on
+class T10ReplacementLicense(_WorldCase):
+    """Owner Q1: a teacher is live only on the school's newest license (by
+    created_at, then id), active or not. A replacement license without the
+    teacher cuts access off; a lapse of the newest license keeps it. The
+    memberships stay in the data either way."""
+
+    def newer_license(self):
+        from datetime import timedelta
+
+        from billing.models import LicenseSubscription
+
+        newer = make_license(self.w.s1, self.w.a1, self.w.plan)
+        LicenseSubscription.objects.filter(pk=newer.pk).update(
+            created_at=self.w.l1.created_at + timedelta(days=1)
+        )
+        return newer
+
+    def test_a_newer_license_without_the_teacher_cuts_access_off(self):
+        self.newer_license()
+        for teacher in (self.w.t1, self.w.t5):
+            with self.subTest(teacher=teacher.email):
+                self.assertEqual(self.get(teacher, mine_url()).json(), [])
+                self.assertEqual(
+                    self.get(teacher, roster_url(self.w.d1.id)).status_code, 404
+                )
+        self.assertIn(str(self.w.d1.id), ids(self.get(self.w.a1, admin_list_url())))
+        # The other school's newest license is unchanged.
+        self.assertEqual(ids(self.get(self.w.t8, mine_url())), {str(self.w.d3.id)})
+
+    def test_a_lapsed_newest_license_keeps_access(self):
+        from billing.models import LicenseSubscription
+
+        LicenseSubscription.objects.filter(pk=self.w.l1.pk).update(is_active=False)
+        self.assertEqual(ids(self.get(self.w.t1, mine_url())), {str(self.w.d1.id)})
+        self.assertEqual(self.get(self.w.t1, roster_url(self.w.d1.id)).status_code, 200)
 
 
 @flag_on
