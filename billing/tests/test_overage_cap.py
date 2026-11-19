@@ -265,8 +265,9 @@ class GrantTimeOverageCapTests(OverageCapTestBase):
         self.assertEqual(self.wallet.overage_blocks_used, 3)
         # The paid-but-ungranted payment is recorded for manual refund.
         mock_record.assert_called_once()
-        self.assertIn(
-            "NOT granted", mock_record.call_args.kwargs.get("description", "")
+        self.assertEqual(
+            mock_record.call_args.kwargs.get("description"),
+            "Credit top-up – payment received, credits not added. We'll refund you.",
         )
 
     @patch("billing.stripe_service.BillingTransactionService.record")
