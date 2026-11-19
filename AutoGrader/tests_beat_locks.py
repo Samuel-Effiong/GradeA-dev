@@ -58,6 +58,8 @@ EPIC_ONLY_GUARDED_BEAT_TASKS = {
     # Epic B1b-6 (plan 08 §3.7): the batch queue's promotion and expiry.
     "billing.tasks.promote_queued_jobs",
     "billing.tasks.expire_queued_jobs",
+    # Epic E2 automatic go-live (owner 2026-11-19): the run-once recompute.
+    "classrooms.tasks.run_missing_work_go_live",
 }
 
 

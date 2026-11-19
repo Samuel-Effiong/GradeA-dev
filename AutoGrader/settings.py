@@ -999,6 +999,13 @@ CELERY_BEAT_SCHEDULE = {
         "task": "students.tasks.purge_kept_uploads",
         "schedule": crontab(minute=15),
     },
+    # Epic E2 automatic go-live (owner 2026-11-19): runs the missing-work
+    # recompute once, the first time GRADE_CATEGORIES_ENABLED is on; every
+    # later tick is one read (classrooms/missing_work_go_live.py).
+    "e2-missing-work-go-live-hourly": {
+        "task": "classrooms.tasks.run_missing_work_go_live",
+        "schedule": crontab(minute=25),
+    },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
         "schedule": crontab(minute=0, hour=2),
@@ -1201,6 +1208,7 @@ BEAT_HEALTH_EXPECTATIONS = {
     ),
     "sweep-stale-stripe-events": (timedelta(hours=1), timedelta(hours=3)),
     "sweep-missing-receipt-urls": (timedelta(hours=1), timedelta(hours=3)),
+    "e2-missing-work-go-live-hourly": (timedelta(hours=1), timedelta(hours=3)),
     "escalate-stale-licence-stripe-intents": (
         timedelta(minutes=5),
         timedelta(minutes=30),
