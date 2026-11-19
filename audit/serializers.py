@@ -1,12 +1,14 @@
 from rest_framework import serializers
 
+from departments import wording
+
 from .models import AuditEvent
 
 _TARGET_LABEL = {
     "CustomUser": "User account",
     # Epic F1: labels pending owner approval (W7, W8).
-    "Department": "Department",
-    "DepartmentMembership": "Department member",
+    "Department": wording.TARGET_LABEL_DEPARTMENT,
+    "DepartmentMembership": wording.TARGET_LABEL_MEMBER,
     "StudentSubmission": "Student submission",
     "Assignment": "Assignment",
     "AuditEvent": "Audit event",

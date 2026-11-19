@@ -102,8 +102,12 @@ class FlagAndAuditTests(TestCase):
         self.assertFalse(settings.DEPARTMENTS_ENABLED)
 
     def test_new_target_types_have_labels(self):
-        self.assertEqual(_TARGET_LABEL["Department"], "Department")
-        self.assertEqual(_TARGET_LABEL["DepartmentMembership"], "Department member")
+        from departments import wording
+
+        self.assertEqual(_TARGET_LABEL["Department"], wording.TARGET_LABEL_DEPARTMENT)
+        self.assertEqual(
+            _TARGET_LABEL["DepartmentMembership"], wording.TARGET_LABEL_MEMBER
+        )
 
     def test_audit_allow_lists_carry_the_department_keys(self):
         from audit.enums import AuditAction
