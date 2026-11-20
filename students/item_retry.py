@@ -35,7 +35,12 @@ from django.utils import timezone
 
 from audit.emitter import emit, resolve_trace_id
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
-from AutoGrader.reason_codes import REASON_CODES, CodedError
+from AutoGrader.reason_codes import (
+    NO_REMEDIATION,
+    REASON_CODES,
+    UPLOAD_FILE_AGAIN_REMEDIATION,
+    CodedError,
+)
 from classrooms.models import reachable_courses
 
 from .models import BackgroundProcessingTask, BackgroundTaskStatus, BackgroundTaskType
@@ -61,6 +66,10 @@ NOT_SAVED = (
     "This upload can't be retried because its file wasn't saved. "
     "Upload the file again."
 )
+
+
+#: N4 (owner-approved, 2026-11-19): a dismiss of an item that succeeded.
+NOTHING_TO_DISMISS = "This item finished successfully, so there's nothing to dismiss."
 
 
 def deleted_after_days(days=None):
@@ -201,8 +210,14 @@ def refusal_for(item):
     if item.task_type in UPLOAD_ITEM_TYPES:
         if upload_retryable(item):
             return None
+        # N3 (owner, 2026-11-19): a file the lifetime purge removed says
+        # "Upload the file again." as its remediation.
         return ItemNotRetryable(
-            params={"resolution": "replace_file"}, display=_upload_display(item)
+            params={"resolution": "replace_file"},
+            display=_upload_display(item),
+            remediation=(
+                UPLOAD_FILE_AGAIN_REMEDIATION if lifetime_purged(item) else None
+            ),
         )
     if (
         item.task_type not in GRADE_ITEM_TYPES
@@ -392,6 +407,12 @@ def dismiss_item(item, requested_by, request=None):
         )
         if row is None:
             raise Http404()
+        if row.status == BackgroundTaskStatus.SUCCESS:
+            # N4 (SM ruling (a)): same 409 and code; the owner's message, and
+            # no remediation (it would ask to fix a failure there isn't).
+            raise ItemNotRetryable(
+                display={"why": NOTHING_TO_DISMISS}, remediation=NO_REMEDIATION
+            )
         if row.status != BackgroundTaskStatus.FAILURE:
             raise ItemNotRetryable()
         if row.dismissed_at is not None:

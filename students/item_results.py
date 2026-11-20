@@ -16,6 +16,7 @@ from audit.enums import ErrorClass, ReasonCode
 from AutoGrader.reason_codes import (
     MID_BATCH_GRADING_REMEDIATION,
     REASON_CODES,
+    UPLOAD_FILE_AGAIN_REMEDIATION,
     credit_refusal_remediation,
 )
 
@@ -114,6 +115,7 @@ def item_result(task, context, kept_ids=None, *, counts=None, lifetime_purged_id
     message = task.error if failed else None
     remediation = _remediation(spec, code, meta, task.task_type)
     retryable = is_retryable(task, kept_ids)
+    resolution = None
     if (
         failed
         and code == ReasonCode.INSUFFICIENT_CREDITS_MID_BATCH.value
@@ -130,7 +132,10 @@ def item_result(task, context, kept_ids=None, *, counts=None, lifetime_purged_id
         )
         if purged:
             message = deleted_after_days()
-            remediation = REASON_CODES[ReasonCode.NOT_RETRYABLE].remediation
+            # N3 (owner, 2026-11-19): the retry 409's remediation and
+            # resolution, word for word.
+            remediation = UPLOAD_FILE_AGAIN_REMEDIATION
+            resolution = "replace_file"
     if spec is not None:
         error_class = spec.error_class.value
     elif failed:
@@ -154,6 +159,9 @@ def item_result(task, context, kept_ids=None, *, counts=None, lifetime_purged_id
         "error_class": error_class,
         "message": message,
         "remediation": remediation,
+        # N3: what a client should do instead of a retry ("replace_file"), as
+        # the retry 409's params.resolution says; null otherwise.
+        "resolution": resolution,
         "retryable": retryable,
         # Owner 2026-11-18: the teacher dismissed it ("don't retry").
         "dismissed": task.dismissed_at is not None,
