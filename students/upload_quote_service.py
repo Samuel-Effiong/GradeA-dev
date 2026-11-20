@@ -30,6 +30,8 @@ from assignments.services import AssignmentProcessingService
 from assignments.upload_door import door_balance, plan_parking
 from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
 from audit import metrics as audit_metrics
+from audit.emitter import emit
+from audit.enums import AuditAction, AuditOutcome
 from AutoGrader import uploads
 from AutoGrader.reason_codes import CodedError
 from billing import estimates
@@ -411,7 +413,24 @@ def cancel(quote):
         )
         for row in rows:
             transaction.on_commit(partial(_delete_now, row.pk, row.storage_key))
+        emit_ended(locked, "cancelled", actor=locked.teacher)
     return locked
+
+
+def emit_ended(quote, reason, actor=None):
+    """One UPLOAD_QUOTE_ENDED event: ids and counts only, never a file name."""
+    emit(
+        AuditAction.UPLOAD_QUOTE_ENDED,
+        actor=actor,
+        target_type="UploadQuote",
+        target_id=quote.pk,
+        outcome=AuditOutcome.SUCCESS,
+        metadata={
+            "quote_id": str(quote.pk),
+            "reason": reason,
+            "file_count": quote.files.count(),
+        },
+    )
 
 
 def _delete_now(row_id, storage_key):

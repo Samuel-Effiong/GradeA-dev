@@ -82,6 +82,9 @@ class AuditAction(models.TextChoices):
     # owner (SM 2026-11-11).
     CREDIT_REQUEST_CREATE = "CREDIT_REQUEST_CREATE", "Credit request made"
     CREDIT_REQUEST_DECIDE = "CREDIT_REQUEST_DECIDE", "Credit request answered"
+    # Upload quote: an unconfirmed quote ended by cancel or expiry. A confirm
+    # is the existing SUBMISSION_UPLOAD.
+    UPLOAD_QUOTE_ENDED = "UPLOAD_QUOTE_ENDED", "Upload quote ended"
     DEPARTMENT_CREATE = "DEPARTMENT_CREATE", "Department created"
     DEPARTMENT_UPDATE = "DEPARTMENT_UPDATE", "Department updated"
     DEPARTMENT_DELETE = "DEPARTMENT_DELETE", "Department deleted"

@@ -28,3 +28,7 @@ Notes for the owner:
 * The "too many files" 400 for one request or one quote (100 files) is the
   one remaining proposal: "You can check up to {limit} files at a time. Remove
   some and try again." (not yet approved).
+
+New label proposed in this slice (not yet approved): the audit log's target
+label for an upload quote reads "Upload quote" (`audit/serializers.py`, beside
+"Credit request"). Staff-facing only; no teacher sees it.

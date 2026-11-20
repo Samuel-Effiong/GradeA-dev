@@ -110,15 +110,26 @@ def purge_due(now=None):
 
     unsettled = file_model.objects.filter(quote_id=OuterRef("pk"), state__in=UNSETTLED)
     ceiling = now - timedelta(minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES)
-    expired = (
+    due = list(
         quote_model.objects.filter(state=state.OPEN)
         .annotate(unready=Exists(unsettled))
         .filter(
             Q(unready=False, expires_at__lte=now)
             | Q(unready=True, created_at__lte=ceiling)
         )
-        .update(state=state.EXPIRED, closed_at=now)
+        .select_related("teacher")
     )
+    expired = 0
+    for quote in due:
+        # The state is the claim: a quote another run already ended is not
+        # counted or audited twice.
+        if quote_model.objects.filter(pk=quote.pk, state=state.OPEN).update(
+            state=state.EXPIRED, closed_at=now
+        ):
+            expired += 1
+            from students.upload_quote_service import emit_ended
+
+            emit_ended(quote, "expired")
     if expired:
         audit_metrics.count("upload_quote_expired", expired)
 
