@@ -19,16 +19,17 @@ Notes for the owner:
 * The oversize-request refusal (500 MB) reuses the Fixes Worker's
   FILE_TOO_LARGE request variant (`task/upload-request-cap`, its wording is
   their Q8). No new sentence here.
-* A file refused for its own reason (type, empty, over 50 MB, unreadable) uses
+* A file refused for its own reason (type, empty, over the per-file limit, unreadable) uses
   the existing codes and sentences unchanged.
 * QUOTE_BALANCE_CHANGED is not written (owner Q2 = A: confirm runs what fits
   and parks the rest).
 * At 0 spendable credits the quote routes answer the existing 402
   (`insufficient_credits`, already-approved wording); no new sentence.
-* The "too many files" 400 for one request or one quote (100 files) is the
-  one remaining proposal: "You can check up to {limit} files at a time. Remove
-  some and try again." (not yet approved).
+* The "too many files" 400 (100 files for one request or one quote) is
+  APPROVED (owner Q15 = A, 2026-11-20): "You can upload up to {limit} files at
+  a time." with the hint "Remove some files, then try again." (sent as one
+  message of two sentences).
 
-New label proposed in this slice (not yet approved): the audit log's target
-label for an upload quote reads "Upload quote" (`audit/serializers.py`, beside
-"Credit request"). Staff-facing only; no teacher sees it.
+The audit log's target label for an upload quote reads "Upload quote"
+(`audit/serializers.py`, beside "Credit request"): APPROVED (owner Q16 = A,
+2026-11-20). Staff-facing only; no teacher sees it.

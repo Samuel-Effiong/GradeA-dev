@@ -45,9 +45,9 @@ else:
 #: The text get_object_or_404 gives, so every 404 of these routes is one body.
 NOT_FOUND = "No UploadQuote matches the given query."
 NO_FILES = "No files were uploaded. Please try again"
-#: PROPOSED wording (docs/evidence/upload-quotes/WORDING.md).
+#: Owner-approved wording, 2026-11-20 (docs/evidence/upload-quotes/WORDING.md).
 TOO_MANY_FILES = (
-    "You can check up to {limit} files at a time. Remove some and try again."
+    "You can upload up to {limit} files at a time. Remove some files, then try again."
 )
 
 

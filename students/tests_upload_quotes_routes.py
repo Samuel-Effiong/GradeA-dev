@@ -208,6 +208,10 @@ class Create(Base):
                 ]
             )
         self.assertEqual(response.status_code, 400, response.content)
+        self.assertIn(
+            "You can upload up to 2 files at a time. Remove some files, then try again.",
+            response.content.decode(),
+        )
         self.assertEqual(kept_files.MEMORY, {})
         self.assertFalse(UploadQuote.objects.exists())
 
