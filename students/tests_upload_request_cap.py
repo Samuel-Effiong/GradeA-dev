@@ -24,7 +24,7 @@ from django.test.client import (
     encode_multipart,
 )
 from django.urls import reverse
-from rest_framework.test import APITestCase
+from rest_framework.test import APIClient, APITestCase
 
 from audit.models import AuditEvent
 from billing.models import AIJob
@@ -32,6 +32,14 @@ from billing.tests.test_holds_door import fixed_estimate, png_file
 from billing.tests.test_holds_entry import classroom
 from students import kept_files
 from students.models import BackgroundProcessingTask, BatchUploadSession, KeptUpload
+
+#: Owner-approved 2026-11-20 (Q8).
+TEACHER_HINT = "Upload fewer files at a time, then try again."
+#: The student route keeps FILE_TOO_LARGE's own remediation.
+STUDENT_HINT = (
+    "Split the file, remove blank pages or scan at a lower resolution, "
+    "then upload again."
+)
 
 
 def body_of(data):
@@ -60,6 +68,7 @@ class Routes(APITestCase):
             self.assignment,
             _,
         ) = classroom("cap", 10**9)
+        self.fixture_events = set(AuditEvent.objects.values_list("pk", flat=True))
 
     def answers_url(self):
         return reverse(
@@ -102,10 +111,18 @@ class Routes(APITestCase):
         self.launches = a.call_count + b.call_count
         return response
 
-    def assert_refused(self, response, length, cap):
+    def assert_refused(self, response, length, cap, hint=TEACHER_HINT):
+        from AutoGrader.uploads import human_size
+
         self.assertEqual(response.status_code, 413, response.content)
         coded = response.json()["error"]["field_errors"]
         self.assertEqual(coded["reason_code"], "FILE_TOO_LARGE")
+        self.assertEqual(
+            coded["error"],
+            f"This upload is {human_size(length)} and the limit is "
+            f"{human_size(cap)} for one upload.",
+        )
+        self.assertEqual(coded["remediation"], hint)
         self.assertEqual(coded["params"]["dimension"], "bytes")
         self.assertEqual(coded["params"]["limit"], cap)
         self.assertEqual(coded["params"]["actual"], length)
@@ -117,11 +134,14 @@ class Routes(APITestCase):
         self.assertFalse(BackgroundProcessingTask.objects.exists())
         self.assertFalse(KeptUpload.objects.exists())
         self.assertFalse(AIJob.objects.exists())
-        self.assertFalse(AuditEvent.objects.exists())
+        # The classroom fixture writes its own events (subscription, roster).
+        self.assertFalse(
+            AuditEvent.objects.exclude(pk__in=self.fixture_events).exists()
+        )
 
 
 class OverTheCapIsRefusedBeforeTheBodyIsRead(Routes):
-    def refused(self, user, url, body):
+    def refused(self, user, url, body, hint=TEACHER_HINT):
         cap = len(body) - 1
         with override_settings(UPLOAD_REQUEST_MAX_BYTES=cap), patch.object(
             multipartparser.MultiPartParser,
@@ -131,7 +151,7 @@ class OverTheCapIsRefusedBeforeTheBodyIsRead(Routes):
             kept_files, "store", side_effect=AssertionError("a file was stored")
         ):
             response = self.post(user, url, body)
-        self.assert_refused(response, len(body), cap)
+        self.assert_refused(response, len(body), cap, hint)
         self.assert_nothing_happened()
 
     def test_teacher_answer_batch_one_byte_over(self):
@@ -141,7 +161,29 @@ class OverTheCapIsRefusedBeforeTheBodyIsRead(Routes):
         self.refused(self.teacher, self.assignments_url(), self.assignments_body())
 
     def test_student_answer_one_byte_over(self):
-        self.refused(self.student, self.student_url(), self.student_body())
+        self.refused(
+            self.student, self.student_url(), self.student_body(), STUDENT_HINT
+        )
+
+    def test_a_session_signed_in_teacher_is_refused_without_parsing(self):
+        """A session-cookie user is authenticated with a CSRF check that
+        parses a multipart body: the refusal must not authenticate them
+        (the exception handler reads request.user)."""
+        self.client = APIClient(enforce_csrf_checks=True)
+        self.client.force_login(self.teacher)
+        body = self.answers_body()
+        cap = len(body) - 1
+        with override_settings(UPLOAD_REQUEST_MAX_BYTES=cap), patch.object(
+            multipartparser.MultiPartParser,
+            "parse",
+            side_effect=AssertionError("the body was parsed"),
+        ), patch("students.views.launch_processing_task") as launch:
+            response = self.client.generic(
+                "POST", self.answers_url(), body, content_type=MULTIPART_CONTENT
+            )
+        self.launches = launch.call_count
+        self.assert_refused(response, len(body), cap)
+        self.assert_nothing_happened()
 
 
 class AtOrUnderTheCapIsUnchanged(Routes):

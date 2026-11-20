@@ -9,10 +9,12 @@ call. This module is the single place that cap is enforced, so it can't
 drift between the five call sites that accept a file upload.
 """
 
+from django.conf import settings
+from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import APIException
 
 from audit.enums import ReasonCode
-from AutoGrader.reason_codes import CodedError
+from AutoGrader.reason_codes import REQUEST_VARIANT, CodedError
 
 
 class PayloadTooLarge(CodedError, APIException):
@@ -83,3 +85,50 @@ def validate_upload_size(uploaded_file, max_size_bytes=None, *, allow_empty=Fals
                 "limit": human_size(max_size_bytes),
             },
         )
+
+
+def refuse_oversized_upload_request(request, remediation=None):
+    """Owner Q5 A (2026-11-19): FILE_TOO_LARGE (413) when the request's
+    Content-Length is over UPLOAD_REQUEST_MAX_BYTES; nothing else is read.
+
+    Called before authentication and before anything touches the body, so
+    nothing is parsed, spooled to disk, stored, held or queued. A request
+    without a Content-Length (chunked) is read by Django as an empty body
+    (django.core.handlers.wsgi.LimitedStream(0)), so it cannot pass the cap
+    and is left to the route, which answers it as today.
+
+    The refused request is marked anonymous first: the exception handler
+    logs `request.user`, and authenticating a session-cookie user runs the
+    CSRF check, which parses the body. No user, so no audit event."""
+    try:
+        length = int(request.META.get("CONTENT_LENGTH") or 0)
+    except (TypeError, ValueError):
+        return
+    cap = int(settings.UPLOAD_REQUEST_MAX_BYTES)
+    if length <= cap:
+        return
+    request.user = AnonymousUser()
+    request.auth = None
+    raise PayloadTooLarge(
+        params={"actual": length, "limit": cap, "dimension": "bytes"},
+        display={"actual": human_size(length), "limit": human_size(cap)},
+        variant=REQUEST_VARIANT,
+        remediation=remediation,
+    )
+
+
+class UploadRequestCapMixin:
+    """A ViewSet whose upload actions refuse a request over the cap before
+    DRF authenticates it or reads its body. `capped_upload_actions` maps
+    each such action to the remediation its refusal reads (None: the
+    catalogue's own)."""
+
+    capped_upload_actions: dict = {}
+
+    def initial(self, request, *args, **kwargs):
+        action = getattr(self, "action", None)
+        if action in self.capped_upload_actions:
+            refuse_oversized_upload_request(
+                request, remediation=self.capped_upload_actions[action]
+            )
+        super().initial(request, *args, **kwargs)  # type: ignore[misc]

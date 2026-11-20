@@ -1718,6 +1718,16 @@ QUEUE_LIFETIME_DAYS = _parse_queue_lifetime_days(
     env.str("QUEUE_LIFETIME_DAYS", default=None)
 )
 
+# Owner Q5 A (2026-11-19): the most one upload request may carry, in MB, on
+# the three upload routes (teacher answer batch, teacher assignment batch,
+# student answer). A larger Content-Length is refused before the body is
+# read (AutoGrader.uploads.UploadRequestCapMixin). The 50 MB per-file cap
+# (AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES) is separate and unchanged.
+UPLOAD_REQUEST_MAX_MB = env.int("UPLOAD_REQUEST_MAX_MB", default=500)
+if UPLOAD_REQUEST_MAX_MB < 1:
+    raise ImproperlyConfigured("UPLOAD_REQUEST_MAX_MB must be at least 1.")
+UPLOAD_REQUEST_MAX_BYTES = UPLOAD_REQUEST_MAX_MB * 1024 * 1024
+
 # Epic B1b-5 (08b §3.2): where kept upload files live. "cloudinary" (private
 # raw assets, students/kept_files.py) everywhere but tests, which use an
 # in-memory store for the same reason uploading is off above.
