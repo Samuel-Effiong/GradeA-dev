@@ -1,7 +1,11 @@
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
-from students.upload_quote_views import UploadQuoteCollection, UploadQuoteDetail
+from students.upload_quote_views import (
+    UploadQuoteCollection,
+    UploadQuoteDetail,
+    UploadQuoteFiles,
+)
 from students.views import StudentSubmissionViewSet
 from students.views_data_erase import StudentDataEraseView
 from students.views_data_export import StudentDataExportView
@@ -21,6 +25,11 @@ urlpatterns = router.urls + [
         "upload-quotes/<str:pk>",
         UploadQuoteDetail.as_view(),
         name="upload-quote-detail",
+    ),
+    path(
+        "upload-quotes/<str:pk>/files",
+        UploadQuoteFiles.as_view(),
+        name="upload-quote-files",
     ),
     # NFR-CMP-04: dark until STUDENT_DATA_TOOLS_ENABLED.
     path(

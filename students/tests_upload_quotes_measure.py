@@ -295,7 +295,7 @@ class OwnQueue(Base):
             [c.kwargs["queue"] for c in send.call_args_list], ["quote_measure"] * 2
         )
         self.assertEqual(
-            [c.kwargs["args"] for c in send.call_args_list], [["a"], ["b"]]
+            [c.kwargs["args"] for c in send.call_args_list], [("a",), ("b",)]
         )
 
 

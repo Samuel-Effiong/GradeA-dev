@@ -71,7 +71,7 @@ class Fixture(TestCase):
         defaults = {
             "quote": quote,
             "position": position,
-            "state": models().UploadQuoteFile.State.STORED,
+            "state": models().UploadQuoteFile.State.MEASURED,
             "storage_key": stored.storage_key,
             "original_name": "paper.pdf",
             "content_type": "application/pdf",
@@ -160,7 +160,7 @@ class Tables(Fixture):
 class Settings(TestCase):
     def test_defaults(self):
         self.assertTrue(hasattr(settings, "UPLOAD_QUOTES_ENABLED"))
-        self.assertEqual(settings.UPLOAD_QUOTE_LIFETIME_HOURS, 24)
+        self.assertEqual(settings.UPLOAD_QUOTE_LIFETIME_MINUTES, 10)
         self.assertEqual(settings.UPLOAD_QUOTE_OPEN_BYTES, 1_000 * 1024 * 1024)
         self.assertEqual(settings.UPLOAD_QUOTE_MAX_OPEN, 3)
         self.assertEqual(settings.UPLOAD_QUOTE_GLOBAL_OPEN_BYTES_MAX, 40 * 1024**3)
@@ -323,12 +323,12 @@ class Purge(Fixture):
         names = [call.args[0] for call in count.call_args_list]
         self.assertIn("upload_quote_expired", names)
 
-    def test_the_task_runs_one_at_a_time_and_is_scheduled_hourly(self):
+    def test_the_task_runs_one_at_a_time_and_is_scheduled_every_five_minutes(self):
         task = importlib.import_module("students.tasks").purge_upload_quotes
         self.assertIsNotNone(declared_lock(task))
-        entry = settings.CELERY_BEAT_SCHEDULE["purge-upload-quotes-hourly"]
+        entry = settings.CELERY_BEAT_SCHEDULE["purge-upload-quotes"]
         self.assertEqual(entry["task"], "students.tasks.purge_upload_quotes")
-        self.assertEqual(entry["schedule"], crontab(minute=25))
+        self.assertEqual(entry["schedule"], crontab(minute="*/5"))
 
     def test_the_task_purges(self):
         quote = self.quote(expires_at=timezone.now() - timedelta(minutes=1))

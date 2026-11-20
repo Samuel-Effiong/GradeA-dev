@@ -683,9 +683,8 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "",
         retryable=False,
     ),
-    # Upload quote (plan rev 3 section 3). PROPOSED wording, not yet approved
-    # by the owner: docs/evidence/upload-quotes/WORDING.md lists each sentence.
-    # None names a file, and none says how many days anything is kept.
+    # Upload quote (plan rev 3 section 3). Wording APPROVED by the owner,
+    # 2026-11-20 (docs/evidence/upload-quotes/WORDING.md). None names a file.
     ReasonCode.QUOTE_NOT_READY: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_409_CONFLICT,
@@ -696,9 +695,11 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
     ReasonCode.QUOTE_EXPIRED: ReasonSpec(
         ErrorClass.USER,
         status.HTTP_410_GONE,
-        "This upload was waiting too long, so we removed the files.",
+        "This upload waited more than {lifetime_minutes} minutes, so we removed"
+        " the files.",
         "Upload the files again.",
         retryable=False,
+        params=frozenset({"lifetime_minutes", "expires_at"}),
     ),
     ReasonCode.QUOTE_CLOSED: ReasonSpec(
         ErrorClass.USER,

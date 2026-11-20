@@ -4,7 +4,9 @@ BE-B-04/05/06).
 * `open_bytes` and `open_count`: what a teacher's open quotes hold, for the
   1 GB and 3-quote limits, and every teacher's together for the global
   ceiling.
-* `purge_due` (hourly): an open quote past `expires_at` becomes EXPIRED, the
+* `purge_due` (every 5 minutes): a READY open quote past `expires_at` becomes
+  EXPIRED (one still measuring never does; an unready one older than the
+  ceiling is purged all the same), the
   files of expired and cancelled quotes are deleted (a key whose asset never
   arrived deletes fine: the row came first), and the row of an ended quote
   goes after `UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS` (the replay window of a second
@@ -22,7 +24,7 @@ from functools import partial
 
 from django.conf import settings
 from django.db import transaction
-from django.db.models import Sum
+from django.db.models import Exists, OuterRef, Q, Sum
 from django.utils import timezone
 
 from audit import metrics as audit_metrics
@@ -80,6 +82,25 @@ def _delete_then_mark(row_id, storage_key):
     return True
 
 
+UNSETTLED = ("STORING", "STORED", "MEASURING")
+
+
+def lifetime():
+    return timedelta(minutes=settings.UPLOAD_QUOTE_LIFETIME_MINUTES)
+
+
+def restart_clock(quote_id):
+    """The quote just became ready (every file settled): its lifetime runs
+    from now. Does nothing while any file is still being stored or measured."""
+    file_model = _file_model()
+    if file_model.objects.filter(quote_id=quote_id, state__in=UNSETTLED).exists():
+        return False
+    _quote_model().objects.filter(pk=quote_id, state=_quote_model().State.OPEN).update(
+        expires_at=timezone.now() + lifetime()
+    )
+    return True
+
+
 def purge_due(now=None):
     """Returns {"expired", "purged", "failed", "dropped"}."""
     now = now or timezone.now()
@@ -87,8 +108,16 @@ def purge_due(now=None):
     file_model = _file_model()
     state = quote_model.State
 
-    expired = quote_model.objects.filter(state=state.OPEN, expires_at__lte=now).update(
-        state=state.EXPIRED, closed_at=now
+    unsettled = file_model.objects.filter(quote_id=OuterRef("pk"), state__in=UNSETTLED)
+    ceiling = now - timedelta(minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES)
+    expired = (
+        quote_model.objects.filter(state=state.OPEN)
+        .annotate(unready=Exists(unsettled))
+        .filter(
+            Q(unready=False, expires_at__lte=now)
+            | Q(unready=True, created_at__lte=ceiling)
+        )
+        .update(state=state.EXPIRED, closed_at=now)
     )
     if expired:
         audit_metrics.count("upload_quote_expired", expired)

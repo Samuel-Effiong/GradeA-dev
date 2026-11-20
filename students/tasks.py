@@ -18,9 +18,9 @@ def purge_kept_uploads(self):
 
 
 @shared_task(bind=True, max_retries=0)
-@single_instance(max_hold=beat_locks.HOURLY)
+@single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)
 def purge_upload_quotes(self):
-    """Hourly (upload quote, plan rev 3 section 7): expire open quotes past
+    """Every 5 minutes (upload quote, plan rev 3 section 7): expire open quotes past
     their expiry, delete the files of expired and cancelled quotes, drop the
     rows of ended quotes after the replay window."""
     from students.upload_quotes import purge_due

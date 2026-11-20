@@ -39,6 +39,7 @@ from audit import metrics as audit_metrics
 from AutoGrader.reason_codes import reason_of
 from students import kept_files
 from students.models import UploadQuote, UploadQuoteFile
+from students.upload_quotes import restart_clock
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +87,21 @@ def _give_up(row_id, state, **fields):
 
 
 def do_measure(file_id):
+    """Measure one file, then restart the quote's clock if that was the last
+    file it was waiting for."""
+    try:
+        _measure(file_id)
+    finally:
+        quote_id = (
+            UploadQuoteFile.objects.filter(pk=file_id)
+            .values_list("quote_id", flat=True)
+            .first()
+        )
+        if quote_id is not None:
+            restart_clock(quote_id)
+
+
+def _measure(file_id):
     """Measure one file. Raises KeptFileUnavailable (the file goes back to
     STORED for the next try) when the storage did not answer."""
     with transaction.atomic():
@@ -165,12 +181,15 @@ def requeue_stuck(now=None):
     )
     requeued = gave_up = 0
     ids = []
-    for row_id, attempts in stuck.values_list("pk", "measure_attempts"):
+    for row_id, attempts, quote_id in stuck.values_list(
+        "pk", "measure_attempts", "quote_id"
+    ):
         if attempts >= MAX_ATTEMPTS:
             _give_up(
                 row_id, State.MEASURED, readable=None, measured_at=now, reason_code=""
             )
             audit_metrics.count("upload_quote_measure_gave_up")
+            restart_clock(quote_id)
             gave_up += 1
         else:
             ids.append(row_id)

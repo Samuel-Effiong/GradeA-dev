@@ -20,6 +20,7 @@ from typing import Any
 from unittest.mock import patch
 
 import fitz
+from django.conf import settings
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, override_settings
 from django.urls import reverse
@@ -241,6 +242,32 @@ class Create(Base):
         self.assertEqual(first["reason_code"], "QUOTE_FILE_NOT_KEPT")
         self.assertEqual(second["state"], "STORED")
 
+    def test_cloudinary_refusing_a_file_for_size_fails_only_that_file(self):
+        """The Free plan limits a raw file to 10 MB: Cloudinary answers a size
+        error for that file, which ends QUOTE_FILE_NOT_KEPT; nothing else
+        breaks."""
+        import cloudinary.exceptions
+
+        def upload(stream, **kwargs):
+            if stream.getbuffer().nbytes > 5000:
+                raise cloudinary.exceptions.BadRequest(
+                    "File size too large. Got 11000000. Maximum is 10485760."
+                )
+            return {}
+
+        with patch.object(kept_files, "_memory", return_value=False), patch(
+            "students.kept_files.cloudinary.uploader.upload", side_effect=upload
+        ):
+            big_file = SimpleUploadedFile(
+                "big.pdf", b"%PDF-1.4 " + b"x" * 6000, content_type="application/pdf"
+            )
+            response = self.create([big_file, png("b.png")])
+        self.assertEqual(response.status_code, 201, response.content)
+        big, small = data_of(response)["files"]
+        self.assertEqual(big["state"], "NOT_KEPT")
+        self.assertEqual(big["reason_code"], "QUOTE_FILE_NOT_KEPT")
+        self.assertEqual(small["state"], "STORED")
+
     def test_the_row_is_written_before_the_bytes(self):
         seen = []
         real = kept_files.store
@@ -259,7 +286,11 @@ class Create(Base):
         row = UploadQuoteFile.objects.get()
         self.assertEqual(row.state, UploadQuoteFile.State.STORING)
         quotes: Any = importlib.import_module("students.upload_quotes")
-        UploadQuote.objects.update(expires_at=timezone.now() - timedelta(minutes=1))
+        # Never ready, so only the unready ceiling can clear it.
+        UploadQuote.objects.update(
+            created_at=timezone.now()
+            - timedelta(minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES + 1)
+        )
         with self.captureOnCommitCallbacks(execute=True):
             result = quotes.purge_due()
         row.refresh_from_db()
@@ -583,7 +614,15 @@ class Read(Base):
         self.assertEqual([r["id"] for r in rows], [str(mine.pk)])
         self.assertEqual(
             set(rows[0]),
-            {"id", "kind", "created_at", "expires_at", "file_count", "ready"},
+            {
+                "id",
+                "kind",
+                "created_at",
+                "expires_at",
+                "lifetime_minutes",
+                "file_count",
+                "ready",
+            },
         )
 
 
@@ -674,7 +713,7 @@ class Tenancy(Base):
         self.client.force_authenticate(user=None)
         self.assertEqual(self.client.get(reverse(LIST_URL)).status_code, 401)
 
-    def test_a_teacher_with_no_credits_still_gets_the_quote(self):
+    def test_a_teacher_with_no_credits_gets_the_402_not_a_quote(self):
         """BE-B-04: the route is not behind HasCreditBalance, so a teacher at
         0 reads the verdict instead of a 402."""
         from billing.models import CreditWallet
@@ -695,7 +734,10 @@ class Tenancy(Base):
             {"kind": "assignment_files", "course_id": str(course.pk), "files": [pdf()]},
             format="multipart",
         )
-        self.assertEqual(response.status_code, 201, response.content)
+        # Owner Q3 = C (2026-11-20): at 0 spendable the answer is the existing
+        # 402 before anything is stored (the verdict at 0 is no longer given).
+        self.assertEqual(response.status_code, 402, response.content)
+        self.assertFalse(UploadQuote.objects.exists())
 
     def test_the_switch_off_is_404_before_authentication(self):
         with override_settings(UPLOAD_QUOTES_ENABLED=False):
@@ -715,11 +757,10 @@ class Tenancy(Base):
                     self.assertEqual(response.status_code, 404)
 
 
-class TheSwitchIsOffByDefault(SimpleTestCase):
-    """Owner/SM ruling 2026-11-20: off everywhere until the owner approves the
-    six QUOTE_ sentences; tests turn it on."""
+class TheSwitchIsOnByDefault(SimpleTestCase):
+    """Owner ruling 2026-11-20: on by default (the six sentences are approved)."""
 
     def test_default(self):
         from django.conf import settings as django_settings
 
-        self.assertFalse(django_settings.UPLOAD_QUOTES_ENABLED)
+        self.assertTrue(django_settings.UPLOAD_QUOTES_ENABLED)

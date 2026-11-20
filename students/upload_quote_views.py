@@ -10,7 +10,7 @@ frontend sends every file at once and does no checks of its own, so the server
 does every check and one bad file never fails the others. A repeat of the same
 `Idempotency-Key` returns the same quote (200) and stores nothing again.
 Without a key a retry makes a new quote (bounded by the open-quote limit and
-the 24-hour lifetime).
+the quote lifetime).
 """
 
 import uuid
@@ -28,6 +28,7 @@ from rest_framework.throttling import UserRateThrottle
 from rest_framework.views import APIView
 
 from assignments.models import Assignment
+from assignments.upload_door import batch_refusal_response, door_balance
 from AutoGrader import uploads
 from AutoGrader.handlers import json_404
 from classrooms.models import Topic, reachable_courses, teacher_course_access_q
@@ -176,6 +177,16 @@ def refuse_oversize_request(request):
         )
 
 
+def nothing_spendable(user):
+    """The existing 402 when the teacher has no spendable credit (balance
+    less live holds, the door's own figure), else None. Checked before any
+    byte is stored or row made (owner Q3 = C)."""
+    wallet = getattr(user, "credit_wallet", None)
+    if wallet is not None and door_balance(wallet) <= 0:
+        return batch_refusal_response(user)
+    return None
+
+
 def own_quote(request, pk):
     """The teacher's quote whose course they can still reach, else the house
     404 (unknown, malformed, another teacher's or another school's)."""
@@ -281,6 +292,9 @@ class UploadQuoteCollection(DarkUntilEnabled, APIView):
         limit = settings.UPLOAD_QUOTE_MAX_FILES
         if len(files) > limit:
             raise ParseError(TOO_MANY_FILES.format(limit=limit))
+        refused = nothing_spendable(request.user)
+        if refused is not None:
+            return refused
         service.check_room(request.user, sum(f.size or 0 for f in files))
         quote, created = service.create_quote(
             request.user,
@@ -293,6 +307,7 @@ class UploadQuoteCollection(DarkUntilEnabled, APIView):
         if not created:
             return Response(service.payload(quote), status=status.HTTP_200_OK)
         entries = service.add_files(quote, files)
+        service.restart_clock(quote.pk)
         service.after_commit_measure([e for e in entries if not isinstance(e, tuple)])
         service.note_global_alert()
         return Response(
@@ -343,3 +358,53 @@ class UploadQuoteDetail(DarkUntilEnabled, APIView):
     def delete(self, request, pk):
         quote = service.cancel(own_quote(request, pk))
         return Response({"state": quote.state})
+
+
+@extend_schema(tags=["Upload quotes"])
+class UploadQuoteFiles(DarkUntilEnabled, APIView):
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    def get_throttles(self):
+        return [UploadQuoteCreateThrottle()]
+
+    @extend_schema(
+        summary="Add files to an open upload quote",
+        description=(
+            "Multipart: `files`. Positions continue after the quote's last "
+            "file; a file whose bytes the quote already holds is not stored "
+            "again. Up to 100 files per quote and 500 MB per request. Open "
+            "quotes only: QUOTE_CLOSED, or 410 QUOTE_EXPIRED."
+        ),
+        request={
+            "multipart/form-data": {
+                "type": "object",
+                "properties": {
+                    "files": {
+                        "type": "array",
+                        "items": {"type": "string", "format": "binary"},
+                    }
+                },
+                "required": ["files"],
+            }
+        },
+        responses={201: QUOTE_REPLY},
+    )
+    def post(self, request, pk):
+        refuse_oversize_request(request)
+        quote = own_quote(request, pk)
+        files = request.FILES.getlist("files")
+        if not files:
+            raise ParseError(NO_FILES)
+        refused = nothing_spendable(request.user)
+        if refused is not None:
+            return refused
+        try:
+            entries = service.add_to_quote(quote, files)
+        except service.TooManyFiles:
+            raise ParseError(
+                TOO_MANY_FILES.format(limit=settings.UPLOAD_QUOTE_MAX_FILES)
+            ) from None
+        quote.refresh_from_db()
+        return Response(
+            service.create_reply(quote, entries), status=status.HTTP_201_CREATED
+        )

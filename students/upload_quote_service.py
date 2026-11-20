@@ -19,7 +19,6 @@ task: a quote is its own pair of tables. No file name is logged or returned.
 
 import hashlib
 import logging
-from datetime import timedelta
 from functools import partial
 
 from django.conf import settings
@@ -36,7 +35,7 @@ from AutoGrader.reason_codes import CodedError
 from billing import estimates
 from students import kept_files
 from students.models import UploadQuote, UploadQuoteFile
-from students.upload_quotes import open_bytes, open_count
+from students.upload_quotes import lifetime, open_bytes, open_count, restart_clock
 
 logger = logging.getLogger(__name__)
 
@@ -95,8 +94,7 @@ def create_quote(user, *, kind, assignment=None, course=None, relaunch=None, key
                 course=course,
                 relaunch=relaunch or {},
                 idempotency_key=key or None,
-                expires_at=timezone.now()
-                + timedelta(hours=settings.UPLOAD_QUOTE_LIFETIME_HOURS),
+                expires_at=timezone.now() + lifetime(),
             )
     except IntegrityError:
         # Two requests with one key: the second finds the first's quote.
@@ -128,7 +126,9 @@ def add_files(quote, files, positions=None):
     repeats. Each file's row commits before its bytes are stored."""
     positions = list(positions) if positions is not None else list(range(len(files)))
     entries: list = []
-    seen: dict = {}
+    seen: dict = {
+        row.sha256: row for row in quote.files.exclude(sha256="").order_by("position")
+    }
     for position, uploaded_file in zip(positions, files, strict=True):
         name = (getattr(uploaded_file, "name", "") or "")[:255]
         reason = _refusal_of(uploaded_file)
@@ -182,6 +182,47 @@ def add_files(quote, files, positions=None):
             UploadQuoteFile.objects.filter(pk=row.pk).update(state=State.STORED)
             row.refresh_from_db()
         entries.append(row)
+    return entries
+
+
+class TooManyFiles(Exception):
+    """Adding these files would take the quote past UPLOAD_QUOTE_MAX_FILES."""
+
+
+def expired_error(quote):
+    return CodedError(
+        "QUOTE_EXPIRED",
+        params={
+            "lifetime_minutes": settings.UPLOAD_QUOTE_LIFETIME_MINUTES,
+            "expires_at": quote.expires_at.isoformat(),
+        },
+    )
+
+
+def refuse_if_not_open(quote):
+    """QUOTE_CLOSED for a started or cancelled quote, 410 for one that ended
+    by expiry or is ready and past its expiry (the purge has not run yet)."""
+    if quote.state in (UploadQuote.State.CONFIRMED, UploadQuote.State.CANCELLED):
+        raise CodedError("QUOTE_CLOSED")
+    if quote.state == UploadQuote.State.EXPIRED:
+        raise expired_error(quote)
+    if quote.expires_at <= timezone.now() and is_ready(list(quote.files.all())):
+        raise expired_error(quote)
+
+
+def add_to_quote(quote, files):
+    """POST /{id}/files: the same storing helper as the create, with
+    positions continuing after the quote's last file."""
+    refuse_if_not_open(quote)
+    last = quote.files.order_by("-position").values_list("position", flat=True).first()
+    start = 0 if last is None else last + 1
+    if quote.files.count() + len(files) > settings.UPLOAD_QUOTE_MAX_FILES:
+        raise TooManyFiles
+    check_room(quote.teacher, sum(f.size or 0 for f in files))
+    entries = add_files(quote, files, positions=range(start, start + len(files)))
+    restart_clock(quote.pk)
+    after_commit_measure([e for e in entries if not isinstance(e, tuple)])
+    note_global_alert()
     return entries
 
 
@@ -309,6 +350,7 @@ def payload(quote):
         "kind": quote.kind,
         "state": quote.state,
         "expires_at": quote.expires_at,
+        "lifetime_minutes": settings.UPLOAD_QUOTE_LIFETIME_MINUTES,
         "ready": ready,
         "measured": sum(1 for r in rows if r.state in SETTLED),
         "total": len(rows),
@@ -343,6 +385,7 @@ def summary(quote):
         "kind": quote.kind,
         "created_at": quote.created_at,
         "expires_at": quote.expires_at,
+        "lifetime_minutes": settings.UPLOAD_QUOTE_LIFETIME_MINUTES,
         "file_count": quote.files.count(),
         "ready": is_ready(list(quote.files.all())),
     }

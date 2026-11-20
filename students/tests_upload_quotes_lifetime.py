@@ -19,6 +19,7 @@ from unittest.mock import patch
 
 from celery.schedules import crontab
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
@@ -184,9 +185,12 @@ class AddFiles(Base):
 
     def test_a_file_already_in_the_quote_is_not_stored_again(self):
         one = pdf("a.pdf")
+        content = one.read()
+        one.seek(0)
         quote_id = data_of(self.create([one]))["id"]
         before = len(kept_files.MEMORY)
-        response = self.add(quote_id, [pdf("a.pdf")])
+        again = SimpleUploadedFile("again.pdf", content, content_type="application/pdf")
+        response = self.add(quote_id, [again])
         entry = data_of(response)["files"][0]
         self.assertIsNotNone(entry["duplicate_of"])
         self.assertEqual(len(kept_files.MEMORY), before)
@@ -221,6 +225,16 @@ class AddFiles(Base):
         params = response.json()["error"]["field_errors"]["params"]
         self.assertEqual(params["lifetime_minutes"], minutes())
         self.assertIn("expires_at", params)
+
+    @override_settings(UPLOAD_QUOTE_LIFETIME_MINUTES=7)
+    def test_the_expired_sentence_says_the_configured_minutes(self):
+        quote_id = data_of(self.create([pdf("a.pdf")]))["id"]
+        UploadQuote.objects.update(state=UploadQuote.State.EXPIRED)
+        response = self.add(quote_id, [pdf("b.pdf", pages=3)])
+        self.assertIn("more than 7 minutes", response.json()["message"])
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["params"]["lifetime_minutes"], 7
+        )
 
     def test_a_foreign_quote_is_the_house_404(self):
         quote_id = data_of(self.create([pdf("a.pdf")]))["id"]
@@ -260,7 +274,8 @@ class NothingSpendable(Base):
 
     def assert_nothing_happened(self, response):
         self.assertEqual(response.status_code, 402, response.content)
-        self.assertEqual(response.json()["code"], "insufficient_credits")
+        body = response.json()
+        self.assertEqual(body["error"]["field_errors"]["code"], "insufficient_credits")
         self.assertFalse(UploadQuote.objects.exists())
         self.assertFalse(kept_files.MEMORY)
         self.enqueued.assert_not_called()

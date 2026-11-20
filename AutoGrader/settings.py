@@ -1009,9 +1009,9 @@ CELERY_BEAT_SCHEDULE = {
         "schedule": crontab(minute=15),
     },
     # Upload quote: expire open quotes, delete their files, drop old rows.
-    "purge-upload-quotes-hourly": {
+    "purge-upload-quotes": {
         "task": "students.tasks.purge_upload_quotes",
-        "schedule": crontab(minute=25),
+        "schedule": crontab(minute="*/5"),
     },
     # Upload quote: ask again for files stored and unmeasured for over 10 minutes.
     "requeue-stuck-quote-measures": {
@@ -1747,8 +1747,16 @@ KEPT_UPLOADS_BACKEND = env.str(
 # Upload quote (plan rev 3 section 6): what an upload will cost, asked before
 # anything is processed. The route switch is read by the routes
 # (students.upload_quote_views); off answers 404 before authentication.
-UPLOAD_QUOTES_ENABLED = env.bool("UPLOAD_QUOTES_ENABLED", default=False)
-UPLOAD_QUOTE_LIFETIME_HOURS = env.int("UPLOAD_QUOTE_LIFETIME_HOURS", default=24)
+# On by default (owner ruling 2026-11-20); it reaches staging only as the
+# finished build.
+UPLOAD_QUOTES_ENABLED = env.bool("UPLOAD_QUOTES_ENABLED", default=True)
+# How long a READY quote waits for the teacher (owner Q5, 2026-11-20): the
+# clock starts at create and restarts when the quote becomes ready. A quote
+# still measuring never expires; an unready one is purged after the ceiling.
+UPLOAD_QUOTE_LIFETIME_MINUTES = env.int("UPLOAD_QUOTE_LIFETIME_MINUTES", default=10)
+UPLOAD_QUOTE_UNREADY_CEILING_MINUTES = env.int(
+    "UPLOAD_QUOTE_UNREADY_CEILING_MINUTES", default=60
+)
 UPLOAD_QUOTE_MAX_FILES = env.int("UPLOAD_QUOTE_MAX_FILES", default=100)
 #: A teacher's open quotes hold at most this many bytes and this many quotes.
 UPLOAD_QUOTE_OPEN_BYTES = env.int("UPLOAD_QUOTE_OPEN_BYTES", default=1_000 * 1024**2)
