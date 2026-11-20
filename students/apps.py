@@ -7,3 +7,6 @@ class StudentsConfig(AppConfig):
 
     def ready(self):
         import students.signals  # noqa: F401
+        from AutoGrader import uploads
+
+        uploads.warn_if_file_cap_above_request_cap()

@@ -54,10 +54,9 @@ class TheDefaultCap(SimpleTestCase):
         )
 
     def test_the_per_file_cap_is_unchanged(self):
-        from AutoGrader import uploads
+        from AutoGrader.uploads import max_upload_size_bytes
 
-        helper = "max_upload_size_bytes"
-        self.assertEqual(getattr(uploads, helper)(), 50 * 1024 * 1024)
+        self.assertEqual(max_upload_size_bytes(), 50 * 1024 * 1024)
 
 
 class Routes(APITestCase):

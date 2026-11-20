@@ -5,20 +5,13 @@ from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import SimpleTestCase, override_settings
 
 from AutoGrader import uploads
-from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
-
-
-def _new(name):
-    return getattr(uploads, name)
-
-
-def max_upload_size_bytes():
-    return _new("max_upload_size_bytes")()
-
-
-def warn_if_file_cap_above_request_cap():
-    return _new("warn_if_file_cap_above_request_cap")()
-
+from AutoGrader.uploads import (
+    PayloadEmpty,
+    PayloadTooLarge,
+    max_upload_size_bytes,
+    validate_upload_size,
+    warn_if_file_cap_above_request_cap,
+)
 
 MB = 1024 * 1024
 

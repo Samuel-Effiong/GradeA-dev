@@ -9,6 +9,8 @@ call. This module is the single place that cap is enforced, so it can't
 drift between the five call sites that accept a file upload.
 """
 
+import logging
+
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from rest_framework.exceptions import APIException
@@ -40,11 +42,35 @@ class PayloadEmpty(CodedError, APIException):
     default_code = "file_empty"
 
 
-# A scanned assignment PDF is the largest legitimate upload this project
-# handles; 50 MB comfortably covers a multi-page scan at print resolution
-# without leaving room for the kind of upload that only makes sense as
-# abuse of a paid AI-extraction endpoint.
-MAX_UPLOAD_SIZE_BYTES = 50 * 1024 * 1024
+logger = logging.getLogger(__name__)
+
+
+def max_upload_size_bytes():
+    """The per-file limit in bytes: settings.MAX_UPLOAD_FILE_SIZE_MB (env,
+    default 50; owner ruling 2026-11-20), read on every call so a changed
+    setting applies at once. A scanned assignment PDF is the largest
+    legitimate upload; 50 MB covers a multi-page scan at print resolution."""
+    return int(settings.MAX_UPLOAD_FILE_SIZE_BYTES)
+
+
+def __getattr__(name):
+    # The old constant's name, for callers that still import it: it reads
+    # the setting when it is looked up. New code calls max_upload_size_bytes().
+    if name == "MAX_UPLOAD_SIZE_BYTES":
+        return max_upload_size_bytes()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+def warn_if_file_cap_above_request_cap():
+    """Startup check: a per-file limit above the request cap can never be
+    reached through one upload. Logged as a WARNING, not refused."""
+    if max_upload_size_bytes() > int(settings.UPLOAD_REQUEST_MAX_BYTES):
+        logger.warning(
+            "MAX_UPLOAD_FILE_SIZE_MB (%s) is above UPLOAD_REQUEST_MAX_MB (%s): "
+            "no single upload request can carry a file that large.",
+            settings.MAX_UPLOAD_FILE_SIZE_MB,
+            settings.UPLOAD_REQUEST_MAX_MB,
+        )
 
 
 def human_size(size_bytes):
@@ -71,7 +97,7 @@ def validate_upload_size(uploaded_file, max_size_bytes=None, *, allow_empty=Fals
     if uploaded_file.size == 0 and not allow_empty:
         raise PayloadEmpty(params={"file_name": file_name_of(uploaded_file)})
     if max_size_bytes is None:
-        max_size_bytes = MAX_UPLOAD_SIZE_BYTES
+        max_size_bytes = max_upload_size_bytes()
     if uploaded_file.size > max_size_bytes:
         raise PayloadTooLarge(
             params={
