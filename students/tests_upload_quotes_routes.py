@@ -152,7 +152,7 @@ class Create(Base):
 
     def test_every_check_is_the_servers_and_one_bad_file_fails_nothing_else(self):
         too_big = pdf("big.pdf")
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", too_big.size - 1):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=too_big.size - 1):
             response = self.create(
                 [
                     text_file(),

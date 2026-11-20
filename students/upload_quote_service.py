@@ -111,7 +111,7 @@ def _refusal_of(uploaded_file):
         return "FILE_TYPE_UNSUPPORTED"
     try:
         uploads.validate_upload_size(
-            uploaded_file, max_size_bytes=uploads.MAX_UPLOAD_SIZE_BYTES
+            uploaded_file, max_size_bytes=uploads.max_upload_size_bytes()
         )
     except uploads.PayloadEmpty:
         return "FILE_EMPTY"

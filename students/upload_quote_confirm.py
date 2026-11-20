@@ -64,7 +64,7 @@ def _refusal_error(row):
     """The door's own refusal for a file the quote refused at the check."""
     params = {"file_name": row.original_name}
     if row.reason_code == "FILE_TOO_LARGE":
-        limit = uploads.MAX_UPLOAD_SIZE_BYTES
+        limit = uploads.max_upload_size_bytes()
         return CodedError(
             "FILE_TOO_LARGE",
             params={

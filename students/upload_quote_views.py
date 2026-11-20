@@ -180,25 +180,14 @@ CONFIRM_REPLY = inline_serializer(
 )
 
 
-def refuse_oversize_request(request):
-    """FILE_TOO_LARGE (413, dimension bytes) when the request's declared
-    length is over the cap, before anything reads the body (the Fixes Worker's
-    request cap on the three upload routes; its own wording is Q8: this uses
-    the existing sentence with no file name until that lands)."""
-    cap = int(getattr(settings, "UPLOAD_REQUEST_MAX_BYTES", 500 * 1024 * 1024))
-    try:
-        length = int(request.META.get("CONTENT_LENGTH") or 0)
-    except ValueError:
-        return
-    if length > cap:
-        raise uploads.PayloadTooLarge(
-            params={"actual": length, "limit": cap, "dimension": "bytes"},
-            display={
-                "file_name": "This upload",
-                "actual": uploads.human_size(length),
-                "limit": uploads.human_size(cap),
-            },
-        )
+class CappedUpload:
+    """A POST over the request cap is refused before authentication and before
+    the body is read (the shared AutoGrader.uploads helper)."""
+
+    def initial(self, request, *args, **kwargs):
+        if request.method == "POST":
+            uploads.refuse_oversized_upload_request(request)
+        super().initial(request, *args, **kwargs)  # type: ignore[misc]
 
 
 def nothing_spendable(user):
@@ -232,7 +221,7 @@ def own_quote(request, pk):
 
 
 @extend_schema(tags=["Upload quotes"])
-class UploadQuoteCollection(DarkUntilEnabled, APIView):
+class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def get_throttles(self):
@@ -281,7 +270,6 @@ class UploadQuoteCollection(DarkUntilEnabled, APIView):
         responses={201: QUOTE_REPLY, 200: QUOTE_REPLY},
     )
     def post(self, request):
-        refuse_oversize_request(request)
         body = CreateSerializer(data=request.data)
         body.is_valid(raise_exception=True)
         data = body.validated_data
@@ -385,7 +373,7 @@ class UploadQuoteDetail(DarkUntilEnabled, APIView):
 
 
 @extend_schema(tags=["Upload quotes"])
-class UploadQuoteFiles(DarkUntilEnabled, APIView):
+class UploadQuoteFiles(CappedUpload, DarkUntilEnabled, APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def get_throttles(self):
@@ -414,7 +402,6 @@ class UploadQuoteFiles(DarkUntilEnabled, APIView):
         responses={201: QUOTE_REPLY},
     )
     def post(self, request, pk):
-        refuse_oversize_request(request)
         quote = own_quote(request, pk)
         files = request.FILES.getlist("files")
         if not files:

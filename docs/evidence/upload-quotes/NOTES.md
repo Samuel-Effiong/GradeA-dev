@@ -93,6 +93,3 @@ balance down for display.
 * The gate-side half of BE-B-09 (record the quoted figure beside the gate's
   and count `upload_quote_under`): `students.upload_quotes.note_gate_figure`
   exists and is tested, but the gate does not call it yet.
-* The per-file limit helper (`max_upload_size_bytes()`) and the request cap
-  constant come from the Fixes Worker's branch; this build reads the existing
-  50 MB constant and a 500 MB default until it is merged.
