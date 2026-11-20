@@ -15,3 +15,14 @@ def purge_kept_uploads(self):
     from students.kept_uploads import purge_due
 
     return purge_due()
+
+
+@shared_task(bind=True, max_retries=0)
+@single_instance(max_hold=beat_locks.HOURLY)
+def purge_upload_quotes(self):
+    """Hourly (upload quote, plan rev 3 section 7): expire open quotes past
+    their expiry, delete the files of expired and cancelled quotes, drop the
+    rows of ended quotes after the replay window."""
+    from students.upload_quotes import purge_due
+
+    return purge_due()

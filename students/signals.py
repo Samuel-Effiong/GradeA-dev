@@ -102,3 +102,20 @@ def _connect_kept_upload_delete():
 
 
 _connect_kept_upload_delete()
+
+
+# Upload quote: a quote file's row deleted by erasure or a cascade takes its
+# stored file with it once the delete commits (unless a confirm handed the key
+# to a KeptUpload and nulled it).
+def _connect_upload_quote_file_delete():
+    from students.models import UploadQuoteFile
+    from students.upload_quotes import on_file_deleted
+
+    post_delete.connect(
+        on_file_deleted,
+        sender=UploadQuoteFile,
+        dispatch_uid="upload_quote_file_delete",
+    )
+
+
+_connect_upload_quote_file_delete()

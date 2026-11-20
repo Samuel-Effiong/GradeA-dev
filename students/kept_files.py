@@ -78,9 +78,16 @@ def deployment_folder():
     return slug or "unknown"
 
 
-def store(content):
-    """Keep `content` (bytes) under a new random key."""
-    key = f"{KEY_PREFIX}{deployment_folder()}/{uuid.uuid4().hex}"
+def new_key():
+    """A new random storage key, chosen before the bytes are stored so a
+    caller can write its row first (upload quotes: a dead request leaves a
+    row, never an asset nobody knows)."""
+    return f"{KEY_PREFIX}{deployment_folder()}/{uuid.uuid4().hex}"
+
+
+def store(content, key=None):
+    """Keep `content` (bytes) under `key`, else under a new random key."""
+    key = key or new_key()
     if _memory():
         MEMORY[key] = bytes(content)
     else:

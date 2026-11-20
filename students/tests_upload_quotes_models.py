@@ -26,6 +26,19 @@ settings: Any = django_settings
 kept_files: Any = kept_files_module
 
 
+def other_teacher(email):
+    from users.models import CustomUser, UserTypes
+
+    return CustomUser.objects.create_user(
+        email=email,
+        password="password123",  # pragma: allowlist secret
+        user_type=UserTypes.TEACHER,
+        first_name="Other",
+        last_name="Teacher",
+        is_active=True,
+    )
+
+
 def models() -> Any:
     return importlib.import_module("students.models")
 
@@ -95,7 +108,7 @@ class Tables(Fixture):
             self.quote(idempotency_key="k1")
 
     def test_the_same_key_for_another_teacher_is_fine(self):
-        other = make_teacher_with_credits("quote-s2-other@example.com")
+        other = other_teacher("quote-s2-other@example.com")
         self.quote(idempotency_key="k1")
         self.quote(teacher=other, idempotency_key="k1")
 
@@ -337,7 +350,7 @@ class OpenBytes(Fixture):
         self.assertEqual(quotes().open_bytes(self.teacher), 15)
 
     def test_global_open_bytes(self):
-        other = make_teacher_with_credits("quote-s2-g@example.com")
+        other = other_teacher("quote-s2-g@example.com")
         self.file(self.quote(), 0, content=b"x" * 10)
         self.file(self.quote(teacher=other), 0, content=b"y" * 7)
         self.assertEqual(quotes().open_bytes(), 17)
