@@ -1733,7 +1733,7 @@ KEPT_UPLOADS_BACKEND = env.str(
 # Upload quote (plan rev 3 section 6): what an upload will cost, asked before
 # anything is processed. The route switch is read by the routes
 # (students.upload_quote_views); off answers 404 before authentication.
-UPLOAD_QUOTES_ENABLED = env.bool("UPLOAD_QUOTES_ENABLED", default=True)
+UPLOAD_QUOTES_ENABLED = env.bool("UPLOAD_QUOTES_ENABLED", default=False)
 UPLOAD_QUOTE_LIFETIME_HOURS = env.int("UPLOAD_QUOTE_LIFETIME_HOURS", default=24)
 UPLOAD_QUOTE_MAX_FILES = env.int("UPLOAD_QUOTE_MAX_FILES", default=100)
 #: A teacher's open quotes hold at most this many bytes and this many quotes.
