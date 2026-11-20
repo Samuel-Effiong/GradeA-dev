@@ -5852,12 +5852,9 @@ Now, respond to the following teacher's instruction using the rules above
                         elif item["type"] == "pdf_url":
                             pdf_bytes.append(item.get("bytes"))
 
+        extra = {"image_tokens": counted_images} if counted_images else {}
         return self.estimate_total_token(
-            total_prompt,
-            image_bytes,
-            pdf_bytes,
-            task_type=task_type,
-            image_tokens=counted_images,
+            total_prompt, image_bytes, pdf_bytes, task_type=task_type, **extra
         )
 
     def estimate_total_token(

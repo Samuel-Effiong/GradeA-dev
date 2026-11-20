@@ -131,6 +131,18 @@ def purge_due(now=None):
     return {"expired": expired, "purged": purged, "failed": failed, "dropped": dropped}
 
 
+def note_gate_figure(*, quoted, gate):
+    """BE-B-09: when the gate meters a quoted file's call, the quoted figure
+    is recorded beside the gate's; a gate figure above the quoted one is
+    counted (`upload_quote_under`, alert at the first). The hold is a
+    reservation and the gate meters every real call, so this is the trust
+    counter of the quote, not a refusal."""
+    if quoted is None or gate is None or gate <= quoted:
+        return
+    audit_metrics.count("upload_quote_under")
+    logger.error("Upload quote figure was under the gate's.")
+
+
 def _delete_after_commit(storage_key):
     try:
         kept_files.delete(storage_key)

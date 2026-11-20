@@ -927,6 +927,11 @@ PDF_RENDERER_MAX_QUEUED_RENDERS = env.int(
 )
 
 CELERY_TASK_ACKS_LATE = True
+# Upload quote: the zero-credit measure has its own queue, consumed by the
+# existing worker service (scripts/start-worker.sh: -Q celery,quote_measure).
+CELERY_TASK_ROUTES = {
+    "students.tasks.measure_quote_file": {"queue": "quote_measure"},
+}
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
 
@@ -1007,6 +1012,11 @@ CELERY_BEAT_SCHEDULE = {
     "purge-upload-quotes-hourly": {
         "task": "students.tasks.purge_upload_quotes",
         "schedule": crontab(minute=25),
+    },
+    # Upload quote: ask again for files stored and unmeasured for over 10 minutes.
+    "requeue-stuck-quote-measures": {
+        "task": "students.tasks.requeue_stuck_quote_measures",
+        "schedule": crontab(minute="*/5"),
     },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
