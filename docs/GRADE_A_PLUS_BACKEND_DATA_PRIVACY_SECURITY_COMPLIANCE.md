@@ -314,7 +314,7 @@ An attacker has a short list of tried and tested ways in. This section goes thro
 | Making a signed-in user's browser do something they did not ask for (cross-site request forgery) | Only our own websites may send requests with a user's session; the browser's statement of where a request came from is checked on every change |
 | Showing our pages inside a fake page to capture clicks (clickjacking) | Every response tells the browser our pages may not be shown inside another site's frame |
 | Making the backend fetch a private internal address on an attacker's behalf (server-side request forgery) | When the AI assistant is allowed to fetch a web page, the backend refuses private, local and reserved addresses, follows at most five redirects and checks each one, and reads at most 2 MB |
-| Sending a file that is not what it claims to be, or one built to exhaust memory (malicious upload, decompression bomb) | Files are capped at 50 MB; a PDF must really be a PDF whatever its name; at most 300 pages are read; an image may hold at most 50 million pixels |
+| Sending a file that is not what it claims to be, or one built to exhaust memory (malicious upload, decompression bomb) | Files are capped at 10 MB by default (configurable); a PDF must really be a PDF whatever its name; at most 300 pages are read; an image may hold at most 50 million pixels |
 | Hiding instructions in a student's answer so the AI gives a better grade (prompt injection) | Student text is wrapped and labelled as data before the AI sees it; the backend clamps every score to the marking guide's maximum; a teacher's custom marking instructions can be switched off centrally |
 | Sending a fake "payment received" message pretending to be Stripe (webhook forgery, replay) | Every message must carry Stripe's signature (HMAC-SHA256) and be less than five minutes old; each message is acted on once only, however many times it arrives |
 | Pointing a request at the wrong site name to confuse the backend (host-header attack) | The backend only answers to its own fixed list of site names |
@@ -505,7 +505,7 @@ This appendix is for a school's IT or legal staff who want to check a statement.
 | Financial and activity records cannot be rewritten | `billing/immutable.py`; `billing/models.py` lines 1336, 1525, 1683; `audit/models.py` line 12 |
 | Student email and location never in the activity record | `audit/emitter.py` lines 515-531; `audit/models.py` lines 93-105 (database constraint `audit_student_no_pii_ck`) |
 | Activity record retention 12 months / 3 years / 90 days | `audit/tasks.py` lines 25-94; `settings.py` lines 1078-1088 |
-| Upload caps: 50 MB, real PDF, 300 pages, 50 million pixels | `AutoGrader/uploads.py` line 37; `ai_processor/services.py` lines 5999 and 6048-6071; `assignments/services.py` line 208 |
+| Upload caps: 10 MB by default (`MAX_UPLOAD_FILE_SIZE_MB`), real PDF, 300 pages, 50 million pixels | `AutoGrader/uploads.py` line 37; `ai_processor/services.py` lines 5999 and 6048-6071; `assignments/services.py` line 208 |
 | Uploaded file kept until success or 30 days | `students/kept_files.py`, `students/kept_uploads.py`, `students/tasks.py` (purge) |
 | Scripts stripped from AI text | `assignments/services.py` lines 657-680 (`bleach` allow-list) |
 | Fetching web pages safely (private addresses refused, 5 redirects, 2 MB) | `ai_processor/tools.py` lines 27-208 |

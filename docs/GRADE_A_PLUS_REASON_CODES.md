@@ -881,7 +881,7 @@ Filters: `reason_code` (exact), `outcome`, `action`, `actor_id`, `actor_role`, `
 
 | Limit | Value | Code when exceeded |
 |----|----|----|
-| Size of one uploaded file | 50 MB | `FILE_TOO_LARGE`, `dimension: "bytes"` |
+| Size of one uploaded file | 10 MB by default (`MAX_UPLOAD_FILE_SIZE_MB`, configurable) | `FILE_TOO_LARGE`, `dimension: "bytes"` |
 | Pages in one PDF | 300 | `FILE_TOO_LARGE`, `dimension: "pages"` |
 | Size of one image | 50 million pixels | `FILE_TOO_LARGE`, `dimension: "pixels"` |
 | Image size after compression | 4 MB | `FILE_TOO_LARGE`, `dimension: "bytes"` |

@@ -1162,7 +1162,7 @@ class HostileUploadTest(TenancyAttackFixture, APITestCase):
 
     def test_a_decompression_bomb_is_refused_before_its_pixels_are_allocated(self):
         """
-        A small file that declares an enormous raster. The 50 MB size cap
+        A small file that declares an enormous raster. The per-file size cap
         bounds the ENCODED bytes and lets this straight through; Pillow
         only warns below 2x its own default, so without an explicit pixel
         ceiling one request could allocate hundreds of MB.

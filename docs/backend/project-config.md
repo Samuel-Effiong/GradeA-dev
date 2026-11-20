@@ -126,11 +126,9 @@ Failures are swallowed and logged, never raised ([AutoGrader/cache_utils.py:39-4
 
 ## Upload size guard
 
-`validate_upload_size` ([AutoGrader/uploads.py:28-37](../../AutoGrader/uploads.py#L28-L37)) raises `PayloadTooLarge` (HTTP 413) above `MAX_UPLOAD_SIZE_BYTES`. It exists because `DATA_UPLOAD_MAX_MEMORY_SIZE` only caps in-memory buffering — a larger multipart part spills to temp disk and is still accepted ([AutoGrader/uploads.py:3-6](../../AutoGrader/uploads.py#L3-L6)).
+`validate_upload_size` ([AutoGrader/uploads.py:28-37](../../AutoGrader/uploads.py#L28-L37)) raises `PayloadTooLarge` (HTTP 413) above `max_upload_size_bytes()`. It exists because `DATA_UPLOAD_MAX_MEMORY_SIZE` only caps in-memory buffering — a larger multipart part spills to temp disk and is still accepted ([AutoGrader/uploads.py:3-6](../../AutoGrader/uploads.py#L3-L6)).
 
-> **UNVERIFIED:** the constant is `50 * 1024 * 1024` (50 MB) but the comment immediately above it justifies **25 MB** ([AutoGrader/uploads.py:21-25](../../AutoGrader/uploads.py#L21-L25)). One of the two was changed without the other. To resolve: check git history for the constant, and confirm with the team which limit is intended.
-
-`MAX_UPLOAD_SIZE_BYTES` is **not** env-configurable — changing it needs a deploy.
+The per-file limit is the env setting `MAX_UPLOAD_FILE_SIZE_MB` (default **10 MB**, at least 1; `MAX_UPLOAD_FILE_SIZE_BYTES` is derived). 10 MB is the Cloudinary Free plan's raw-file limit (R1 spike, 2026-11-20); raise the setting after a plan upgrade. `max_upload_size_bytes()` reads it on every call.
 
 ---
 
