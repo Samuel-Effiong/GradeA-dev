@@ -67,6 +67,10 @@ With the flag off, the balance check reads the total, as before holds existed, s
 
 **An unstarted paper still waiting in the broker** is marked FAILED `PROVIDER_FAILURE`, which is retryable and says nothing was charged, and its hold is returned. If its message is delivered later, the flag is off, so it runs as flag-off work and is charged as it runs.
 
+## Keep drains short
+
+While holds are off or draining, two quick retries or two calls at the same time on one wallet can both reach the AI provider. The teacher is never overcharged, but the second call may go unbilled. So keep drains, and any time with the flag off, as short as you can.
+
 ## Kept files
 
 Kept files keep their own lifetime and are purged as normal. The purge does not depend on the flag.

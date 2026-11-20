@@ -250,8 +250,20 @@ class _RetryByHand(ParkedFixture):
             real_billed_call(request_user)
         return SimpleNamespace(id=uuid.uuid4())
 
-    def _run_now(self, task_callable, processing_task, *args, **kwargs):
-        celery_id = str(uuid.uuid4())
+    #: Whether a retry while still short reaches the worker (and is refused
+    #: there). Holds on (Q7, 2026-11-20) it is refused at the route instead.
+    short_retry_reaches_worker = True
+
+    def retry(self, item):
+        """The route, with its launch sent at commit as in a real request
+        (Q7: launch_at_door, no worker before the hold commits)."""
+        with self.captureOnCommitCallbacks(execute=True):
+            return super().retry(item)
+
+    def _run_now(
+        self, task_callable, processing_task, *args, _celery_task_id=None, **kwargs
+    ):
+        celery_id = _celery_task_id or str(uuid.uuid4())
         BackgroundProcessingTask.objects.filter(pk=processing_task.pk).update(
             celery_task_id=celery_id
         )
@@ -272,11 +284,16 @@ class _RetryByHand(ParkedFixture):
 
         response = self.retry(self.parked)
 
-        self.assertEqual(response.status_code, 202, response.content[:400])
+        if self.short_retry_reaches_worker:
+            self.assertEqual(response.status_code, 202, response.content[:400])
+        else:  # Q7: the door hold does not fit; the claim rolls back.
+            self.assertEqual(response.status_code, 402, response.content[:400])
         self.parked.refresh_from_db()
         self.assertEqual(self.parked.status, BackgroundTaskStatus.FAILURE)
         self.assertEqual(self.parked.reason_code, "INSUFFICIENT_CREDITS")
-        self.assertEqual(self.parked.retry_count, 1)
+        self.assertEqual(
+            self.parked.retry_count, 1 if self.short_retry_reaches_worker else 0
+        )
         row.refresh_from_db()
         self.assertIsNone(row.purged_at, "the file survives the refusal")
         self.assertEqual(kept_files.load(row.storage_key), PNG)
@@ -295,8 +312,9 @@ class _RetryByHand(ParkedFixture):
         self.assertEqual(response.status_code, 202, response.content[:400])
         self.parked.refresh_from_db()
         self.assertEqual(self.parked.status, BackgroundTaskStatus.SUCCESS)
-        self.assertEqual(self.parked.retry_count, 2)
-        self.assertEqual(self.engine_users, [self.teacher.pk, self.teacher.pk])
+        runs = 2 if self.short_retry_reaches_worker else 1
+        self.assertEqual(self.parked.retry_count, runs)
+        self.assertEqual(self.engine_users, [self.teacher.pk] * runs)
         charges = CreditUsageLog.objects.filter(
             wallet__user=self.teacher, is_refunded=False
         )
@@ -310,6 +328,8 @@ class _RetryByHand(ParkedFixture):
 
 @override_settings(BILLING_HOLDS_ENABLED=True)
 class RetryByHandHoldsOn(_RetryByHand, TestCase):
+    short_retry_reaches_worker = False
+
     def test_the_successful_retry_ran_under_its_own_hold(self):
         fund(self.teacher, 100_000)
         self.retry(self.parked)
