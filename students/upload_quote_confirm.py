@@ -110,7 +110,7 @@ def _launch(item, task_callable, *args, **kwargs):
     return celery_task_id
 
 
-def _kept_item(user, quote, session, row, index, task_type, assignment):
+def _kept_item(user, quote, session, row, index, task_type, assignment, quoted=None):
     """The item for a kept file: its KeptUpload takes the quote file's key."""
     item = create_processing_task(
         requested_by=user,
@@ -118,7 +118,7 @@ def _kept_item(user, quote, session, row, index, task_type, assignment):
         batch_session=session,
         assignment=assignment,
         file_name=row.original_name,
-        meta={"step": "Queued for upload quote"},
+        meta={"step": "Queued for upload quote", "quoted_credits": quoted},
         item_index=index,
     )
     now = timezone.now()
@@ -198,7 +198,9 @@ def _run(quote, rows, user, request):
                 row.original_name, item.id, ITEM_REFUSED, error=error
             )
         elif index in errors:
-            item = _kept_item(user, quote, session, row, number, task_type, assignment)
+            item = _kept_item(
+                user, quote, session, row, number, task_type, assignment, held[index]
+            )
             mark_processing_task_failure(item.id, errors[index], parked=True)
             entries[index] = batch_entry(
                 row.original_name, item.id, ITEM_PARKED, error=errors[index]
@@ -211,7 +213,9 @@ def _run(quote, rows, user, request):
     door = DoorHold(user, assignment, len(runnable))
     for index in runnable:
         row = rows[index]
-        item = _kept_item(user, quote, session, row, index + 1, task_type, assignment)
+        item = _kept_item(
+            user, quote, session, row, index + 1, task_type, assignment, held[index]
+        )
         payload = {"kept_upload_id": str(item.kept_upload.id)}
         if not door.hold(item, held[index]):
             # A lost race for the free balance parks this one file (N1).

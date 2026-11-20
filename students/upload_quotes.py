@@ -183,6 +183,28 @@ def note_gate_figure(*, quoted, gate):
     logger.error("Upload quote figure was under the gate's.")
 
 
+def note_gate_for_task(processing_task_id, gate):
+    """The gate's own figure for one call of a processing task, set against the
+    figure the quote showed for that file (recorded on the item at confirm).
+    Never raises and never blocks the gate: an error is logged and counted."""
+    try:
+        if not processing_task_id:
+            return
+        from students.models import BackgroundProcessingTask
+
+        meta = (
+            BackgroundProcessingTask.objects.filter(pk=processing_task_id)
+            .values_list("meta", flat=True)
+            .first()
+        )
+        quoted = (meta or {}).get("quoted_credits")
+        if quoted:
+            note_gate_figure(quoted=quoted, gate=gate)
+    except Exception:  # noqa: BLE001 - the counter must never stop a real call
+        logger.error("Upload quote: the gate figure could not be noted.")
+        audit_metrics.count("upload_quote_gate_note_failed")
+
+
 def _delete_after_commit(storage_key):
     try:
         kept_files.delete(storage_key)

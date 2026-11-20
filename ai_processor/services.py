@@ -44,6 +44,7 @@ from billing.refunds import record_billing_task_id
 from billing.services import AnalyticsService
 from billing.zero_credit import MODEL_CALL, assert_not_zero_credit
 from classrooms.models import StudentCourse
+from students import upload_quotes
 from students.exceptions import TaskCancelledError
 from students.task_tracking import ensure_task_not_cancelled
 from users.models import UserTypes
@@ -5677,6 +5678,7 @@ Now, respond to the following teacher's instruction using the rules above
             user_prompt, system_prompt, messages, task_type=task_type
         )
         call_record.note_estimate(estimated_cost)
+        upload_quotes.note_gate_for_task(processing_task_id, estimated_cost)
 
         # B1b-9: the flag-off check also runs while draining (no held unit
         # open); it then reads spendable (Q9-2, SM ruling).

@@ -3,6 +3,7 @@ showed, and the gate (execute_graded_task) counts `upload_quote_under` when
 its own figure for a call is above it. The check never raises or blocks."""
 
 import importlib
+import uuid
 from typing import Any
 from unittest.mock import patch
 
@@ -46,7 +47,7 @@ class Gate(Base):
 
     def test_an_item_with_no_quote_or_an_unknown_item_counts_nothing(self):
         self.assertEqual(self.counted(None, 5000), [])
-        self.assertEqual(self.counted(1000, 5000, id="no-such-id"), [])
+        self.assertEqual(self.counted(1000, 5000, id=uuid.uuid4()), [])
         self.assertEqual(self.counted(1000, 5000, id=None), [])
 
     def test_a_failure_is_counted_and_never_raised(self):
