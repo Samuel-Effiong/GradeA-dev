@@ -254,10 +254,8 @@ class Create(Base):
         self.assertEqual(seen, [True])
 
     def test_a_file_that_dies_between_row_and_bytes_leaves_a_row_the_purge_clears(self):
-        with patch.object(
-            kept_files, "store", side_effect=RuntimeError("killed")
-        ), self.assertRaises(RuntimeError):
-            self.create([pdf()])
+        with patch.object(kept_files, "store", side_effect=RuntimeError("killed")):
+            self.assertEqual(self.create([pdf()]).status_code, 500)
         row = UploadQuoteFile.objects.get()
         self.assertEqual(row.state, UploadQuoteFile.State.STORING)
         quotes: Any = importlib.import_module("students.upload_quotes")
@@ -269,7 +267,7 @@ class Create(Base):
         self.assertEqual(result["failed"], 0)
 
     def test_nothing_is_processed_by_a_create(self):
-        with patch("billing.credit_holds.hold_for_call", side_effect=AssertionError):
+        with patch("billing.holds.hold_for_call", side_effect=AssertionError):
             self.create([pdf(), pdf("b.pdf", pages=3)])
         wallet_before = CreditLedger.objects.count()
         self.assertEqual(BackgroundProcessingTask.objects.count(), 0)
@@ -488,7 +486,7 @@ class Read(Base):
         # Enough for one file only.
         self.assertTrue(wallet.total_remaining_credits() > 0)
         with patch(
-            "assignments.upload_door.door_balance", return_value=self.raw(2) + 5
+            "students.upload_quote_service.door_balance", return_value=self.raw(2) + 5
         ):
             body = data_of(self.get(quote.pk))
         self.assertEqual(body["would_park"], [1])
@@ -543,6 +541,7 @@ class Read(Base):
         )
         AssignmentUploadFingerprint.objects.create(
             course=self.course,
+            claimed_at=timezone.now(),
             sha256=stored.sha256,
             status=AssignmentUploadFingerprint.Status.COMPLETED,
             assignment=self.assignment,

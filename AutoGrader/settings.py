@@ -1368,6 +1368,10 @@ REST_FRAMEWORK = {
         # AIProcessor.execute_graded_task), so this is its only volume
         # control.
         "custom_ai_prompt": "10/min",
+        # Upload quote: creating one stores files; polling one must not share
+        # that budget.
+        "upload_quote_create": "10/min",
+        "upload_quote_read": "120/min",
     },
 }
 

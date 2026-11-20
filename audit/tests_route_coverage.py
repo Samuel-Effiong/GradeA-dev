@@ -79,6 +79,10 @@ CONCEALED_ROUTES = frozenset(
         # NFR-CMP-04: while STUDENT_DATA_TOOLS_ENABLED is off (test runner)
         # the erasure route answers everyone as an unknown URL does.
         "student-data-erase",
+        # Upload quote: while UPLOAD_QUOTES_ENABLED is off (the default, and the
+        # test runner's) the quote routes answer everyone as an unknown URL does.
+        "upload-quotes-collection",
+        "upload-quote-detail",
     }
 )
 

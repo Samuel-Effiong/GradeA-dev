@@ -435,8 +435,9 @@ class RealTaskSkipTests(TestCase):
         self.assertLessEqual(EPIC_ONLY_GUARDED_BEAT_TASKS, set(names))
         beta_guarded = [n for n in names if n not in EPIC_ONLY_GUARDED_BEAT_TASKS]
         # 23 since beta took all of staging (13 Nov): the beta tallies
-        # check (R2) and the credit request sweep (B1c) joined the 21.
-        self.assertEqual(len(beta_guarded), 23)
+        # check (R2) and the credit request sweep (B1c) joined the 21. 24:
+        # the upload quote purge (upload quote slice 2).
+        self.assertEqual(len(beta_guarded), 24)
         for task, lock in guarded:
             with self.subTest(task):
                 assert lock is not None
