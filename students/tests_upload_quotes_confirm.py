@@ -22,6 +22,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from billing.models import CreditWallet
 from billing.tests.test_holds_entry import ai_ready_teacher, classroom
+from classrooms.models import StudentCourse
 from students import kept_files as kept_files_module
 from students import upload_quote_service as service
 from students.models import (
@@ -68,6 +69,7 @@ def make_quote(teacher, assignment, pages=(2, 3), states=None, kind="answer_pape
 
 
 def figures(quote):
+    quote = UploadQuote.objects.select_related("assignment").get(pk=quote.pk)
     rows = list(quote.files.order_by("position"))
     return [service.figure_of(quote, row) for row in rows]
 
@@ -221,7 +223,7 @@ class Replay(Base):
 
     def test_a_student_is_403(self):
         quote = make_quote(self.teacher, self.assignment)
-        student = self.assignment.course.studentcourse_set.first().student
+        student = StudentCourse.objects.get(course=self.course).student
         self.assertEqual(self.confirm(quote, user=student).status_code, 403)
 
 
@@ -328,7 +330,6 @@ class Holds(Base):
         """P2: confirm never holds a figure frozen at measure time."""
         quote = make_quote(self.teacher, self.assignment, pages=(2,))
         before = figures(quote)
-        from classrooms.models import StudentCourse
         from users.models import CustomUser, UserTypes
 
         for index in range(5):

@@ -3,6 +3,7 @@ from rest_framework.routers import SimpleRouter
 
 from students.upload_quote_views import (
     UploadQuoteCollection,
+    UploadQuoteConfirm,
     UploadQuoteDetail,
     UploadQuoteFiles,
 )
@@ -30,6 +31,11 @@ urlpatterns = router.urls + [
         "upload-quotes/<str:pk>/files",
         UploadQuoteFiles.as_view(),
         name="upload-quote-files",
+    ),
+    path(
+        "upload-quotes/<str:pk>/confirm",
+        UploadQuoteConfirm.as_view(),
+        name="upload-quote-confirm",
     ),
     # NFR-CMP-04: dark until STUDENT_DATA_TOOLS_ENABLED.
     path(

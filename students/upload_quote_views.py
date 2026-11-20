@@ -35,6 +35,7 @@ from classrooms.models import Topic, reachable_courses, teacher_course_access_q
 from classrooms.permissions import IsTeacher
 from students import upload_quote_service as service
 from students.models import UploadQuote
+from students.upload_quote_confirm import confirm as confirm_quote
 
 if TYPE_CHECKING:
     _ViewBase = APIView
@@ -133,6 +134,7 @@ QUOTE_REPLY = inline_serializer(
         "kind": serializers.ChoiceField(choices=UploadQuote.Kind.choices),
         "state": serializers.ChoiceField(choices=UploadQuote.State.choices),
         "expires_at": serializers.DateTimeField(),
+        "lifetime_minutes": serializers.IntegerField(),
         "ready": serializers.BooleanField(),
         "measured": serializers.IntegerField(),
         "total": serializers.IntegerField(),
@@ -149,10 +151,32 @@ SUMMARY_REPLY = inline_serializer(
         "kind": serializers.ChoiceField(choices=UploadQuote.Kind.choices),
         "created_at": serializers.DateTimeField(),
         "expires_at": serializers.DateTimeField(),
+        "lifetime_minutes": serializers.IntegerField(),
         "file_count": serializers.IntegerField(),
         "ready": serializers.BooleanField(),
     },
     many=True,
+)
+CONFIRM_REPLY = inline_serializer(
+    "UploadQuoteConfirmed",
+    {
+        "quote_id": serializers.UUIDField(),
+        "session_id": serializers.UUIDField(),
+        "message": serializers.CharField(),
+        "tasks": inline_serializer(
+            "UploadQuoteConfirmedTask",
+            {
+                "file_name": serializers.CharField(),
+                "task_id": serializers.CharField(allow_null=True),
+                "item_id": serializers.UUIDField(),
+                "status": serializers.ChoiceField(
+                    choices=["ACCEPTED", "PARKED", "REFUSED"]
+                ),
+                "reason_code": serializers.CharField(allow_null=True),
+            },
+            many=True,
+        ),
+    },
 )
 
 
@@ -407,4 +431,39 @@ class UploadQuoteFiles(DarkUntilEnabled, APIView):
         quote.refresh_from_db()
         return Response(
             service.create_reply(quote, entries), status=status.HTTP_201_CREATED
+        )
+
+
+@extend_schema(tags=["Upload quotes"])
+class UploadQuoteConfirm(DarkUntilEnabled, APIView):
+    permission_classes = [IsAuthenticated, IsTeacher]
+
+    def get_throttles(self):
+        return [UploadQuoteCreateThrottle()]
+
+    @extend_schema(
+        summary="Start the upload: confirm a ready quote",
+        description=(
+            "Runs every file that fits the balance now and parks the rest, "
+            "kept and retryable (they never need uploading again). The body "
+            "is the batch routes' own (`session_id`, `tasks`) plus "
+            "`quote_id`: 202 the first time, 200 with the same body when "
+            "repeated. Optional `would_park` is accepted and ignored. 409 "
+            "QUOTE_NOT_READY, QUOTE_CLOSED; 410 QUOTE_EXPIRED."
+        ),
+        request=inline_serializer(
+            "UploadQuoteConfirmBody",
+            {
+                "would_park": serializers.ListField(
+                    child=serializers.IntegerField(), required=False
+                )
+            },
+        ),
+        responses={202: CONFIRM_REPLY, 200: CONFIRM_REPLY},
+    )
+    def post(self, request, pk):
+        quote = own_quote(request, pk)
+        body, replayed = confirm_quote(quote.pk, request.user, request)
+        return Response(
+            body, status=status.HTTP_200_OK if replayed else status.HTTP_202_ACCEPTED
         )

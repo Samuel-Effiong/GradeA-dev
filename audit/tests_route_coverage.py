@@ -84,6 +84,7 @@ CONCEALED_ROUTES = frozenset(
         "upload-quotes-collection",
         "upload-quote-detail",
         "upload-quote-files",
+        "upload-quote-confirm",
     }
 )
 
