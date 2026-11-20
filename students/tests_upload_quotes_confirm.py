@@ -9,11 +9,13 @@ Tests 2 (identity), 5 (double confirm), 6 (wallet moved), 7 (two quotes),
 8 (nothing fits) and 16 (handover) of the plan.
 """
 
+import hashlib
 import threading
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import fitz
 from django.db import connection
 from django.test import TransactionTestCase, override_settings
 from django.urls import reverse
@@ -373,6 +375,50 @@ class Holds(Base):
                 pk=data_of(two)["session_id"]
             ).credits_exhausted_at
         )
+
+    def test_the_loser_is_kept_and_retryable_once_the_balance_is_free(self):
+        """Test 7, the second half: the parked loser keeps its file and its
+        quoted figure, and a retry takes its own hold from the freed balance
+        and launches it (Q7 retry from the kept file)."""
+        from billing.holds import holds_for_new_work
+        from students.item_retry import retry_item
+
+        first = make_quote(self.teacher, self.assignment, pages=(4,))
+        second = make_quote(self.teacher, self.assignment, pages=(4,))
+        need = figures(first)[0]
+        wallet = CreditWallet.objects.get(user=self.teacher)
+        total = wallet.total_remaining_credits()
+        CreditWallet.objects.filter(pk=wallet.pk).update(reserved_credits=total - need)
+        with patch("students.upload_quote_confirm.door_balance", return_value=10**9):
+            self.confirm(first)
+            two = self.confirm(second)
+        parked = BackgroundProcessingTask.objects.get(
+            batch_session__pk=data_of(two)["session_id"]
+        )
+        self.assertEqual(parked.status, "FAILURE")
+        self.assertEqual(parked.meta["quoted_credits"], need)
+        # The test file's bytes are placeholders; the retry's figure needs a
+        # real PDF in the kept file, under its own checksum.
+        kept = KeptUpload.objects.get(processing_task=parked)
+        real = fitz.open()
+        for index in range(2):
+            real.new_page().insert_text((50, 80), f"page {index}", fontsize=12)
+        content = real.tobytes()
+        real.close()
+        kept_files.MEMORY[kept.storage_key] = content
+        KeptUpload.objects.filter(pk=kept.pk).update(
+            sha256=hashlib.sha256(content).hexdigest(), size_bytes=len(content)
+        )
+        CreditWallet.objects.filter(pk=wallet.pk).update(reserved_credits=0)
+        self.assertTrue(holds_for_new_work())
+        with patch("students.item_retry.launch_processing_task") as launch:
+            launch.side_effect = lambda *a, **k: MagicMock(id="retry-id")
+            with self.captureOnCommitCallbacks(execute=True):
+                retried = retry_item(parked, self.teacher)
+        self.assertEqual(launch.call_count, 1)
+        self.assertNotEqual(retried.status, "FAILURE")
+        self.assertGreater(retried.hold_credits, 0)
+        self.assertTrue(KeptUpload.objects.filter(processing_task=retried).exists())
 
 
 class HoldsOff(Base):
