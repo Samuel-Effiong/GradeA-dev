@@ -63,6 +63,7 @@ from rest_framework_simplejwt.views import (
 )
 from rest_framework_simplejwt.views import TokenRefreshView as BaseTokenRefreshView
 
+from assignments.upload_door import DoorHoldRefused
 from audit import history
 from audit.admin_action import emit_named_admin_event
 from audit.emitter import emit
@@ -3164,7 +3165,11 @@ class TaskViewSet(viewsets.ViewSet):
         item = get_object_or_404(
             BackgroundProcessingTask, id=_uuid_or_404(item_id), batch_session=session
         )
-        item = item_retry.retry_item(item, request.user, request=request)
+        try:
+            item = item_retry.retry_item(item, request.user, request=request)
+        except DoorHoldRefused as refused:
+            # Q7: the door's usual 402; the item and its kept file stay.
+            return refused.response
         return Response(
             item_result(item, get_task_context(item)), status=status.HTTP_202_ACCEPTED
         )
