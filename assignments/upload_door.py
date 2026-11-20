@@ -75,13 +75,16 @@ def _billed_user(request_user, assignment):
     return request_user
 
 
-def _balance(wallet):
+def door_balance(wallet):
     """What the door compares with: spendable credit (total less what other
     jobs hold) when credit holds are on (plan 08 §3.2), the total otherwise.
     While draining the flag is on, so spendable too (B1b-9 Q9-2)."""
     if credit_holds.holds_enabled():
         return credit_holds.spendable_credits(wallet)
     return wallet.total_remaining_credits()
+
+
+_balance = door_balance  # the door's own name for it, kept for its callers
 
 
 def _refusal_response(request_user, refusal):
@@ -151,6 +154,26 @@ def upload_refusal_if_unaffordable(
     return None
 
 
+def plan_parking(spendable, figures):
+    """{position: what was left} for each file that does not fit: the files
+    in upload order with a running balance. A file that fits takes its
+    figure off what is left; one that does not is parked and takes nothing,
+    so a later smaller file may still fit (H-223); a file with no figure
+    (None: the door cannot read or estimate it) is left to the task. Pure:
+    the door's walk for the upload routes and for an upload quote's confirm
+    and live figure (BE-B-05/06)."""
+    left = spendable
+    parked = {}
+    for index, figure in enumerate(figures):
+        if figure is None:
+            continue
+        if figure <= left:
+            left -= figure
+            continue
+        parked[index] = left
+    return parked
+
+
 def parked_files(request_user, assignment, uploaded_files, prompt, estimates_out=None):
     """H-223: {index: the refusal} for each file of a teacher's batch that
     does not fit, walking the files in upload order with a running balance
@@ -164,21 +187,20 @@ def parked_files(request_user, assignment, uploaded_files, prompt, estimates_out
     wallet = getattr(billed, "credit_wallet", None)
     if wallet is None:
         return {}
-    left = _balance(wallet)
-    parked = {}
+    spendable = _balance(wallet)
+    estimates = []
     for index, uploaded_file in enumerate(uploaded_files):
         if not isinstance(uploaded_file, UploadedFile):
-            continue  # its own item in the route (FR-A-07)
+            estimates.append(None)  # its own item in the route (FR-A-07)
+            continue
         estimate = _estimate_for(uploaded_file, prompt, assignment)
         if estimates_out is not None:
             estimates_out[index] = estimate
-        if estimate is None:
-            continue
-        if estimate <= left:
-            left -= estimate
-            continue
+        estimates.append(estimate)
+    parked = {}
+    for index, left in plan_parking(spendable, estimates).items():
         parked[index] = InsufficientCreditsError(
-            f"Upload needs ~{estimate} credits, {left} left in the batch",
+            f"Upload needs ~{estimates[index]} credits, {left} left in the batch",
             individual=is_individual_teacher(billed),
         )
         log_refusal(logger, "Upload door (parked)", parked[index])

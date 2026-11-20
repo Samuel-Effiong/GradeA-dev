@@ -34,7 +34,7 @@ def make_call(task_type, estimate, total, *, created=None, outcome="charged"):
         prompt_version="v",
         estimate=estimate,
         total_tokens=total,
-        charged_credits=total if outcome == "charged" else 0,
+        charged_credits=(total or 0) if outcome == "charged" else 0,
     )
     if created is not None:
         AICallRecord.objects.filter(pk=row.pk).update(created_at=created)

@@ -5801,6 +5801,7 @@ Now, respond to the following teacher's instruction using the rules above
         total_prompt = ""
         image_bytes = []
         pdf_bytes = []
+        counted_images = []  # pages already counted (call_estimates)
 
         if user_prompt:
             if isinstance(user_prompt, str):
@@ -5810,7 +5811,10 @@ Now, respond to the following teacher's instruction using the rules above
                     if prompt["type"] == "text":
                         total_prompt += prompt["text"]
                     elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.get("bytes"))
+                        if "tokens" in prompt:
+                            counted_images.append(prompt["tokens"])
+                        else:
+                            image_bytes.append(prompt.get("bytes"))
 
         if system_prompt:
             if isinstance(system_prompt, str):
@@ -5820,7 +5824,10 @@ Now, respond to the following teacher's instruction using the rules above
                     if prompt["type"] == "text":
                         total_prompt += prompt["text"]
                     elif prompt["type"] == "image_url":
-                        image_bytes.append(prompt.get("bytes"))
+                        if "tokens" in prompt:
+                            counted_images.append(prompt["tokens"])
+                        else:
+                            image_bytes.append(prompt.get("bytes"))
 
         if messages:
             for message in messages:
@@ -5838,17 +5845,31 @@ Now, respond to the following teacher's instruction using the rules above
                         if item["type"] == "text":
                             total_prompt += item["text"]
                         elif item["type"] == "image_url":
-                            image_bytes.append(item.get("bytes"))
+                            if "tokens" in item:
+                                counted_images.append(item["tokens"])
+                            else:
+                                image_bytes.append(item.get("bytes"))
                         elif item["type"] == "pdf_url":
                             pdf_bytes.append(item.get("bytes"))
 
         return self.estimate_total_token(
-            total_prompt, image_bytes, pdf_bytes, task_type=task_type
+            total_prompt,
+            image_bytes,
+            pdf_bytes,
+            task_type=task_type,
+            image_tokens=counted_images,
         )
 
     def estimate_total_token(
-        self, prompt_text, image_bytes=None, pdf_bytes=None, task_type=None
+        self,
+        prompt_text,
+        image_bytes=None,
+        pdf_bytes=None,
+        task_type=None,
+        image_tokens=None,
     ):
+        """`image_tokens`: pages whose tokens are already counted
+        (ai_processor.call_estimates.page_tokens_of), added as they are."""
 
         encoding = tiktoken.get_encoding("cl100k_base")
 
@@ -5858,6 +5879,9 @@ Now, respond to the following teacher's instruction using the rules above
             for bytes in image_bytes:
                 w, h = ocr_service.get_image_dimensions(bytes)
                 total_estimate += self.estimate_image_token_usage(w, h)
+
+        if image_tokens:
+            total_estimate += sum(image_tokens)
 
         if pdf_bytes:
             for bytes in pdf_bytes:
