@@ -14,7 +14,7 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
@@ -94,7 +94,7 @@ class TheSyncTeacherUploadFailsAnEmptyFileAsItsOwnEntry(BatchUploadBillingFixtur
 
     def test_an_all_empty_request_answers_like_an_all_too_large_one(self):
         empty = self.post([_empty("blank.pdf"), _empty("blank2.pdf")])
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 16):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=16):
             large = self.post([_too_large("big.pdf"), _too_large("big2.pdf")])
 
         self.assertEqual(empty.status_code, large.status_code, empty.content)
@@ -149,7 +149,7 @@ class TheAsyncTeacherUploadIsNeverHalfQueued(BatchFixture, TestCase):
 
     def test_an_all_empty_request_answers_like_an_all_too_large_one(self):
         empty = self.post([_empty("blank.pdf"), _empty("blank2.pdf")])
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 16):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=16):
             large = self.post([_too_large("big.pdf"), _too_large("big2.pdf")])
 
         self.assertEqual(empty.status_code, large.status_code, empty.content)

@@ -53,8 +53,17 @@ from audit.emitter import emit
 from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.error_messages import describe_user_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.reason_codes import CodedError, coded_entry
-from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
+from AutoGrader.reason_codes import (
+    REQUEST_TOO_LARGE_REMEDIATION,
+    CodedError,
+    coded_entry,
+)
+from AutoGrader.uploads import (
+    PayloadEmpty,
+    PayloadTooLarge,
+    UploadRequestCapMixin,
+    validate_upload_size,
+)
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from billing.job_ref import ai_job_schema, settled_job_id, tracking, with_ai_job_id
@@ -320,7 +329,7 @@ def _not_graded_entries(submissions):
         },
     ),
 )
-class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
+class AssignmentViewSet(UploadRequestCapMixin, UserCacheMixin, viewsets.ModelViewSet):
     """
     API endpoint for managing assignments.
 
@@ -344,6 +353,11 @@ class AssignmentViewSet(UserCacheMixin, viewsets.ModelViewSet):
             response.message = "Assignment saved."
         return super().finalize_response(request, response, *args, **kwargs)
 
+    # Owner Q5 A (2026-11-19): at most UPLOAD_REQUEST_MAX_MB a request,
+    # refused before the body is read (AutoGrader.uploads).
+    capped_upload_actions = {
+        "upload_assignment_async": REQUEST_TOO_LARGE_REMEDIATION,
+    }
     queryset = Assignment.objects.all()
     serializer_class = AssignmentSerializer
     permission_classes = (IsAuthenticated, IsTeacherOrReadOnly)

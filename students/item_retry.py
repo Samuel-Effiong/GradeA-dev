@@ -233,49 +233,45 @@ def refusal_for(item):
 def retry_item(item, requested_by, request=None):
     """Retry `item` in place and return it, reloaded; or raise
     ItemNotRetryable. An item whose course `requested_by` can't reach is
-    Http404 (H-38). A broker outage raises ProcessingTemporarilyUnavailable
-    (503) with the item marked FAILED again (launch_processing_task)."""
+    Http404 (H-38). An upload item whose door hold does not fit raises
+    DoorHoldRefused (Q7) carrying the door's usual 402, with nothing
+    changed. A broker outage raises ProcessingTemporarilyUnavailable (503)
+    with the item marked FAILED again (launch_processing_task)."""
     if not is_reachable(item, requested_by):
         raise Http404()
     refusal = refusal_for(item)
     if refusal is not None:
         raise refusal
 
-    # The claim: only a row still in the state that was judged retryable,
-    # and still reachable (a removal between the check above and here).
-    # Reachability is a subquery on the pk, so the state conditions stay on
-    # the UPDATE's own row, which Postgres re-checks on the locked version
-    # when two claims race. A join here makes Django move every condition
-    # into an "id IN (SELECT ...)" read from the snapshot: both claims win.
-    claimed = BackgroundProcessingTask.objects.filter(
-        pk=item.pk,
-        status=BackgroundTaskStatus.FAILURE,
-        dismissed_at__isnull=True,
-        reason_code=item.reason_code,
-        retry_count=item.retry_count,
-        pk__in=BackgroundProcessingTask.objects.filter(
-            reachable_items_q(requested_by)
-        ).values("pk"),
-    ).update(
-        status=BackgroundTaskStatus.PENDING,
-        retry_count=F("retry_count") + 1,
-        reason_code="",
-        error="",
-        started_at=None,
-        finished_at=None,
-        trace_id=resolve_trace_id(),
-        updated_at=timezone.now(),
-    )
-    if not claimed:
-        # Another retry (or the item's own worker) got there first.
-        raise ItemNotRetryable()
-    if item.batch_session_id:
-        # S7c: any retry that won its claim resumes a batch stopped for
-        # credits, whatever this item failed with (a PROVIDER_FAILURE item
-        # retried after a top-up must not be stopped by the old mark). A
-        # real shortfall re-marks it (batch_credit_refusal) before any
-        # charge.
-        clear_batch_credit_stop(item.batch_session_id)
+    # Q7 (owner, 2026-11-20): an upload retried from its kept file takes a
+    # door hold first, for the door's own figure on the kept bytes, worked
+    # out here before the claim (it reads the file and may rasterize it).
+    door = _retry_door(item, requested_by)
+    estimate = _kept_estimate(item) if door is not None else None
+
+    with transaction.atomic():
+        _claim(item, requested_by)
+        if door is not None and estimate:
+            # A FAILURE item holds nothing; its old job keeps its numbers.
+            from billing.holds import detach_item
+
+            if item.job_id is not None:
+                detach_item(item)
+            if not door.hold(item, estimate):
+                # Not free to hold: the claim and the detach roll back. The
+                # item stays FAILURE with its code and its kept file, the
+                # session is not stamped, and no sibling stops.
+                from assignments.upload_door import DoorHoldRefused
+
+                raise DoorHoldRefused(door.refusal_response(estimate))
+            door.seal()
+        if item.batch_session_id:
+            # S7c: any retry that won its claim resumes a batch stopped for
+            # credits, whatever this item failed with (a PROVIDER_FAILURE item
+            # retried after a top-up must not be stopped by the old mark). A
+            # real shortfall re-marks it (batch_credit_refusal) before any
+            # charge.
+            clear_batch_credit_stop(item.batch_session_id)
     item.refresh_from_db()
 
     if item.task_type in UPLOAD_ITEM_TYPES:
@@ -310,20 +306,105 @@ def retry_item(item, requested_by, request=None):
     return item
 
 
+def _claim(item, requested_by):
+    """The claim: only a row still in the state that was judged retryable,
+    and still reachable (a removal between the check and here). Raises
+    ItemNotRetryable when another retry (or the item's own worker) got there
+    first.
+
+    Reachability is a subquery on the pk, so the state conditions stay on
+    the UPDATE's own row, which Postgres re-checks on the locked version
+    when two claims race. A join here makes Django move every condition
+    into an "id IN (SELECT ...)" read from the snapshot: both claims win."""
+    claimed = BackgroundProcessingTask.objects.filter(
+        pk=item.pk,
+        status=BackgroundTaskStatus.FAILURE,
+        dismissed_at__isnull=True,
+        reason_code=item.reason_code,
+        retry_count=item.retry_count,
+        pk__in=BackgroundProcessingTask.objects.filter(
+            reachable_items_q(requested_by)
+        ).values("pk"),
+    ).update(
+        status=BackgroundTaskStatus.PENDING,
+        retry_count=F("retry_count") + 1,
+        reason_code="",
+        error="",
+        started_at=None,
+        finished_at=None,
+        trace_id=resolve_trace_id(),
+        updated_at=timezone.now(),
+    )
+    if not claimed:
+        raise ItemNotRetryable()
+
+
+def _retry_door(item, requested_by):
+    """The door hold an upload retry takes (Q7), or None when it takes none:
+    a grade item, or a door that holds nothing (holds off or draining, a
+    super admin, no wallet)."""
+    if item.task_type not in UPLOAD_ITEM_TYPES:
+        return None
+    from assignments.upload_door import DoorHold
+
+    door = DoorHold(requested_by, _route_assignment(item), 1)
+    return door if door.active else None
+
+
+def _route_assignment(item):
+    """The assignment the item's route named: an answer file's, none for an
+    assignment file (the door estimates it as an assignment file)."""
+    if item.task_type == BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD:
+        return None
+    return item.assignment
+
+
+def _kept_estimate(item):
+    """The door's own figure for the item's kept file (_estimate_for on the
+    kept bytes), or None when it cannot be said here: the file is missing,
+    corrupt or storage is down (the worker's own rule then applies, as for
+    a file the door cannot read)."""
+    import hashlib
+
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from assignments.upload_door import _estimate_for
+    from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
+
+    from . import kept_files
+
+    kept = kept_file(item)
+    if kept is None:
+        return None
+    try:
+        content = kept_files.load(kept.storage_key)
+    except kept_files.KeptFileError:
+        return None
+    if hashlib.sha256(content).hexdigest() != kept.sha256:
+        return None
+    uploaded = SimpleUploadedFile(
+        name=kept.original_name, content=content, content_type=kept.content_type
+    )
+    return _estimate_for(uploaded, BATCH_UPLOAD_PROMPT, _route_assignment(item))
+
+
 def _relaunch_upload(item, requested_by):
     """B1b-5 (SM Q2): the item's own worker, from its kept file, with the
     shared prompt and the ids its route used. Under the retrying teacher,
     as a grading retry. No GRADING_REQUESTED row: the request's own audit
     row stands."""
     from assignments.tasks import upload_answers_engine_async, upload_assignment_async
+    from assignments.upload_door import launch_at_door
     from assignments.upload_prompts import BATCH_UPLOAD_PROMPT
 
     from .models import KeptUpload
 
     kept = KeptUpload.objects.get(processing_task_id=item.pk)
     payload = {"kept_upload_id": str(kept.id)}
+    # Q7: launch_at_door, so no worker starts before the hold commits.
     if item.task_type == BackgroundTaskType.BATCH_ASSIGNMENT_UPLOAD:
-        launch_processing_task(
+        launch_at_door(
+            launch_processing_task,
             upload_assignment_async,
             item,
             user_id=str(requested_by.id),
@@ -340,7 +421,8 @@ def _relaunch_upload(item, requested_by):
             file_name=item.file_name,
         )
     else:
-        launch_processing_task(
+        launch_at_door(
+            launch_processing_task,
             upload_answers_engine_async,
             item,
             str(item.assignment_id),
@@ -357,7 +439,14 @@ def retry_failed(session, requested_by, reason_codes=None, request=None):
     (only those with one of `reason_codes`, when given). Returns
     (retried item ids, skipped [{item_id, reason_code}]), in item order.
     An item whose course `requested_by` can't reach (H-38) is skipped with
-    no code: nothing about it is said beyond "not retried"."""
+    no code: nothing about it is said beyond "not retried".
+
+    Q7: the upload items take their door holds in that order, so each one
+    is held against what the earlier ones left. One that does not fit is
+    skipped with INSUFFICIENT_CREDITS and stays as it was (parked, its file
+    kept); a later, smaller one may still fit."""
+    from assignments.upload_door import DoorHoldRefused
+
     retried, skipped = [], []
     failures = session.processing_tasks.filter(
         status=BackgroundTaskStatus.FAILURE
@@ -373,6 +462,13 @@ def retry_failed(session, requested_by, reason_codes=None, request=None):
             retry_item(item, requested_by, request=request)
         except Http404:
             skipped.append({"item_id": str(item.id), "reason_code": None})
+        except DoorHoldRefused:
+            skipped.append(
+                {
+                    "item_id": str(item.id),
+                    "reason_code": ReasonCode.INSUFFICIENT_CREDITS.value,
+                }
+            )
         except ItemNotRetryable:
             skipped.append(
                 {"item_id": str(item.id), "reason_code": item.reason_code or None}

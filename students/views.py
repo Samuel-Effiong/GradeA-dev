@@ -71,8 +71,16 @@ from audit.enums import AuditAction, AuditOutcome, ReasonCode
 from AutoGrader.cache_generation import SCOPE_USER, versioned_key
 from AutoGrader.error_messages import describe_user_error, is_user_facing_error
 from AutoGrader.pagination import StandardPageNumberPagination
-from AutoGrader.reason_codes import CodedError, coded_response
-from AutoGrader.uploads import PayloadTooLarge, validate_upload_size
+from AutoGrader.reason_codes import (
+    REQUEST_TOO_LARGE_REMEDIATION,
+    CodedError,
+    coded_response,
+)
+from AutoGrader.uploads import (
+    PayloadTooLarge,
+    UploadRequestCapMixin,
+    validate_upload_size,
+)
 from billing.errors import InsufficientCreditsError
 from billing.job_ref import ai_job_schema, with_ai_job_id
 from classrooms.models import EnrollmentStatusType, teacher_course_access_q
@@ -286,8 +294,16 @@ def _assignment_taught_by(assignment_id, teacher):
         },
     ),
 )
-class StudentSubmissionViewSet(UserCacheMixin, viewsets.ModelViewSet):
+class StudentSubmissionViewSet(
+    UploadRequestCapMixin, UserCacheMixin, viewsets.ModelViewSet
+):
     queryset = StudentSubmission.objects.all()
+    # Owner Q5 A (2026-11-19): at most UPLOAD_REQUEST_MAX_MB a request,
+    # refused before the body is read (AutoGrader.uploads).
+    capped_upload_actions = {
+        "batch_upload": REQUEST_TOO_LARGE_REMEDIATION,
+        "upload_answers_async": None,
+    }
     serializer_class = StudentSubmissionSerializer
     permission_classes = (IsAuthenticated,)
     pagination_class = StandardPageNumberPagination

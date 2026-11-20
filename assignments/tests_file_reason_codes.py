@@ -20,7 +20,7 @@ from unittest.mock import patch
 import fitz
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase, TestCase
+from django.test import SimpleTestCase, TestCase, override_settings
 from django.urls import reverse
 from pdf2image.exceptions import PDFSyntaxError
 from PIL import Image
@@ -253,7 +253,7 @@ class StudentUploadAnswersWithItsOwnCode(APITestCase):
     # -- #5 FILE_TOO_LARGE -------------------------------------------------------
 
     def test_too_many_bytes_is_too_large_with_actual_and_limit(self):
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 1024 * 1024):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=1024 * 1024):
             response = self.post(
                 upload(
                     "big.pdf", b"%PDF-1.4" + b"0" * (3 * 1024 * 1024), "application/pdf"
@@ -567,7 +567,7 @@ class ThePayloadTooLargeOfTheBatchIsCoded(TestCase):
     def test_the_cap_is_read_at_call_time(self):
         from AutoGrader.uploads import validate_upload_size
 
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 10):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=10):
             with self.assertRaises(PayloadTooLarge) as caught:
                 validate_upload_size(upload("x.pdf", b"0" * 11, "application/pdf"))
         self.assertEqual(caught.exception.reason_code, ReasonCode.FILE_TOO_LARGE)
