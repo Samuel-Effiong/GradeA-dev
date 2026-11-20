@@ -166,6 +166,13 @@ UPLOAD_FILE_AGAIN_REMEDIATION = "Upload the file again."
 #: nothing more to say than its message. Renders null, never falling back
 #: to the spec's.
 NO_REMEDIATION = ""
+#: Owner Q5 A (2026-11-19), wording owner-approved 2026-11-20 (Q8): one
+#: upload request over UPLOAD_REQUEST_MAX_MB is FILE_TOO_LARGE with this
+#: message variant (no file name) and, on the teacher batch routes, this
+#: remediation. The student route keeps the spec's remediation. The upload
+#: quote routes reuse both names, so keep them stable.
+REQUEST_VARIANT = "request"
+REQUEST_TOO_LARGE_REMEDIATION = "Upload fewer files at a time, then try again."
 
 
 REASON_CODES: dict[ReasonCode, ReasonSpec] = {
@@ -222,6 +229,11 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         #              a made-up number.
         # The message shows them formatted, through `display` ("63.2 MB").
         params=_FILE | {"actual", "limit", "dimension"},
+        alternative_messages={
+            REQUEST_VARIANT: "This upload is {actual} and the limit is {limit} "
+            "for one upload.",
+        },
+        alternative_remediations=(REQUEST_TOO_LARGE_REMEDIATION,),
     ),
     ReasonCode.FILE_EMPTY: ReasonSpec(
         ErrorClass.USER,

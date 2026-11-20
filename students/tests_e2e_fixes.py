@@ -263,8 +263,8 @@ class BatchAnswerSaysWhatHappenedToEachFile(ParkedFixture, TestCase):
         with patch(
             "ai_processor.services.AIProcessor.estimate_messages_cost",
             side_effect=list(estimates),
-        ), patch(
-            "AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 2048
+        ), override_settings(
+            MAX_UPLOAD_FILE_SIZE_BYTES=2048
         ), self.captureOnCommitCallbacks(
             execute=True
         ):
