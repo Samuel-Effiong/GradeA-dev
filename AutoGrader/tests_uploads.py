@@ -1,12 +1,26 @@
-from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import SimpleTestCase
+import logging
 
-from AutoGrader.uploads import (
-    MAX_UPLOAD_SIZE_BYTES,
-    PayloadEmpty,
-    PayloadTooLarge,
-    validate_upload_size,
-)
+from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import SimpleTestCase, override_settings
+
+from AutoGrader import uploads
+from AutoGrader.uploads import PayloadEmpty, PayloadTooLarge, validate_upload_size
+
+
+def _new(name):
+    return getattr(uploads, name)
+
+
+def max_upload_size_bytes():
+    return _new("max_upload_size_bytes")()
+
+
+def warn_if_file_cap_above_request_cap():
+    return _new("warn_if_file_cap_above_request_cap")()
+
+
+MB = 1024 * 1024
 
 
 class ValidateUploadSizeTests(SimpleTestCase):
@@ -15,12 +29,12 @@ class ValidateUploadSizeTests(SimpleTestCase):
         validate_upload_size(small_file)  # should not raise
 
     def test_accepts_file_exactly_at_the_limit(self):
-        exact_file = SimpleUploadedFile("exact.pdf", b"x" * MAX_UPLOAD_SIZE_BYTES)
+        exact_file = SimpleUploadedFile("exact.pdf", b"x" * max_upload_size_bytes())
         validate_upload_size(exact_file)  # should not raise
 
     def test_rejects_file_over_the_limit(self):
         oversized_file = SimpleUploadedFile(
-            "huge.pdf", b"x" * (MAX_UPLOAD_SIZE_BYTES + 1)
+            "huge.pdf", b"x" * (max_upload_size_bytes() + 1)
         )
         with self.assertRaises(PayloadTooLarge) as ctx:
             validate_upload_size(oversized_file)
@@ -54,3 +68,54 @@ class ValidateUploadSizeTests(SimpleTestCase):
     def test_one_byte_file_is_accepted(self):
         tiny_file = SimpleUploadedFile("tiny.pdf", b"x")
         validate_upload_size(tiny_file)  # should not raise
+
+
+class ThePerFileLimitIsASetting(SimpleTestCase):
+    """Owner ruling 2026-11-20: MAX_UPLOAD_FILE_SIZE_MB (env, default 50),
+    read when a file is checked, so a changed setting applies at once."""
+
+    def test_the_default_is_50_mb(self):
+        self.assertEqual(getattr(settings, "MAX_UPLOAD_FILE_SIZE_MB", None), 50)
+        self.assertEqual(max_upload_size_bytes(), 50 * MB)
+
+    def test_the_old_name_still_reads_the_limit(self):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=10 * MB):
+            self.assertEqual(uploads.MAX_UPLOAD_SIZE_BYTES, 10 * MB)
+
+    @override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=10 * MB)
+    def test_at_10_mb_a_10_5_mb_file_is_refused_and_the_message_says_10_mb(self):
+        validate_upload_size(SimpleUploadedFile("ok.pdf", b"x" * (10 * MB)))
+        big = SimpleUploadedFile("scan.pdf", b"x" * int(10.5 * MB))
+        with self.assertRaises(PayloadTooLarge) as ctx:
+            validate_upload_size(big)
+        self.assertEqual(
+            str(ctx.exception.detail), "scan.pdf is 10.5 MB and the limit is 10 MB."
+        )
+        self.assertEqual(ctx.exception.params["limit"], 10 * MB)
+        self.assertEqual(ctx.exception.params["actual"], int(10.5 * MB))
+
+
+class AFileLimitAboveTheRequestCapIsWarned(SimpleTestCase):
+    def test_above_the_request_cap_logs_a_warning(self):
+        with override_settings(
+            MAX_UPLOAD_FILE_SIZE_MB=600,
+            MAX_UPLOAD_FILE_SIZE_BYTES=600 * MB,
+            UPLOAD_REQUEST_MAX_MB=500,
+            UPLOAD_REQUEST_MAX_BYTES=500 * MB,
+        ), self.assertLogs("AutoGrader.uploads", logging.WARNING) as logs:
+            warn_if_file_cap_above_request_cap()
+        self.assertEqual(len(logs.records), 1)
+        self.assertIn("MAX_UPLOAD_FILE_SIZE_MB", logs.output[0])
+
+    def test_at_or_under_the_request_cap_logs_nothing(self):
+        with self.assertNoLogs("AutoGrader.uploads", logging.WARNING):
+            warn_if_file_cap_above_request_cap()
+
+    def test_the_students_app_checks_it_at_startup(self):
+        from unittest.mock import patch
+
+        from django.apps import apps
+
+        with patch("AutoGrader.uploads.warn_if_file_cap_above_request_cap") as warn:
+            apps.get_app_config("students").ready()
+        warn.assert_called_once_with()

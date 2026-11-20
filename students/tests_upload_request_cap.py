@@ -54,9 +54,10 @@ class TheDefaultCap(SimpleTestCase):
         )
 
     def test_the_per_file_cap_is_unchanged(self):
-        from AutoGrader.uploads import MAX_UPLOAD_SIZE_BYTES
+        from AutoGrader import uploads
 
-        self.assertEqual(MAX_UPLOAD_SIZE_BYTES, 50 * 1024 * 1024)
+        helper = "max_upload_size_bytes"
+        self.assertEqual(getattr(uploads, helper)(), 50 * 1024 * 1024)
 
 
 class Routes(APITestCase):
@@ -227,7 +228,7 @@ class AtOrUnderTheCapIsUnchanged(Routes):
     def test_a_file_over_50_mb_under_the_request_cap_keeps_its_own_refusal(self):
         """The per-file cap still refuses that file as its own item (413
         FILE_TOO_LARGE with its file name), as before."""
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 10):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=10):
             response = self.post(self.teacher, self.answers_url(), self.answers_body(1))
         self.assertNotEqual(response.status_code, 413)
         entry = response.json()["data"]["tasks"][0]

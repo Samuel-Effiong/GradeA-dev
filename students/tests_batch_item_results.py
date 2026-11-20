@@ -33,7 +33,7 @@ from unittest.mock import patch
 import fitz
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from PIL import Image
@@ -376,7 +376,7 @@ class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
             SimpleUploadedFile("big.pdf", b"%PDF-1.4" + b"0" * 4096, "application/pdf"),
             SimpleUploadedFile("c.png", png_bytes(), content_type="image/png"),
         ]
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 2048), self.extraction(
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=2048), self.extraction(
             ["Pupil00 Enrolled", "Pupil01 Enrolled"]
         ):
             # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
@@ -408,7 +408,7 @@ class ATooLargeFileFailsAsItsItem(BatchFixture, TestCase):
             dispatched.append(processing_task.file_name)
             return SimpleNamespace(id=str(uuid.uuid4()))
 
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 2048), patch(
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=2048), patch(
             "assignments.views.launch_processing_task", side_effect=record
         ):
             # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
@@ -575,9 +575,7 @@ class ThirtyFilesTwelveFailures(BatchFixture, TestCase):
         expected = {f.name: code for f, code, _ in plan}
         names = [name for _, code, name in plan if name is not None]
 
-        with patch("AutoGrader.uploads.MAX_UPLOAD_SIZE_BYTES", 8192), self.extraction(
-            names
-        ):
+        with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=8192), self.extraction(names):
             # B1b-2 (NOTES §2.3 B2): run the on_commit launch, as production does.
             with self.captureOnCommitCallbacks(execute=True):
                 response = self.batch_upload([f for f, _, _ in plan])
