@@ -246,7 +246,7 @@ flowchart TD
 
 So the async path is stricter about the payload but the sync path skips the size guard entirely.
 
-The async path serialises each file to **base64 in the Celery message** ([services.py:406-415](../../assignments/services.py#L406-L415)) and rebuilds it worker-side ([services.py:417-425](../../assignments/services.py#L417-L425)). At the 50 MB upload cap that is a ~67 MB base64 payload per task pushed through Redis — worth knowing when sizing the broker.
+The async path serialises each file to **base64 in the Celery message** ([services.py:406-415](../../assignments/services.py#L406-L415)) and rebuilds it worker-side ([services.py:417-425](../../assignments/services.py#L417-L425)). At a 10 MB file (the default per-file cap) that is a ~13.3 MB base64 payload per task pushed through Redis — worth knowing when sizing the broker.
 
 ### Detecting a teacher override
 
@@ -546,7 +546,7 @@ The student serializers omit rubrics and model answers. `PolymorphicAssignmentEx
 | Failure | User sees | Recovery |
 |---|---|---|
 | Unsupported upload format | 400 naming allowed formats | — |
-| Upload > 50 MB | 413 (**async path only**) | — |
+| Upload > `MAX_UPLOAD_FILE_SIZE_MB` (default 10 MB) | 413 (**async path only**) | — |
 | Corrupt file, sync upload | that file in `failed`, others still processed | re-upload the bad one |
 | Corrupt file, async upload | 400, **whole batch rejected** | fix and resubmit all |
 | AI extraction fails, sync | 500 after the worker was held for the whole call | retry |
@@ -577,7 +577,7 @@ This app defines no env vars of its own. It reads:
 |---|---|---|
 | `GRADING_TASK_TIME_LIMIT_SECONDS` | from `students/services.py` | `grade_engine_async` limits; `GRADING_CLAIM_STALE_AFTER` is derived from it |
 | `ASSIGNMENT_DUE_REMINDER_OFFSETS` | `(24, 1)` hours | which reminders exist ([signals.py:15](../../assignments/signals.py#L15)) |
-| `MAX_UPLOAD_SIZE_BYTES` | 50 MB | async upload only |
+| `MAX_UPLOAD_FILE_SIZE_MB` | 10 MB (env) | async upload only |
 | `generation_history_message_limit` | 12 | chat history window ([views.py:298](../../assignments/views.py#L298)) |
 | `DEFAULT_FROM_EMAIL`, `SUPPORT_EMAIL` | — | all emails |
 | `CACHE_TTL` | 300 | `UserCacheMixin` |

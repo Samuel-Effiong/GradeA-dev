@@ -1462,7 +1462,7 @@ super admins). History is stored in `ChatSession`/`ChatMessage` with one thread 
 | B17 | Scheduled grading must be in the future **and** after the assignment's due date | `schedule_grade_async` |
 | B18 | Bulk grading only ever targets **ungraded** submissions | `grade_all_submission`, `grade_batch_async`, `auto_grade_due_assignment` |
 | B19 | The teacher PDF view is available only to the course's own teacher | `download_pdf` |
-| B20 | Uploads are capped at **50 MB** per file | `AutoGrader/uploads.py` |
+| B20 | Uploads are capped per file at `MAX_UPLOAD_FILE_SIZE_MB` (configurable, default **10 MB**) | `AutoGrader/uploads.py` |
 
 ### 9.3 Grading quality
 

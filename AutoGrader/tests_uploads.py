@@ -64,12 +64,24 @@ class ValidateUploadSizeTests(SimpleTestCase):
 
 
 class ThePerFileLimitIsASetting(SimpleTestCase):
-    """Owner ruling 2026-11-20: MAX_UPLOAD_FILE_SIZE_MB (env, default 50),
-    read when a file is checked, so a changed setting applies at once."""
+    """Owner rulings 2026-11-20: MAX_UPLOAD_FILE_SIZE_MB (env, default 10:
+    the Cloudinary Free plan's raw limit, R1 spike; Q17 C), read when a file
+    is checked, so a changed setting applies at once."""
 
-    def test_the_default_is_50_mb(self):
-        self.assertEqual(getattr(settings, "MAX_UPLOAD_FILE_SIZE_MB", None), 50)
+    def test_the_default_is_10_mb(self):
+        self.assertEqual(getattr(settings, "MAX_UPLOAD_FILE_SIZE_MB", None), 10)
+        self.assertEqual(max_upload_size_bytes(), 10 * MB)
+
+    def test_by_default_a_file_over_10_mb_is_refused(self):
+        validate_upload_size(SimpleUploadedFile("ok.pdf", b"x" * (10 * MB)))
+        with self.assertRaises(PayloadTooLarge) as ctx:
+            validate_upload_size(SimpleUploadedFile("scan.pdf", b"x" * (10 * MB + 1)))
+        self.assertEqual(ctx.exception.params["limit"], 10 * MB)
+
+    @override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=50 * MB)
+    def test_the_setting_can_raise_it_to_50_mb(self):
         self.assertEqual(max_upload_size_bytes(), 50 * MB)
+        validate_upload_size(SimpleUploadedFile("scan.pdf", b"x" * int(10.5 * MB)))
 
     def test_the_old_name_still_reads_the_limit(self):
         with override_settings(MAX_UPLOAD_FILE_SIZE_BYTES=10 * MB):

@@ -47,9 +47,8 @@ logger = logging.getLogger(__name__)
 
 def max_upload_size_bytes():
     """The per-file limit in bytes: settings.MAX_UPLOAD_FILE_SIZE_MB (env,
-    default 50; owner ruling 2026-11-20), read on every call so a changed
-    setting applies at once. A scanned assignment PDF is the largest
-    legitimate upload; 50 MB covers a multi-page scan at print resolution."""
+    default 10, the Cloudinary Free plan's raw-file limit; owner rulings
+    2026-11-20), read on every call so a changed setting applies at once."""
     return int(settings.MAX_UPLOAD_FILE_SIZE_BYTES)
 
 

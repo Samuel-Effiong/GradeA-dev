@@ -214,7 +214,7 @@ QUESTION_TYPE_LABELS = {
 
 #: Ceiling on an uploaded image's DECODED size, checked from the header
 #: before any pixels are allocated. AutoGrader/uploads.py caps the encoded
-#: bytes at 50 MB, which a compressed "decompression bomb" slips straight
+#: bytes (MAX_UPLOAD_FILE_SIZE_MB), which a compressed "decompression bomb" slips straight
 #: through - a 400 KB PNG can declare a raster of billions of pixels.
 #:
 #: 50 MP is far above any real scan (a 600-dpi A4 page is ~35 MP) and far
@@ -545,7 +545,7 @@ class AssignmentProcessingService:
             500 and a stack trace for what is an ordinary bad request.
 
           * A "decompression bomb" - a few hundred KB of PNG that decodes
-            to gigabytes of pixels - passed the 50 MB size cap (which
+            to gigabytes of pixels - passed the per-file size cap (which
             bounds the ENCODED bytes, not the decoded raster) and was
             handed to Pillow to allocate. Pillow only *warns* between 1x
             and 2x its MAX_IMAGE_PIXELS default, so a single request could

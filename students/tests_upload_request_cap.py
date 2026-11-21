@@ -5,7 +5,8 @@ answer. A request whose Content-Length is over the cap is refused with
 FILE_TOO_LARGE (413; dimension "bytes", limit the cap, actual the request's
 length) before anything reads the body: no file parsed or spooled to disk,
 none validated, stored, held, queued or sent to the AI, no audit event.
-Under the cap every route is unchanged, the 50 MB per-file cap included.
+Under the cap every route is unchanged, the per-file cap included
+(MAX_UPLOAD_FILE_SIZE_MB, default 10).
 
 A chunked request (no Content-Length) is never read at all: gunicorn sets
 CONTENT_LENGTH only from the header, and Django reads a request without one
@@ -53,10 +54,10 @@ class TheDefaultCap(SimpleTestCase):
             getattr(settings, "UPLOAD_REQUEST_MAX_BYTES", None), 500 * 1024 * 1024
         )
 
-    def test_the_per_file_cap_is_unchanged(self):
+    def test_the_per_file_cap_is_its_own_setting(self):
         from AutoGrader.uploads import max_upload_size_bytes
 
-        self.assertEqual(max_upload_size_bytes(), 50 * 1024 * 1024)
+        self.assertEqual(max_upload_size_bytes(), 10 * 1024 * 1024)
 
 
 class Routes(APITestCase):

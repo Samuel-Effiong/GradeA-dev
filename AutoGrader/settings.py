@@ -1765,7 +1765,11 @@ UPLOAD_REQUEST_MAX_BYTES = UPLOAD_REQUEST_MAX_MB * 1024 * 1024
 # (FILE_TOO_LARGE above it; AutoGrader.uploads.max_upload_size_bytes reads
 # it per file). A value above UPLOAD_REQUEST_MAX_MB logs a warning at
 # startup (no single upload could reach it), and is not refused.
-MAX_UPLOAD_FILE_SIZE_MB = env.int("MAX_UPLOAD_FILE_SIZE_MB", default=50)
+# Default 10 (owner Q17 C, 2026-11-20): the Cloudinary Free plan's raw-file
+# limit is 10 MB (R1 spike, 2026-11-20, docs/evidence/upload-quotes/
+# R1_SPIKE.md), so a larger file could not be kept. Raise it with the env
+# var after a plan upgrade.
+MAX_UPLOAD_FILE_SIZE_MB = env.int("MAX_UPLOAD_FILE_SIZE_MB", default=10)
 if MAX_UPLOAD_FILE_SIZE_MB < 1:
     raise ImproperlyConfigured("MAX_UPLOAD_FILE_SIZE_MB must be at least 1.")
 MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024
