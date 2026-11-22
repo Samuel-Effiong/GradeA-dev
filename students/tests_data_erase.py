@@ -543,6 +543,16 @@ class RefusalTests(_EraseCase):
         BatchUploadSession.objects.create(teacher=self.w.target)
         self.assertRefused("STUDENT_ERASE_NOT_ONLY_A_STUDENT")
 
+    def test_an_upload_quote_refuses(self):
+        # Finding 6: a quote's confirm reply carries file names; only a
+        # teacher can own one, so a student account holding one refuses.
+        apps.get_model("students.UploadQuote").objects.create(
+            teacher=self.w.target,
+            kind="answer_papers",
+            expires_at=timezone.now() + timedelta(minutes=10),
+        )
+        self.assertRefused("STUDENT_ERASE_NOT_ONLY_A_STUDENT")
+
     def test_django_admin_history_refuses(self):
         LogEntry.objects.create(
             user=self.w.target, action_flag=1, object_repr="x", change_message=""

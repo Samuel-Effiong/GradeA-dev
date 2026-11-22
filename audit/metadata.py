@@ -53,6 +53,10 @@ ALLOWED_KEYS = frozenset(
         "deleted_student_record",
         # Epic B1a (plan 08 §4): the FINANCIAL class's sweep count
         "deleted_financial",
+        # Upload quote: the quote's id and why it ended (a fixed word:
+        # cancelled or expired), never a file name.
+        "quote_id",
+        "reason",
         # Epic B1a credit holds: the job's type, the task row it held for
         # (an id), and what a settlement returned.
         "job_type",
@@ -356,8 +360,9 @@ METADATA_ALLOWLIST = {
         }
     ),
     AuditAction.SUBMISSION_UPLOAD: frozenset(
-        {"assignment_id", "file_type", "file_size_bytes", "file_count"}
+        {"assignment_id", "file_type", "file_size_bytes", "file_count", "quote_id"}
     ),
+    AuditAction.UPLOAD_QUOTE_ENDED: frozenset({"quote_id", "reason", "file_count"}),
     AuditAction.CREDIT_TRANSACTION: frozenset(
         {"credits", "credits_estimated", "credits_actual", "ledger_type", "ledger_id"}
     ),

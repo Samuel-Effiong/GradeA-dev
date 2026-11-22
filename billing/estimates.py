@@ -30,16 +30,19 @@ question_image fields (AIProcessor._question_image_content_blocks), so a
 target assignment's shape is read exactly from its questions.
 """
 
+import hashlib
 import json
 import math
 import statistics
 from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.db.models import Exists, Max, OuterRef, Sum, TextField
 from django.db.models.functions import Cast
 from django.utils import timezone
 
+from ai_processor.call_estimates import CALL_HEADROOM
 from ai_processor.models import AICallRecord
 from audit import metrics
 from billing.models import (
@@ -74,6 +77,20 @@ INSUFFICIENT = "INSUFFICIENT"
 DRIFT_OVERALL = 0.85
 DRIFT_CELL = 0.80
 DRIFT_CELL_MIN = 30
+
+# Upload quote (plan rev 3 section 4): the door's per-file figures as the
+# grading estimate's ten keys. The records of calls made under the old flat
+# 20,000 allowance would put p50 about 2.4x too low, so only calls after
+# CALL_HEADROOM changed count (2026-11-19, b10f3b743). A test pins the digest
+# of CALL_HEADROOM: change one without the other and it fails.
+CALL_HEADROOM_SINCE = datetime(2026, 11, 19, 12, 33, tzinfo=dt_timezone.utc)
+CALL_HEADROOM_DIGEST = hashlib.sha256(
+    json.dumps(CALL_HEADROOM, sort_keys=True).encode()
+).hexdigest()
+UPLOAD_DIVISOR_FALLBACK = 1.46  # the median overestimate of 106 calls, 2026-11-19
+UPLOAD_DIVISOR_MIN = 30
+SOURCE_UPLOAD_HISTORY = "upload_history"
+SHAPE_BASIS_UPLOAD_FILES = "upload_files"
 
 GRADING_TASK_TYPE = "grade_assignment"
 CHARGED = "charged"
@@ -499,6 +516,64 @@ def advise(teacher, assignment, n, *, representative=None):
         "shape_basis": result["shape_basis"],
         "sample_size": result["sample_size"],
         "n": n,
+    }
+
+
+def upload_overestimate(task_type):
+    """(divisor, sample size): how far the door's figure for `task_type`
+    sits above the real cost, as the median of estimate / total_tokens over
+    the successful charged calls of that type made after CALL_HEADROOM_SINCE
+    (within HISTORY_DAYS), when there are UPLOAD_DIVISOR_MIN or more; else
+    the measured UPLOAD_DIVISOR_FALLBACK and the count found."""
+    since = max(CALL_HEADROOM_SINCE, _since(HISTORY_DAYS))
+    pairs = AICallRecord.objects.filter(
+        task_type=task_type,
+        outcome=CHARGED,
+        created_at__gte=since,
+        estimate__gt=0,
+        total_tokens__gt=0,
+    ).values_list("estimate", "total_tokens")
+    ratios = [
+        estimate / total
+        for estimate, total in pairs
+        if estimate and total  # the filter above already holds them
+    ]
+    if len(ratios) < UPLOAD_DIVISOR_MIN:
+        return UPLOAD_DIVISOR_FALLBACK, len(ratios)
+    return float(statistics.median(ratios)), len(ratios)
+
+
+def upload_advise(teacher, task_type, figures, *, already_uploaded=()):
+    """The ten keys of advise() for an upload quote: `figures` are the files'
+    door figures in raw credits (None: the door cannot estimate the file, left
+    out), in position order; `already_uploaded` the positions the course
+    already has (they count 0). p90 is the sum, p50 is p90 over the measured
+    divisor and never above it, both rounded up once in display credits; the
+    verdict is worked out from the display figures like advise()."""
+    counted = [
+        0 if index in already_uploaded else figure
+        for index, figure in enumerate(figures)
+        if figure is not None
+    ]
+    raw_p90 = sum(counted)
+    divisor, sample = upload_overestimate(task_type)
+    raw_p50 = min(raw_p90, math.ceil(raw_p90 / divisor)) if divisor >= 1 else raw_p90
+    p50 = _display_cost(raw_p50)
+    p90 = _display_cost(raw_p90)
+    spendable = _display_balance(spendable_of(teacher))
+    return {
+        "p50": p50,
+        "p90": p90,
+        "verdict": verdict(p50, p90, spendable),
+        "spendable": spendable,
+        "projected_remaining_p50": spendable - p50,
+        "projected_remaining_p90": spendable - p90,
+        "source": (
+            SOURCE_UPLOAD_HISTORY if sample >= UPLOAD_DIVISOR_MIN else SOURCE_ROUGH
+        ),
+        "shape_basis": SHAPE_BASIS_UPLOAD_FILES,
+        "sample_size": sample,
+        "n": len(counted),
     }
 
 

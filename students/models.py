@@ -799,3 +799,153 @@ class KeptUpload(models.Model):
 
     def __str__(self):
         return f"KeptUpload {self.pk}"
+
+
+class UploadQuote(models.Model):
+    """What an upload will cost, asked before anything is processed (upload
+    quote, plan rev 3; BE-B-04). The teacher uploads once: the files are kept
+    here (private storage, `students.kept_files`), measured by a zero-credit
+    task, and either confirmed (the files move to the upload door's own kept
+    store and run or park, BE-B-05/06) or dropped. Its own tables, not task
+    rows: nothing in the task machinery (retry, retry-failed, cancel, the
+    sweepers) can see an unconfirmed quote, so nothing can start it. No file
+    name is shown or logged; see `students.upload_quotes`."""
+
+    class Kind(models.TextChoices):
+        ANSWER_PAPERS = "answer_papers", "Answer papers"
+        ASSIGNMENT_FILES = "assignment_files", "Assignment files"
+
+    class State(models.TextChoices):
+        OPEN = "OPEN", "Open"
+        CONFIRMED = "CONFIRMED", "Confirmed"
+        CANCELLED = "CANCELLED", "Cancelled"
+        EXPIRED = "EXPIRED", "Expired"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    teacher = models.ForeignKey(
+        "users.CustomUser", on_delete=models.CASCADE, related_name="upload_quotes"
+    )
+    kind = models.CharField(max_length=24, choices=Kind.choices)
+    assignment = models.ForeignKey(
+        "assignments.Assignment",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="upload_quotes",
+    )
+    course = models.ForeignKey(
+        "classrooms.Course",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="upload_quotes",
+    )
+    #: The ids a confirm relaunches with, as KeptUpload.relaunch does:
+    #: `{"topic_id": ...}` for assignment files. Ids only.
+    relaunch = models.JSONField(default=dict, blank=True)
+    state = models.CharField(max_length=12, choices=State.choices, default=State.OPEN)
+    #: The client's `Idempotency-Key` for the create; unique per teacher.
+    idempotency_key = models.CharField(max_length=64, null=True, blank=True)
+    expires_at = models.DateTimeField()
+    confirmed_at = models.DateTimeField(null=True, blank=True)
+    #: When it was cancelled or expired (the purge's clock for the row).
+    closed_at = models.DateTimeField(null=True, blank=True)
+    session = models.ForeignKey(
+        "students.BatchUploadSession",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="upload_quotes",
+    )
+    #: The confirm's reply (ids, statuses and each file's name), so a second
+    #: confirm from a second tab or a retried request gets the same batch
+    #: body. Kept for UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS, then the quote is
+    #: dropped with it. Only a teacher owns a quote.
+    confirm_result = models.JSONField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["teacher", "idempotency_key"],
+                condition=models.Q(idempotency_key__isnull=False),
+                name="uploadquote_teacher_key_unique",
+            )
+        ]
+        indexes = [
+            models.Index(fields=["teacher", "state"], name="uploadquote_teacher_state"),
+            models.Index(fields=["state", "expires_at"], name="uploadquote_due"),
+        ]
+
+    def __str__(self):
+        return f"UploadQuote {self.pk}"
+
+
+class UploadQuoteFile(models.Model):
+    """One file of a quote. The row is written before the bytes are stored
+    (the random key is chosen first), so a dead request leaves a row whose
+    asset may not exist and the purge deletes by key. `storage_key` is set to
+    null when a confirm hands the asset to a KeptUpload, so this row's delete
+    signal leaves it alone."""
+
+    class State(models.TextChoices):
+        STORING = "STORING", "Storing"
+        STORED = "STORED", "Stored"
+        MEASURING = "MEASURING", "Measuring"
+        MEASURED = "MEASURED", "Measured"
+        REFUSED = "REFUSED", "Refused"
+        NOT_KEPT = "NOT_KEPT", "Could not be kept"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    quote = models.ForeignKey(
+        UploadQuote, on_delete=models.CASCADE, related_name="files"
+    )
+    #: The file's 0-based place in the teacher's list: the order the door
+    #: walks.
+    position = models.PositiveIntegerField()
+    state = models.CharField(
+        max_length=12, choices=State.choices, default=State.STORING
+    )
+    storage_key = models.CharField(max_length=255, unique=True, null=True, blank=True)
+    #: Only to become the item's file_name at confirm, as
+    #: KeptUpload.original_name is; never in a reply or a log.
+    original_name = models.CharField(max_length=255)
+    content_type = models.CharField(max_length=255, blank=True, default="")
+    size_bytes = models.PositiveBigIntegerField(default=0)
+    #: Blank for a refused file (not stored, not deduped).
+    sha256 = models.CharField(max_length=64, blank=True, default="")
+    pages = models.PositiveIntegerField(null=True, blank=True)
+    #: The image tokens of each page, from the door's own prepared content
+    #: (ai_processor.call_estimates.page_tokens_of): a JSON list of ints.
+    page_tokens = models.JSONField(null=True, blank=True)
+    #: None: the door cannot say ("cannot estimate" is not "certainly
+    #: refused"); False: the file is refused with `reason_code`.
+    readable = models.BooleanField(null=True, blank=True)
+    reason_code = models.CharField(max_length=64, blank=True, default="")
+    already_uploaded = models.BooleanField(default=False)
+    measure_attempts = models.PositiveSmallIntegerField(default=0)
+    measured_at = models.DateTimeField(null=True, blank=True)
+    purged_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["quote", "position"], name="uploadquotefile_position_unique"
+            ),
+            models.UniqueConstraint(
+                fields=["quote", "sha256"],
+                condition=~models.Q(sha256="") & ~models.Q(state="NOT_KEPT"),
+                name="uploadquotefile_sha256_unique",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["state", "created_at"],
+                name="uploadquotefile_unmeasured",
+                condition=models.Q(state__in=["STORED", "MEASURING"]),
+            )
+        ]
+
+    def __str__(self):
+        return f"UploadQuoteFile {self.pk}"

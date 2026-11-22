@@ -744,6 +744,53 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "",
         retryable=False,
     ),
+    # Upload quote (plan rev 3 section 3). Wording APPROVED by the owner,
+    # 2026-11-20 (docs/evidence/upload-quotes/WORDING.md). None names a file.
+    ReasonCode.QUOTE_NOT_READY: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_409_CONFLICT,
+        "We're still working out what these files will cost.",
+        "Wait a moment, then try again.",
+        retryable=True,
+    ),
+    ReasonCode.QUOTE_EXPIRED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_410_GONE,
+        "This upload waited more than {lifetime_minutes} minutes, so we removed"
+        " the files.",
+        "Upload the files again.",
+        retryable=False,
+        params=frozenset({"lifetime_minutes", "expires_at"}),
+    ),
+    ReasonCode.QUOTE_CLOSED: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_409_CONFLICT,
+        "This upload has already been started or cancelled.",
+        "",
+        retryable=False,
+    ),
+    ReasonCode.QUOTE_STORAGE_FULL: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+        "We can't hold more files for you right now.",
+        "Start or cancel your waiting uploads, then try again.",
+        retryable=False,
+    ),
+    ReasonCode.QUOTE_TOO_MANY_OPEN: ReasonSpec(
+        ErrorClass.USER,
+        status.HTTP_429_TOO_MANY_REQUESTS,
+        "You have too many uploads waiting for you to start them.",
+        "Start or cancel one of them, then try again.",
+        retryable=False,
+    ),
+    ReasonCode.QUOTE_FILE_NOT_KEPT: ReasonSpec(
+        ErrorClass.SYSTEM,
+        status.HTTP_503_SERVICE_UNAVAILABLE,
+        "We couldn't keep one of the files.",
+        "Add that file again.",
+        retryable=True,
+        retry_after=10,
+    ),
     # NFR-CMP-04 erasure refusals (owner-approved wording, 2026-11-08).
     # Remediation stays empty.
     ReasonCode.STUDENT_ERASE_NOT_ONLY_A_STUDENT: ReasonSpec(

@@ -96,6 +96,12 @@ CONCEALED_ROUTES = frozenset(
         "category-template-detail",
         "assignment-copy",
         "assignment-bulk-copy",
+        # Upload quote: while UPLOAD_QUOTES_ENABLED is off (not the default; the
+        # test runner's) the quote routes answer everyone as an unknown URL does.
+        "upload-quotes-collection",
+        "upload-quote-detail",
+        "upload-quote-files",
+        "upload-quote-confirm",
     }
 )
 

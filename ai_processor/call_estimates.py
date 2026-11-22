@@ -61,6 +61,26 @@ def _split(images, pages_per_call):
     ] or [[]]
 
 
+def page_tokens_of(content):
+    """The image tokens of each page in the door's prepared `content`, in
+    page order: the same dimensions and formula the gate counts a page with
+    (AIProcessor.estimate_total_token). A page's tokens depend only on its
+    pixel size, so the list is what a measure keeps and
+    estimate_from_page_tokens counts again against whatever text part is
+    current (upload quote, plan rev 3 section 4)."""
+    from ai_processor.services import ai_processor, ocr_service
+
+    return [
+        int(
+            ai_processor.estimate_image_token_usage(
+                *ocr_service.get_image_dimensions(item.get("bytes"))
+            )
+        )
+        for item in content
+        if isinstance(item, dict) and item.get("type") == "image_url"
+    ]
+
+
 def upload_item_estimate(task_type, content, *, assignment=None):
     """What the task's calls for one uploaded file are estimated at, by the
     same function the task's gate asks for each call
@@ -78,7 +98,29 @@ def upload_item_estimate(task_type, content, *, assignment=None):
         else one per chunk of that many, each with its chunk note.
 
     A one-call file's number is exactly the gate's; a chunked file's is at
-    least the sum of the gate's numbers for its chunks."""
+    least the sum of the gate's numbers for its chunks. It is the
+    composition of page_tokens_of and estimate_from_page_tokens."""
+    texts = [
+        item
+        for item in content
+        if not (isinstance(item, dict) and item.get("type") == "image_url")
+    ]
+    return estimate_from_page_tokens(
+        task_type, page_tokens_of(content), texts, assignment
+    )
+
+
+def _counted_pages(page_tokens):
+    return [{"type": "image_url", "tokens": int(tokens)} for tokens in page_tokens]
+
+
+def estimate_from_page_tokens(task_type, page_tokens, texts, assignment=None):
+    """The chunking, the headroom and the text tokens of upload_item_estimate,
+    for pages whose tokens are already counted (`page_tokens`, one int per
+    page) and the call's text items (`texts`: the route prompt). Pure given
+    those, so a stored page-token list and the current prompt, assignment
+    context and roster give the door's number for the same bytes at that
+    moment."""
     from ai_processor.services import (
         ANSWERS_EXTRACTION_PAGES_PER_CHUNK,
         ASSIGNMENT_EXTRACTION_PROMPT_FROM_UPLOADS,
@@ -87,12 +129,8 @@ def upload_item_estimate(task_type, content, *, assignment=None):
         assignment_chunk_note,
     )
 
-    images = [
-        item
-        for item in content
-        if isinstance(item, dict) and item.get("type") == "image_url"
-    ]
-    texts = [item for item in content if item not in images]
+    images = _counted_pages(page_tokens)
+    content = [*texts, *images]
 
     if task_type == EXTRACT_ANSWER:
         from students.services import answer_assignment_context

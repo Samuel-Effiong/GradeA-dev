@@ -184,6 +184,11 @@ MIXIN_PREFIXES = {
 #: Cache writes that are NOT response caches, so are deliberately not
 #: generation-versioned. (path, count of write calls, why).
 NON_RESPONSE_CACHE_WRITES = {
+    "students/upload_quote_measure.py": (
+        3,
+        "the measure's 2-at-once slot counter (upload quote); key "
+        "upload_quote_under, not a response",
+    ),
     "audit/failed_auth_cap.py": (
         2,
         "failed-sign-in audit cap counters (Epic A S1b); keys audit:failed_auth:*",

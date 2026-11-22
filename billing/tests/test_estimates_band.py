@@ -146,6 +146,10 @@ class OnlyPlainValuesTests(TestCase):
                     assignment, 3, teacher=user
                 ),
                 "verdict": estimates.verdict(1, 2, 3),
+                "upload_advise": estimates.upload_advise(
+                    user, "extract_answer", [100, None, 200]
+                ),
+                "upload_overestimate": estimates.upload_overestimate("extract_answer"),
                 "advise": estimates.advise(user, assignment, 3),
                 "past_batches": estimates.past_batches(days=90),
                 "backtest": estimates.backtest(days=90),
