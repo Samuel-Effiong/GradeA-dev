@@ -77,7 +77,7 @@ def _delete_then_mark(row_id, storage_key):
         )
         return False
     _file_model().objects.filter(pk=row_id, purged_at__isnull=True).update(
-        purged_at=timezone.now()
+        purged_at=timezone.now(), storage_key=None
     )
     return True
 
@@ -138,7 +138,9 @@ def purge_due(now=None):
     while True:
         batch = list(
             file_model.objects.filter(
-                quote__state__in=[state.EXPIRED, state.CANCELLED],
+                # Also a confirmed quote: a handed-over file's key is null, so
+                # any key left on one was never handed over (a safety net).
+                quote__state__in=[state.CONFIRMED, state.EXPIRED, state.CANCELLED],
                 purged_at__isnull=True,
                 storage_key__isnull=False,
             )
@@ -161,9 +163,12 @@ def purge_due(now=None):
         state__in=[state.CONFIRMED, state.EXPIRED, state.CANCELLED]
     )
     due = ended.filter(confirmed_at__lte=cutoff) | ended.filter(closed_at__lte=cutoff)
-    due = due.exclude(
-        files__purged_at__isnull=True, files__storage_key__isnull=False
-    ).distinct()
+    # One file row decides: a quote with any file still stored is kept (a
+    # multi-valued exclude would match rows of different files).
+    still_stored = file_model.objects.filter(
+        quote_id=OuterRef("pk"), purged_at__isnull=True, storage_key__isnull=False
+    )
+    due = due.annotate(held=Exists(still_stored)).filter(held=False).distinct()
     dropped = 0
     for quote_id in list(due.values_list("pk", flat=True)[:PURGE_BATCH]):
         quote_model.objects.filter(pk=quote_id).delete()

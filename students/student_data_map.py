@@ -195,7 +195,7 @@ STUDENT_DATA_MAP = {
     # Upload quote: a teacher's files kept while the cost is asked. Not linked
     # to a student until extraction, so a student's export or erasure cannot
     # find them; removed with the teacher or the course (cascade) and by the
-    # 24-hour expiry.
+    # expiry (UPLOAD_QUOTE_LIFETIME_MINUTES, then the purge).
     ("students.UploadQuote", "teacher"): _staff("Teacher upload quote"),
     ("students.ErasedStudentRecord", "erased_by_id"): _staff(
         "The admin or teacher who erased a student"

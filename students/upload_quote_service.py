@@ -20,6 +20,7 @@ task: a quote is its own pair of tables. No file name is logged or returned.
 import hashlib
 import logging
 from functools import partial
+from typing import Any
 
 from django.conf import settings
 from django.db import IntegrityError, transaction
@@ -120,31 +121,36 @@ def _refusal_of(uploaded_file):
     return None
 
 
-def add_files(quote, files, positions=None):
-    """Check and store `files` (uploaded files) in `quote`. `positions` are
-    their 0-based places in the teacher's list (default 0..n-1). Returns one
-    entry per file in order: the UploadQuoteFile row, or for a file whose
-    bytes are already in this quote a (position, row) pair naming the row it
-    repeats. Each file's row commits before its bytes are stored."""
-    positions = list(positions) if positions is not None else list(range(len(files)))
-    entries: list = []
+def _prepare(quote, files, positions):
+    """Make the rows: a REFUSED row for a file the check refuses, a STORING row
+    (random key, committed before any byte is stored) for a file to keep. A
+    file whose bytes are already in the quote (a NOT_KEPT row does not count:
+    it holds nothing) is a (position, row) pair naming the row it repeats.
+    Returns [(entry, content or None)] in order."""
     seen: dict = {
-        row.sha256: row for row in quote.files.exclude(sha256="").order_by("position")
+        row.sha256: row
+        for row in quote.files.exclude(sha256="")
+        .exclude(state=State.NOT_KEPT)
+        .order_by("position")
     }
+    plans: list[Any] = []
     for position, uploaded_file in zip(positions, files, strict=True):
         name = (getattr(uploaded_file, "name", "") or "")[:255]
         reason = _refusal_of(uploaded_file)
         if reason:
-            entries.append(
-                UploadQuoteFile.objects.create(
-                    quote=quote,
-                    position=position,
-                    state=State.REFUSED,
-                    reason_code=reason,
-                    original_name=name,
-                    content_type=(uploaded_file.content_type or "")[:255],
-                    size_bytes=uploaded_file.size or 0,
-                    readable=False,
+            plans.append(
+                (
+                    UploadQuoteFile.objects.create(
+                        quote=quote,
+                        position=position,
+                        state=State.REFUSED,
+                        reason_code=reason,
+                        original_name=name,
+                        content_type=(uploaded_file.content_type or "")[:255],
+                        size_bytes=uploaded_file.size or 0,
+                        readable=False,
+                    ),
+                    None,
                 )
             )
             continue
@@ -152,38 +158,84 @@ def add_files(quote, files, positions=None):
         uploaded_file.seek(0)
         digest = hashlib.sha256(content).hexdigest()
         if digest in seen:
-            entries.append((position, seen[digest]))
+            plans.append(((position, seen[digest]), None))
             continue
-        key = kept_files.new_key()
         row = UploadQuoteFile.objects.create(
             quote=quote,
             position=position,
             state=State.STORING,
-            storage_key=key,
+            storage_key=kept_files.new_key(),
             original_name=name,
             content_type=(uploaded_file.content_type or "")[:255],
             size_bytes=len(content),
             sha256=digest,
         )
         seen[digest] = row
+        plans.append((row, content))
+    return plans
+
+
+def _store(plans):
+    """Store each STORING row's bytes; a file the storage refuses ends
+    NOT_KEPT (never kept, no key)."""
+    for entry, content in plans:
+        if content is None:
+            continue
         try:
-            kept_files.store(content, key=key)
+            kept_files.store(content, key=entry.storage_key)
         except kept_files.KeptFileError as exc:
             logger.warning(
                 "Upload quote: a file could not be kept (%s).",
                 type(exc.__cause__ or exc).__name__,
             )
             audit_metrics.count("upload_quote_not_kept")
-            UploadQuoteFile.objects.filter(pk=row.pk).update(
+            UploadQuoteFile.objects.filter(pk=entry.pk).update(
                 state=State.NOT_KEPT,
                 storage_key=None,
                 reason_code="QUOTE_FILE_NOT_KEPT",
             )
-            row.refresh_from_db()
+
+
+def _settle(quote_pk, plans, guard):
+    """Mark the stored rows STORED and return the entries. With `guard`, the
+    quote is locked and looked at again first: if it ended while the bytes
+    were being stored, the rows made by this call are deleted (their files go
+    when the delete commits) and the reason is returned, never a 201."""
+    ours = [e.pk for e, content in plans if content is not None]
+    with transaction.atomic():
+        if guard:
+            locked = UploadQuote.objects.select_for_update().get(pk=quote_pk)
+            try:
+                refuse_if_not_open(locked)
+            except CodedError as ended:
+                UploadQuoteFile.objects.filter(
+                    pk__in=[e.pk for e, _ in plans if not isinstance(e, tuple)]
+                ).delete()
+                return None, ended
+        UploadQuoteFile.objects.filter(pk__in=ours, state=State.STORING).update(
+            state=State.STORED
+        )
+    entries: list[Any] = []
+    for entry, _ in plans:
+        if isinstance(entry, tuple):
+            entries.append(entry)
         else:
-            UploadQuoteFile.objects.filter(pk=row.pk).update(state=State.STORED)
-            row.refresh_from_db()
-        entries.append(row)
+            entries.append(UploadQuoteFile.objects.get(pk=entry.pk))
+    return entries, None
+
+
+def add_files(quote, files, positions=None):
+    """Check and store `files` (uploaded files) in `quote`. `positions` are
+    their 0-based places in the teacher's list (default 0..n-1). Returns one
+    entry per file in order: the UploadQuoteFile row, or for a file whose
+    bytes are already in this quote a (position, row) pair naming the row it
+    repeats. Each file's row commits before its bytes are stored. Used for a
+    quote nobody else can reach yet (the create); an add to an open quote goes
+    through add_to_quote, which holds the lock."""
+    positions = list(positions) if positions is not None else list(range(len(files)))
+    plans = _prepare(quote, files, positions)
+    _store(plans)
+    entries, _ = _settle(quote.pk, plans, guard=False)
     return entries
 
 
@@ -213,15 +265,28 @@ def refuse_if_not_open(quote):
 
 
 def add_to_quote(quote, files):
-    """POST /{id}/files: the same storing helper as the create, with
-    positions continuing after the quote's last file."""
-    refuse_if_not_open(quote)
-    last = quote.files.order_by("-position").values_list("position", flat=True).first()
-    start = 0 if last is None else last + 1
-    if quote.files.count() + len(files) > settings.UPLOAD_QUOTE_MAX_FILES:
-        raise TooManyFiles
-    check_room(quote.teacher, sum(f.size or 0 for f in files))
-    entries = add_files(quote, files, positions=range(start, start + len(files)))
+    """POST /{id}/files: the same row-first storing as the create, with
+    positions continuing after the quote's last file. The quote is locked and
+    looked at again before any row is written and again after the bytes are
+    stored, so an add that loses a race with confirm, cancel or expiry answers
+    QUOTE_CLOSED (or the 410) and leaves nothing behind."""
+    with transaction.atomic():
+        locked = UploadQuote.objects.select_for_update().get(pk=quote.pk)
+        refuse_if_not_open(locked)
+        last = (
+            locked.files.order_by("-position")
+            .values_list("position", flat=True)
+            .first()
+        )
+        start = 0 if last is None else last + 1
+        if locked.files.count() + len(files) > settings.UPLOAD_QUOTE_MAX_FILES:
+            raise TooManyFiles
+        check_room(locked.teacher, sum(f.size or 0 for f in files))
+        plans = _prepare(locked, files, list(range(start, start + len(files))))
+    _store(plans)
+    entries, ended = _settle(quote.pk, plans, guard=True)
+    if ended is not None:
+        raise ended
     restart_clock(quote.pk)
     after_commit_measure([e for e in entries if not isinstance(e, tuple)])
     note_global_alert()

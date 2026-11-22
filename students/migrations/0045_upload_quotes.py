@@ -201,7 +201,10 @@ class Migration(migrations.Migration):
         migrations.AddConstraint(
             model_name="uploadquotefile",
             constraint=models.UniqueConstraint(
-                condition=models.Q(("sha256", ""), _negated=True),
+                condition=models.Q(
+                    models.Q(("sha256", ""), _negated=True),
+                    models.Q(("state", "NOT_KEPT"), _negated=True),
+                ),
                 fields=("quote", "sha256"),
                 name="uploadquotefile_sha256_unique",
             ),

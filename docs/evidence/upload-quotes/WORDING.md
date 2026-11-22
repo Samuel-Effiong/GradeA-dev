@@ -19,7 +19,7 @@ Notes for the owner:
 * The oversize-request refusal (500 MB) reuses the Fixes Worker's
   FILE_TOO_LARGE request variant (`task/upload-request-cap`, its wording is
   their Q8). No new sentence here.
-* A file refused for its own reason (type, empty, over the per-file limit, unreadable) uses
+* A file refused for its own reason (type, empty, over the per-file limit (10 MB by default once the Fixes Worker's change lands, `MAX_UPLOAD_FILE_SIZE_MB`), unreadable) uses
   the existing codes and sentences unchanged.
 * QUOTE_BALANCE_CHANGED is not written (owner Q2 = A: confirm runs what fits
   and parks the rest).

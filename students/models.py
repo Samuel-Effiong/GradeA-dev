@@ -823,8 +823,10 @@ class UploadQuote(models.Model):
         blank=True,
         related_name="upload_quotes",
     )
-    #: The confirm's reply (ids and statuses only), so a second confirm from
-    #: a second tab or a retried request gets the same body.
+    #: The confirm's reply (ids, statuses and each file's name), so a second
+    #: confirm from a second tab or a retried request gets the same batch
+    #: body. Kept for UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS, then the quote is
+    #: dropped with it. Only a teacher owns a quote.
     confirm_result = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -899,7 +901,7 @@ class UploadQuoteFile(models.Model):
             ),
             models.UniqueConstraint(
                 fields=["quote", "sha256"],
-                condition=~models.Q(sha256=""),
+                condition=~models.Q(sha256="") & ~models.Q(state="NOT_KEPT"),
                 name="uploadquotefile_sha256_unique",
             ),
         ]

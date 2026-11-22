@@ -88,8 +88,22 @@ balance down for display.
 * No file name in any log line, metric or quote reply; names live only in the
   quote file row, to become each item's `file_name` at confirm.
 
+## Deploy
+
+* The worker must consume the `quote_measure` queue (`-Q celery,quote_measure`,
+  `scripts/start-worker.sh`). Without it a quote's files are stored but never
+  measured, so no quote becomes ready. Check every worker service that runs
+  the Celery app, not only the one this script starts.
+* `confirm_result` holds each file's name for the replay window
+  (`UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS`, then the quote is deleted). Only a
+  teacher owns a quote, so a student erasure does not reach it; a student
+  account that somehow owns one is refused (`students.UploadQuote.teacher` is
+  NOT_A_STUDENT in the data map, with a test).
+* Migration 0045 has not shipped; its `(quote, sha256)` unique constraint
+  ignores NOT_KEPT rows so "Add that file again" works.
+
 ## Open items
 
-* The gate-side half of BE-B-09 (record the quoted figure beside the gate's
-  and count `upload_quote_under`): `students.upload_quotes.note_gate_figure`
-  exists and is tested, but the gate does not call it yet.
+* None open. The gate half of BE-B-09 is wired: confirm records the quoted
+  figure on each item and `execute_graded_task` calls
+  `students.upload_quotes.note_gate_for_task` (never raises).

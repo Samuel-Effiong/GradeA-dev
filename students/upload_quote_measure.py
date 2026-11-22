@@ -86,12 +86,26 @@ def _give_up(row_id, state, **fields):
     UploadQuoteFile.objects.filter(pk=row_id).update(state=state, **fields)
 
 
-def do_measure(file_id):
-    """Measure one file, then restart the quote's clock if that was the last
-    file it was waiting for."""
+def _not_kept(row):
+    """The file cannot be used: delete its asset, then null the key, as the add
+    does when the store fails. A delete that fails leaves the key, and the
+    purge clears it when the quote ends."""
+    deleted = True
+    key = row.storage_key
     try:
-        _measure(file_id)
-    finally:
+        kept_files.delete(key)
+    except kept_files.KeptFileError:
+        deleted = False
+    audit_metrics.count("upload_quote_not_kept")
+    fields = {"storage_key": None} if deleted else {}
+    _give_up(row.pk, State.NOT_KEPT, reason_code="QUOTE_FILE_NOT_KEPT", **fields)
+
+
+def do_measure(file_id):
+    """Measure one file, then restart the quote's clock if this call settled it
+    and that was the last file the quote was waiting for. A late or duplicate
+    call that settled nothing leaves the clock alone."""
+    if _measure(file_id):
         quote_id = (
             UploadQuoteFile.objects.filter(pk=file_id)
             .values_list("quote_id", flat=True)
@@ -102,7 +116,7 @@ def do_measure(file_id):
 
 
 def _measure(file_id):
-    """Measure one file. Raises KeptFileUnavailable (the file goes back to
+    """Measure one file; True when this call settled it. Raises KeptFileUnavailable (the file goes back to
     STORED for the next try) when the storage did not answer."""
     with transaction.atomic():
         row = (
@@ -116,7 +130,7 @@ def _measure(file_id):
             or row.quote.state != UploadQuote.State.OPEN
             or row.state not in (State.STORED, State.MEASURING)
         ):
-            return
+            return False
         row.state = State.MEASURING
         row.measure_attempts += 1
         row.measured_at = timezone.now()
@@ -125,18 +139,16 @@ def _measure(file_id):
     try:
         content = kept_files.load(row.storage_key)
     except kept_files.KeptFileMissing:
-        audit_metrics.count("upload_quote_not_kept")
-        _give_up(row.pk, State.NOT_KEPT, reason_code="QUOTE_FILE_NOT_KEPT")
-        return
+        _not_kept(row)
+        return True
     except kept_files.KeptFileUnavailable:
         _give_up(row.pk, State.STORED)
         raise
     import hashlib
 
     if hashlib.sha256(content).hexdigest() != row.sha256:
-        audit_metrics.count("upload_quote_not_kept")
-        _give_up(row.pk, State.NOT_KEPT, reason_code="QUOTE_FILE_NOT_KEPT")
-        return
+        _not_kept(row)
+        return True
 
     uploaded = SimpleUploadedFile(
         name=row.original_name, content=content, content_type=row.content_type
@@ -160,7 +172,7 @@ def _measure(file_id):
             reason_code=reason[0].value if reason else "",
             measured_at=timezone.now(),
         )
-        return
+        return True
     UploadQuoteFile.objects.filter(pk=row.pk).update(
         state=State.MEASURED,
         readable=True,
@@ -169,6 +181,7 @@ def _measure(file_id):
         reason_code="",
         measured_at=timezone.now(),
     )
+    return True
 
 
 def requeue_stuck(now=None):
