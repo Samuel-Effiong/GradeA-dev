@@ -162,3 +162,41 @@ class F5LateMeasure(Base):
         measure.do_measure(str(quote.files.get().pk))
         quote.refresh_from_db()
         self.assertEqual(quote.expires_at, soon)
+
+
+class F1CancelDuringTheUpload(Base):
+    """Finding 1, the last gap (SM -72): the quote ends, and its own delete
+    runs, while the add is still storing. The add then writes the bytes under
+    its key; they must not be left behind. add_to_quote is called with no outer
+    on-commit capture, as a real request is."""
+
+    def stored_during(self, ends_the_quote):
+        quote = make_quote(self.teacher, self.assignment, pages=(2,))
+        real = kept_files.store
+        before = set(kept_files.MEMORY)
+
+        def end_then_store(content, key=None):
+            ends_the_quote(quote)
+            return real(content, key=key)
+
+        with patch.object(service.kept_files, "store", side_effect=end_then_store):
+            with self.assertRaises(CodedError):
+                service.add_to_quote(quote, [upload()])
+        return set(kept_files.MEMORY) - before
+
+    def test_a_cancel_during_the_upload_leaves_no_file_behind(self):
+        def cancel(quote):
+            with self.captureOnCommitCallbacks(execute=True):
+                service.cancel(quote)
+
+        self.assertEqual(self.stored_during(cancel), set())
+
+    def test_an_expiry_by_the_purge_during_the_upload_leaves_no_file_behind(self):
+        def expire(quote):
+            UploadQuote.objects.filter(pk=quote.pk).update(
+                created_at=timezone.now() - timedelta(days=1)
+            )
+            with self.captureOnCommitCallbacks(execute=True):
+                quotes.purge_due()
+
+        self.assertEqual(self.stored_during(expire), set())
