@@ -38,7 +38,13 @@ from AutoGrader.reason_codes import CodedError
 from billing import estimates
 from students import kept_files
 from students.models import UploadQuote, UploadQuoteFile
-from students.upload_quotes import lifetime, open_bytes, open_count, restart_clock
+from students.upload_quotes import (
+    _delete_after_commit,
+    lifetime,
+    open_bytes,
+    open_count,
+    restart_clock,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -199,8 +205,9 @@ def _store(plans):
 def _settle(quote_pk, plans, guard):
     """Mark the stored rows STORED and return the entries. With `guard`, the
     quote is locked and looked at again first: if it ended while the bytes
-    were being stored, the rows made by this call are deleted (their files go
-    when the delete commits) and the reason is returned, never a 201."""
+    were being stored, the rows made by this call are deleted and the reason and
+    the keys of the files this call stored are returned (the caller deletes
+    them once the transaction is over), never a 201."""
     ours = [e.pk for e, content in plans if content is not None]
     with transaction.atomic():
         if guard:
@@ -211,7 +218,11 @@ def _settle(quote_pk, plans, guard):
                 UploadQuoteFile.objects.filter(
                     pk__in=[e.pk for e, _ in plans if not isinstance(e, tuple)]
                 ).delete()
-                return None, ended
+                # The quote's own delete (cancel, expiry) may have run before
+                # these bytes existed and cleared the row's key, so the files
+                # go by the keys this call made, not by the rows.
+                keys = [e.storage_key for e, c in plans if c is not None]
+                return None, (ended, keys)
         UploadQuoteFile.objects.filter(pk__in=ours, state=State.STORING).update(
             state=State.STORED
         )
@@ -286,7 +297,10 @@ def add_to_quote(quote, files):
     _store(plans)
     entries, ended = _settle(quote.pk, plans, guard=True)
     if ended is not None:
-        raise ended
+        reason, keys = ended
+        for key in keys:  # the transaction is over: this is after the commit
+            _delete_after_commit(key)
+        raise reason
     restart_clock(quote.pk)
     after_commit_measure([e for e in entries if not isinstance(e, tuple)])
     note_global_alert()
