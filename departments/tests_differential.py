@@ -51,7 +51,8 @@ from departments.tests_matrix_fixture import (
 
 flag_on = override_settings(DEPARTMENTS_ENABLED=True)
 
-#: Every readable route at staging e8fc8cc99 plus the four F1 routes.
+#: Every readable route at staging e8fc8cc99 plus the four F1 routes and the
+#: two readable upload quote routes.
 PINNED_READ_ROUTES = (
     frozenset(
         {
@@ -200,6 +201,9 @@ PINNED_READ_ROUTES = (
             "teacher-admin-students",
             "topic-detail",
             "topic-list",
+            # Upload quote (owner-only reads; a department changes nothing).
+            "upload-quote-detail",
+            "upload-quotes-collection",
             "user-detail",
             "user-list",
             "user-me",
