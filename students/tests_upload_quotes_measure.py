@@ -285,8 +285,12 @@ class OwnQueue(Base):
         self.assertEqual(route["queue"].name, "quote_measure")
 
     def test_the_worker_serves_both_queues(self):
-        script = (Path(settings.BASE_DIR) / "scripts" / "start-worker.sh").read_text()
-        self.assertIn("-Q celery,quote_measure", script)
+        # Declared queues: any worker started without -Q consumes both
+        # (AutoGrader/tests_worker_queues.py runs the Railway command).
+        from AutoGrader.celery import app
+
+        names = {q.name for q in app.conf.task_queues or ()}
+        self.assertEqual(names, {"celery", "quote_measure"})
 
     def test_enqueue_sends_each_file_to_that_queue(self):
         with patch("students.tasks.measure_quote_file.apply_async") as send:
