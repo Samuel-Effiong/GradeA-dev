@@ -19,15 +19,17 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from celery import Celery
-from celery.contrib.testing.worker import start_worker
+from celery import _state as celery_state
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, TestCase
 
 from ai_processor import services
 from ai_processor.services import AIProcessor, Prompt, prompt_version_of
 from audit.context import trace_context
+from AutoGrader import celery_app as project_celery_app
 from AutoGrader.middleware import RequestIDMiddleware
 from AutoGrader.request_context import reset_request_id, set_request_id
+from AutoGrader.tests_celery_signals import throwaway_worker
 
 SYSTEM_PROMPT_TEXT = "SYSTEM PROMPT TEXT THAT MUST NOT BE LOGGED"
 STUDENT_ANSWER = "STUDENT ANSWER TEXT THAT MUST NOT BE LOGGED"
@@ -173,9 +175,13 @@ class CeleryHopTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.app = Celery(
-            "s5_ai_call_trace", broker="memory://", backend="cache+memory://"
+            "s5_ai_call_trace",
+            broker="memory://",
+            backend="cache+memory://",
+            set_as_current=False,
         )
         cls.app.conf.task_always_eager = False
+        cls.app.conf.task_default_queue = "s5_ai_call_trace"
         cls.completions = FakeCompletions()
         processor = processor_with(cls.completions)
 
@@ -184,6 +190,15 @@ class CeleryHopTests(TestCase):
             call(processor)
 
         cls.grade = grade
+
+    def assert_the_project_app_is_still_current(self):
+        """See EndToEndBrokerRoundTripTests.assert_the_project_app_is_still_current."""
+        state = cast(Any, celery_state)  # the stubs leave _state out
+        self.assertIs(state.get_current_app(), project_celery_app)
+        self.assertIsNot(state.default_app, self.app)
+
+    def test_making_the_throwaway_app_leaves_the_project_app_current(self):
+        self.assert_the_project_app_is_still_current()
 
     def test_the_worker_logs_the_dispatching_requests_trace_id(self):
         """The log call's own arguments are recorded: starting a worker
@@ -202,10 +217,11 @@ class CeleryHopTests(TestCase):
         token = set_request_id(dispatch_id.hex)
         try:
             with patch.object(services, "_log_ai_call", side_effect=recording_log):
-                with start_worker(self.app, perform_ping_check=False):
+                with throwaway_worker(self.app):
                     self.grade.delay().get(timeout=10)
         finally:
             reset_request_id(token)
+        self.assert_the_project_app_is_still_current()
 
         self.assertEqual(len(logged), 1)
         self.assertEqual(logged[0]["trace_id"], dispatch_id)
