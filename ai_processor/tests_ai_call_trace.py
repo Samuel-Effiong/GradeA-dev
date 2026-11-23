@@ -20,7 +20,6 @@ from typing import Any, cast
 
 from celery import Celery
 from celery import _state as celery_state
-from celery.contrib.testing.worker import start_worker
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, TestCase
 
@@ -30,6 +29,7 @@ from audit.context import trace_context
 from AutoGrader import celery_app as project_celery_app
 from AutoGrader.middleware import RequestIDMiddleware
 from AutoGrader.request_context import reset_request_id, set_request_id
+from AutoGrader.tests_celery_signals import throwaway_worker
 
 SYSTEM_PROMPT_TEXT = "SYSTEM PROMPT TEXT THAT MUST NOT BE LOGGED"
 STUDENT_ANSWER = "STUDENT ANSWER TEXT THAT MUST NOT BE LOGGED"
@@ -175,9 +175,13 @@ class CeleryHopTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.app = Celery(
-            "s5_ai_call_trace", broker="memory://", backend="cache+memory://"
+            "s5_ai_call_trace",
+            broker="memory://",
+            backend="cache+memory://",
+            set_as_current=False,
         )
         cls.app.conf.task_always_eager = False
+        cls.app.conf.task_default_queue = "s5_ai_call_trace"
         cls.completions = FakeCompletions()
         processor = processor_with(cls.completions)
 
@@ -213,7 +217,7 @@ class CeleryHopTests(TestCase):
         token = set_request_id(dispatch_id.hex)
         try:
             with patch.object(services, "_log_ai_call", side_effect=recording_log):
-                with start_worker(self.app, perform_ping_check=False):
+                with throwaway_worker(self.app):
                     self.grade.delay().get(timeout=10)
         finally:
             reset_request_id(token)

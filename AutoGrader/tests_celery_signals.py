@@ -18,7 +18,9 @@ Two layers are covered deliberately:
     bug here - this is why the E2E test insists on eager=False.
 """
 
+from contextlib import contextmanager
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import patch
 
 from celery import Celery, _state
@@ -190,6 +192,26 @@ class TaskPrerunPostrunHandlerTests(SimpleTestCase):
         celery_signals._clear_request_id_on_postrun(task_id="b")
 
 
+@contextmanager
+def throwaway_worker(app):
+    """start_worker for a throwaway app, leaving the project app current.
+
+    celery.contrib.testing's start_worker makes `app` the process's current
+    AND default app and never puts the old ones back. Left there, every later
+    @shared_task dispatch in this test process resolves to the throwaway app
+    and lands on its memory:// queue, where the next throwaway worker runs
+    it against this process's test database.
+    """
+    state = cast(Any, _state)  # the stubs leave _state out
+    current, default = state.get_current_app(), state.default_app
+    try:
+        with start_worker(app, perform_ping_check=False):
+            yield
+    finally:
+        current.set_current()
+        state.set_default_app(default)
+
+
 class EndToEndBrokerRoundTripTests(TestCase):
     """Real (non-eager) dispatch through this project's actual signal
     handlers, using a throwaway Celery app + in-memory broker so this
@@ -209,9 +231,15 @@ class EndToEndBrokerRoundTripTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.app = Celery(
-            "request_id_e2e_test", broker="memory://", backend="cache+memory://"
+            "request_id_e2e_test",
+            broker="memory://",
+            backend="cache+memory://",
+            set_as_current=False,
         )
         cls.app.conf.task_always_eager = False
+        # Its own queue on kombu's process-wide memory:// broker, so its
+        # worker never picks up a message another app left there.
+        cls.app.conf.task_default_queue = "request_id_e2e_test"
 
         captured = cls.captured = {}
 
@@ -228,8 +256,9 @@ class EndToEndBrokerRoundTripTests(TestCase):
         where the next throwaway worker runs it against this process's test
         database: a leftover grade_engine_async commits a GRADING_FAILED
         audit row and exact-count audit tests that run later fail."""
-        self.assertIs(_state.get_current_app(), project_celery_app)
-        self.assertIsNot(_state.default_app, self.app)
+        state = cast(Any, _state)
+        self.assertIs(state.get_current_app(), project_celery_app)
+        self.assertIsNot(state.default_app, self.app)
 
     def test_making_the_throwaway_app_leaves_the_project_app_current(self):
         self.assert_the_project_app_is_still_current()
@@ -237,7 +266,7 @@ class EndToEndBrokerRoundTripTests(TestCase):
     def test_request_id_propagates_from_dispatcher_to_worker(self):
         token = set_request_id("e2e-test-id")
         try:
-            with start_worker(self.app, perform_ping_check=False):
+            with throwaway_worker(self.app):
                 result = self.echo_request_id.delay()
                 value = result.get(timeout=10)
             self.assert_the_project_app_is_still_current()
@@ -255,7 +284,7 @@ class EndToEndBrokerRoundTripTests(TestCase):
 
     def test_no_request_id_set_means_none_propagates(self):
         self.assertIsNone(get_request_id())
-        with start_worker(self.app, perform_ping_check=False):
+        with throwaway_worker(self.app):
             result = self.echo_request_id.delay()
             value = result.get(timeout=10)
         self.assert_the_project_app_is_still_current()
