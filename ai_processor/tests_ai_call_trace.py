@@ -19,6 +19,7 @@ from types import SimpleNamespace
 from typing import Any, cast
 
 from celery import Celery
+from celery import _state as celery_state
 from celery.contrib.testing.worker import start_worker
 from django.http import HttpResponse
 from django.test import RequestFactory, SimpleTestCase, TestCase
@@ -26,6 +27,7 @@ from django.test import RequestFactory, SimpleTestCase, TestCase
 from ai_processor import services
 from ai_processor.services import AIProcessor, Prompt, prompt_version_of
 from audit.context import trace_context
+from AutoGrader import celery_app as project_celery_app
 from AutoGrader.middleware import RequestIDMiddleware
 from AutoGrader.request_context import reset_request_id, set_request_id
 
@@ -185,6 +187,15 @@ class CeleryHopTests(TestCase):
 
         cls.grade = grade
 
+    def assert_the_project_app_is_still_current(self):
+        """See EndToEndBrokerRoundTripTests.assert_the_project_app_is_still_current."""
+        state = cast(Any, celery_state)  # the stubs leave _state out
+        self.assertIs(state.get_current_app(), project_celery_app)
+        self.assertIsNot(state.default_app, self.app)
+
+    def test_making_the_throwaway_app_leaves_the_project_app_current(self):
+        self.assert_the_project_app_is_still_current()
+
     def test_the_worker_logs_the_dispatching_requests_trace_id(self):
         """The log call's own arguments are recorded: starting a worker
         reconfigures logging, so a handler attached by assertLogs in the test
@@ -206,6 +217,7 @@ class CeleryHopTests(TestCase):
                     self.grade.delay().get(timeout=10)
         finally:
             reset_request_id(token)
+        self.assert_the_project_app_is_still_current()
 
         self.assertEqual(len(logged), 1)
         self.assertEqual(logged[0]["trace_id"], dispatch_id)

@@ -21,10 +21,11 @@ Two layers are covered deliberately:
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from celery import Celery
+from celery import Celery, _state
 from celery.contrib.testing.worker import start_worker
 from django.test import SimpleTestCase, TestCase
 
+from AutoGrader import celery_app as project_celery_app
 from AutoGrader import celery_signals
 from AutoGrader.request_context import get_request_id, reset_request_id, set_request_id
 
@@ -221,12 +222,25 @@ class EndToEndBrokerRoundTripTests(TestCase):
 
         cls.echo_request_id = echo_request_id
 
+    def assert_the_project_app_is_still_current(self):
+        """A throwaway app left current (or default) takes every later
+        @shared_task dispatch in this test process onto its memory:// queue,
+        where the next throwaway worker runs it against this process's test
+        database: a leftover grade_engine_async commits a GRADING_FAILED
+        audit row and exact-count audit tests that run later fail."""
+        self.assertIs(_state.get_current_app(), project_celery_app)
+        self.assertIsNot(_state.default_app, self.app)
+
+    def test_making_the_throwaway_app_leaves_the_project_app_current(self):
+        self.assert_the_project_app_is_still_current()
+
     def test_request_id_propagates_from_dispatcher_to_worker(self):
         token = set_request_id("e2e-test-id")
         try:
             with start_worker(self.app, perform_ping_check=False):
                 result = self.echo_request_id.delay()
                 value = result.get(timeout=10)
+            self.assert_the_project_app_is_still_current()
 
             # Dispatching context's own contextvar must be untouched by the
             # worker thread's set/reset (they run in different threads,
@@ -244,6 +258,7 @@ class EndToEndBrokerRoundTripTests(TestCase):
         with start_worker(self.app, perform_ping_check=False):
             result = self.echo_request_id.delay()
             value = result.get(timeout=10)
+        self.assert_the_project_app_is_still_current()
 
         self.assertIsNone(value)
         self.assertIsNone(self.captured["seen_in_task_body"])
