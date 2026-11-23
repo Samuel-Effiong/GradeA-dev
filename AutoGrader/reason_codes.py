@@ -141,6 +141,10 @@ def _overage_cap_variant(params):
     return "cap_reached" if params.get("remaining") == 0 else None
 
 
+def _one_minute_variant(params):
+    return "one_minute" if params.get("lifetime_minutes") == 1 else None
+
+
 def _mid_batch_variant(params):
     return "none_finished" if params.get("completed") == 0 else None
 
@@ -761,6 +765,13 @@ REASON_CODES: dict[ReasonCode, ReasonSpec] = {
         "Upload the files again.",
         retryable=False,
         params=frozenset({"lifetime_minutes", "expires_at"}),
+        # Owner Q19 A, 2026-11-23: singular when the lifetime is 1.
+        alternative_messages={
+            "one_minute": (
+                "This upload waited more than 1 minute, so we removed the files."
+            ),
+        },
+        variant_from_params=_one_minute_variant,
     ),
     ReasonCode.QUOTE_CLOSED: ReasonSpec(
         ErrorClass.USER,
