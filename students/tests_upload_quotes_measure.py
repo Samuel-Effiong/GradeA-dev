@@ -20,7 +20,7 @@ from unittest.mock import patch
 from django.conf import settings
 from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.test import TestCase, override_settings
+from django.test import TestCase
 from django.utils import timezone
 
 from ai_processor.models import AICallRecord
@@ -304,25 +304,10 @@ class OwnQueue(Base):
 
 
 class Semaphore(Base):
-    def test_default_is_two_and_a_full_semaphore_retries_with_a_short_countdown(self):
+    def test_default_is_two(self):
+        # A full semaphore no longer retries on a countdown (F5, owner Q20 A):
+        # students/tests_upload_quotes_measure_handover.py.
         self.assertEqual(settings.UPLOAD_QUOTE_MEASURE_CONCURRENCY, 2)
-        row = self.stored(self.quote(), fixtures()[0][1])
-        task = mod("students.tasks").measure_quote_file
-        with override_settings(UPLOAD_QUOTE_MEASURE_CONCURRENCY=1):
-            measure = mod("students.upload_quote_measure")
-            self.assertTrue(measure.acquire())
-            try:
-                with patch.object(
-                    task, "retry", side_effect=RuntimeError("retry")
-                ) as retry:
-                    with self.assertRaises(RuntimeError):
-                        task.run(str(row.pk))
-                self.assertLessEqual(retry.call_args.kwargs["countdown"], 30)
-            finally:
-                measure.release()
-        row.refresh_from_db()
-        self.assertEqual(row.state, State.STORED)
-        self.assertEqual(row.measure_attempts, 0)
 
     def test_two_slots_then_full(self):
         measure = mod("students.upload_quote_measure")
