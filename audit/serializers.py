@@ -17,6 +17,11 @@ _TARGET_LABEL = {
     # Epic B1c: from the owner-approved "Credit request made/answered".
     "CreditRequest": "Credit request",
     "UploadQuote": "Upload quote",
+    # The upload quote routes' own events (create, add, confirm refusals).
+    "UploadQuoteCollection": "Upload quote",
+    "UploadQuoteDetail": "Upload quote",
+    "UploadQuoteFiles": "Upload quote",
+    "UploadQuoteConfirm": "Upload quote",
     # Owner 2026-11-18: a dismissed batch item (BATCH_ITEM_DISMISSED).
     "BackgroundProcessingTask": "Batch item",
     # Epic B1b-4: the billing_settings command (the model's verbose_name).

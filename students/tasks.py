@@ -30,21 +30,18 @@ def purge_upload_quotes(self):
 
 @shared_task(bind=True, max_retries=500)
 def measure_quote_file(self, file_id):
-    """Zero-credit measure of one upload quote file, on the `quote_measure`
-    queue, at most UPLOAD_QUOTE_MEASURE_CONCURRENCY at once
-    (students.upload_quote_measure)."""
+    """Zero-credit measure of upload quote files, on the `quote_measure`
+    queue, at most UPLOAD_QUOTE_MEASURE_CONCURRENCY at once; a run with a slot
+    takes the waiting files oldest first (students.upload_quote_measure)."""
     from students import kept_files, upload_quote_measure
 
-    if not upload_quote_measure.acquire():
-        raise self.retry(countdown=upload_quote_measure.RETRY_COUNTDOWN)
     try:
-        upload_quote_measure.do_measure(file_id)
+        # No slot: ends at once; the run holding one takes this file.
+        upload_quote_measure.run(file_id)
     except kept_files.KeptFileUnavailable:
         raise self.retry(
             countdown=upload_quote_measure.STORAGE_RETRY_COUNTDOWN
         ) from None
-    finally:
-        upload_quote_measure.release()
 
 
 @shared_task(bind=True, max_retries=0)

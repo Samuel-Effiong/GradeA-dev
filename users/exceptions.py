@@ -1,10 +1,12 @@
 import logging
 import re
 
+from django.core.exceptions import TooManyFilesSent
 from django.http import Http404
 from rest_framework.exceptions import (
     AuthenticationFailed,
     NotAuthenticated,
+    ParseError,
     Throttled,
     ValidationError,
 )
@@ -19,6 +21,7 @@ from AutoGrader.reason_codes import (
     coded_response,
     reason_of,
 )
+from AutoGrader.uploads import too_many_files_message
 from billing.errors import StudentEmptyWalletError
 from billing.refusals import is_permanent_refusal, log_refusal
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
@@ -94,6 +97,11 @@ def _reword_auth(exc, drf_response):
 
 
 def custom_exception_handler(exc, context):
+    # More files in one request than DATA_UPLOAD_MAX_NUMBER_FILES: Django
+    # raises while the body is read, before any view check, on every
+    # multipart route. It is the approved too-many-files 400, never a 500.
+    if isinstance(exc, TooManyFilesSent):
+        exc = ParseError(too_many_files_message(context.get("view")))
     request = context["request"]
     extra = {
         "view": context["view"].__class__.__name__,

@@ -44,6 +44,22 @@ class PayloadEmpty(CodedError, APIException):
 
 logger = logging.getLogger(__name__)
 
+#: Owner-approved wording, 2026-11-20 (docs/evidence/upload-quotes/WORDING.md).
+TOO_MANY_FILES = (
+    "You can upload up to {limit} files at a time. Remove some files, then try again."
+)
+
+
+def too_many_files_message(view=None):
+    """The approved too-many-files text for a request Django refused while
+    reading its body (TooManyFilesSent). The limit is the route's own
+    (`view.max_files()`, the upload quote routes) or Django's count, whichever
+    is lower: either one refuses the request."""
+    django_limit = int(settings.DATA_UPLOAD_MAX_NUMBER_FILES)
+    own = getattr(view, "max_files", None)
+    limit = min(int(own()), django_limit) if callable(own) else django_limit
+    return TOO_MANY_FILES.format(limit=limit)
+
 
 def max_upload_size_bytes():
     """The per-file limit in bytes: settings.MAX_UPLOAD_FILE_SIZE_MB (env,

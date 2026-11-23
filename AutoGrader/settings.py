@@ -1799,6 +1799,13 @@ UPLOAD_QUOTE_UNREADY_CEILING_MINUTES = env.int(
     "UPLOAD_QUOTE_UNREADY_CEILING_MINUTES", default=60
 )
 UPLOAD_QUOTE_MAX_FILES = env.int("UPLOAD_QUOTE_MAX_FILES", default=100)
+# Django's own count of files in one request (it raises TooManyFilesSent while
+# the body is read, before any view check; users.exceptions answers that with
+# the approved "up to {limit} files" 400). Never below the quote's limit, so a
+# raised UPLOAD_QUOTE_MAX_FILES is not cut short by Django's default of 100.
+# Still a bound: the request byte cap (UPLOAD_REQUEST_MAX_MB) is refused before
+# the body is read, and every file is checked for size.
+DATA_UPLOAD_MAX_NUMBER_FILES = max(100, UPLOAD_QUOTE_MAX_FILES)
 #: A teacher's open quotes hold at most this many bytes and this many quotes.
 UPLOAD_QUOTE_OPEN_BYTES = env.int("UPLOAD_QUOTE_OPEN_BYTES", default=1_000 * 1024**2)
 UPLOAD_QUOTE_MAX_OPEN = env.int("UPLOAD_QUOTE_MAX_OPEN", default=3)

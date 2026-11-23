@@ -16,6 +16,21 @@ concurrency for all its queues, so "low concurrency" is enforced here: a cache
 counter lets at most UPLOAD_QUOTE_MEASURE_CONCURRENCY measures run at once, so
 measures never take more than that many worker slots from grading.
 
+A freed slot starts the next waiting file at once (F5, owner Q20 A,
+2026-11-23; before, a file that found every slot taken retried on a 15-second
+countdown). `run`: a task that finds no slot ends; the waiting file is taken
+by a run that holds one. A run takes the oldest STORED file of an open quote
+(FIFO, so teachers are served in upload order) until none is left or
+RUN_SECONDS pass, then lets its slot go and hands the oldest file still
+waiting to a new task. Why no file waits on a free slot: a task refused a
+slot was refused because a run held one (the oldest increment still on the
+counter is a holder's), and that run looks for waiting files after it lets
+its slot go. Why no file is measured twice: a run claims a file by moving it
+STORED -> MEASURING under a row lock that other runs skip (`skip_locked`), so
+two runs, replicas or greenlets never claim the same row; a task's own file
+is taken directly only when it is a MEASURING row left stale by a run that
+died (`requeue_stuck`).
+
 `requeue_stuck` (beat, every 5 minutes) asks again for files stored and
 unmeasured for over 10 minutes, up to 3 attempts; after that the file is left
 out of the figure as a file the door cannot estimate ("cannot estimate" is not
@@ -23,6 +38,7 @@ out of the figure as a file the door cannot estimate ("cannot estimate" is not
 """
 
 import logging
+import time
 from datetime import timedelta
 
 from django.conf import settings
@@ -46,7 +62,8 @@ logger = logging.getLogger(__name__)
 QUEUE = "quote_measure"
 SLOTS_KEY = "upload_quote_measure_slots"
 SLOTS_TTL = 2 * 60 * 60
-RETRY_COUNTDOWN = 15  # seconds, when every slot is taken
+#: A run lets its slot go and hands on after this, so one task stays short.
+RUN_SECONDS = 240
 STORAGE_RETRY_COUNTDOWN = 60
 STALE_AFTER = timedelta(minutes=10)
 ALARM_AFTER = timedelta(minutes=30)
@@ -101,11 +118,92 @@ def _not_kept(row):
     _give_up(row.pk, State.NOT_KEPT, reason_code="QUOTE_FILE_NOT_KEPT", **fields)
 
 
-def do_measure(file_id):
-    """Measure one file, then restart the quote's clock if this call settled it
-    and that was the last file the quote was waiting for. A late or duplicate
-    call that settled nothing leaves the clock alone."""
-    if _measure(file_id):
+def run(file_id):
+    """The measure task's body. With a slot: the file itself if a dead run
+    left it stale, then the waiting files oldest first. Without one: nothing
+    (a run holding a slot takes the file). Raises KeptFileUnavailable when the
+    storage did not answer; the task retries later and hands nothing on, so an
+    outage is not met with a burst of tasks."""
+    if not acquire():
+        return
+    started = time.monotonic()
+    hand_over = True
+    try:
+        row = _claim(_stale(file_id)) or _claim(_waiting())
+        while row is not None:
+            do_measure(row.pk, row=row)
+            if time.monotonic() - started >= RUN_SECONDS:
+                break
+            row = _claim(_waiting())
+    except kept_files.KeptFileUnavailable:
+        hand_over = False
+        raise
+    finally:
+        release()
+        if hand_over:
+            _hand_over()
+
+
+def _waiting():
+    """STORED files of open quotes, oldest first."""
+    return UploadQuoteFile.objects.filter(
+        state=State.STORED, quote__state=UploadQuote.State.OPEN
+    ).order_by("created_at", "position", "pk")
+
+
+def _stale(file_id):
+    """This file, when a run that died left it MEASURING (requeue_stuck)."""
+    return UploadQuoteFile.objects.filter(
+        pk=file_id,
+        state=State.MEASURING,
+        measured_at__lt=timezone.now() - STALE_AFTER,
+        quote__state=UploadQuote.State.OPEN,
+    )
+
+
+def _claim(rows):
+    """The first of `rows` no other run holds, moved to MEASURING; None when
+    there is none. The row lock is skipped by other runs, so one row is
+    claimed once."""
+    with transaction.atomic():
+        row = (
+            rows.select_for_update(of=("self",), skip_locked=True)
+            .select_related("quote")
+            .first()
+        )
+        if row is None:
+            return None
+        row.state = State.MEASURING
+        row.measure_attempts += 1
+        row.measured_at = timezone.now()
+        row.save(update_fields=["state", "measure_attempts", "measured_at"])
+    return row
+
+
+def _hand_over():
+    """After a run lets its slot go: a task for the oldest file still waiting.
+    Never raises (it runs in a `finally`); requeue_stuck is the net."""
+    try:
+        with transaction.atomic():
+            first = (
+                _waiting()
+                .select_for_update(of=("self",), skip_locked=True)
+                .values_list("pk", flat=True)
+                .first()
+            )
+        if first is not None:
+            enqueue([first])
+    except Exception as exc:  # noqa: BLE001 - logged; the beat net remains
+        logger.error("Upload quote measure hand-over failed (%s).", type(exc).__name__)
+
+
+def do_measure(file_id, row=None):
+    """Measure one file (`row`: already claimed by `run`), then restart the
+    quote's clock if this call settled it and that was the last file the quote
+    was waiting for. A late or duplicate call that settled nothing leaves the
+    clock alone."""
+    settled = _measure(file_id) if row is None else _work(row)
+    if settled:
         quote_id = (
             UploadQuoteFile.objects.filter(pk=file_id)
             .values_list("quote_id", flat=True)
@@ -135,7 +233,12 @@ def _measure(file_id):
         row.measure_attempts += 1
         row.measured_at = timezone.now()
         row.save(update_fields=["state", "measure_attempts", "measured_at"])
+    return _work(row)
 
+
+def _work(row):
+    """Measure a claimed (MEASURING) row; True when settled. Raises
+    KeptFileUnavailable (the row goes back to STORED)."""
     try:
         content = kept_files.load(row.storage_key)
     except kept_files.KeptFileMissing:

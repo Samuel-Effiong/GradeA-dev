@@ -264,6 +264,15 @@ def expired_error(quote):
     )
 
 
+def past_expiry(quote, rows=None):
+    """An OPEN quote that is ready and past expires_at: expired now, though
+    the purge (every 5 minutes) has not marked it yet. The rule confirm's 410
+    and the purge use; a quote still measuring is not expired by its clock."""
+    if quote.state != UploadQuote.State.OPEN or quote.expires_at > timezone.now():
+        return False
+    return is_ready(list(quote.files.all()) if rows is None else rows)
+
+
 def refuse_if_not_open(quote):
     """QUOTE_CLOSED for a started or cancelled quote, 410 for one that ended
     by expiry or is ready and past its expiry (the purge has not run yet)."""
@@ -271,7 +280,7 @@ def refuse_if_not_open(quote):
         raise CodedError("QUOTE_CLOSED")
     if quote.state == UploadQuote.State.EXPIRED:
         raise expired_error(quote)
-    if quote.expires_at <= timezone.now() and is_ready(list(quote.files.all())):
+    if past_expiry(quote):
         raise expired_error(quote)
 
 
@@ -429,7 +438,9 @@ def payload(quote):
     return {
         "id": str(quote.pk),
         "kind": quote.kind,
-        "state": quote.state,
+        "state": (
+            UploadQuote.State.EXPIRED if past_expiry(quote, rows) else quote.state
+        ),
         "expires_at": quote.expires_at,
         "lifetime_minutes": settings.UPLOAD_QUOTE_LIFETIME_MINUTES,
         "ready": ready,
