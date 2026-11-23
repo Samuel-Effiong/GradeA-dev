@@ -6,7 +6,7 @@ US spelling, no file name.
 | Code | Where the teacher meets it | Proposed message | Proposed hint |
 |---|---|---|---|
 | QUOTE_NOT_READY (409) | Start pressed before every file is measured | We're still working out what these files will cost. | Wait a moment, then try again. |
-| QUOTE_EXPIRED (410) | Start or add pressed after the quote's lifetime (10 minutes by default, `UPLOAD_QUOTE_LIFETIME_MINUTES`) | This upload waited more than {lifetime_minutes} minutes, so we removed the files. | Upload the files again. |
+| QUOTE_EXPIRED (410) | Start or add pressed after the quote's lifetime (10 minutes by default, `UPLOAD_QUOTE_LIFETIME_MINUTES`) | This upload waited more than {lifetime_minutes} minutes, so we removed the files. When the lifetime is 1 (owner Q19 A, 2026-11-23): This upload waited more than 1 minute, so we removed the files. | Upload the files again. |
 | QUOTE_CLOSED (409) | Cancel after the upload was started, or Start on a cancelled quote | This upload has already been started or cancelled. | (none) |
 | QUOTE_STORAGE_FULL (413) | The teacher's waiting uploads hold 1 GB, or the global ceiling is reached | We can't hold more files for you right now. | Start or cancel your waiting uploads, then try again. |
 | QUOTE_TOO_MANY_OPEN (429) | A fourth waiting upload | You have too many uploads waiting for you to start them. | Start or cancel one of them, then try again. |

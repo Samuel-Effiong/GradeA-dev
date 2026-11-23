@@ -45,10 +45,7 @@ else:
 #: The text get_object_or_404 gives, so every 404 of these routes is one body.
 NOT_FOUND = "No UploadQuote matches the given query."
 NO_FILES = "No files were uploaded. Please try again"
-#: Owner-approved wording, 2026-11-20 (docs/evidence/upload-quotes/WORDING.md).
-TOO_MANY_FILES = (
-    "You can upload up to {limit} files at a time. Remove some files, then try again."
-)
+TOO_MANY_FILES = uploads.TOO_MANY_FILES
 
 
 class UploadQuoteCreateThrottle(UserRateThrottle):
@@ -183,6 +180,10 @@ CONFIRM_REPLY = inline_serializer(
 class CappedUpload:
     """A POST over the request cap is refused before authentication and before
     the body is read (the shared AutoGrader.uploads helper)."""
+
+    def max_files(self):
+        """Files one request may carry (the too-many-files 400's limit)."""
+        return settings.UPLOAD_QUOTE_MAX_FILES
 
     def initial(self, request, *args, **kwargs):
         if request.method == "POST":
@@ -335,10 +336,12 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         quotes = UploadQuote.objects.filter(
             teacher=request.user, state=UploadQuote.State.OPEN
         ).order_by("created_at")
+        open_only = True
         if request.query_params.get("open", "true").lower() not in ("true", "1"):
             quotes = UploadQuote.objects.filter(teacher=request.user).order_by(
                 "created_at"
             )
+            open_only = False
         reachable = reachable_courses(request.user)
         rows = [
             service.summary(q)
@@ -346,6 +349,8 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
             if reachable.filter(
                 pk=q.course_id or (q.assignment.course_id if q.assignment else None)
             ).exists()
+            # A ready quote past its expiry is expired now, not at the purge.
+            and not (open_only and service.past_expiry(q))
         ]
         return Response(rows)
 
