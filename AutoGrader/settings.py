@@ -21,6 +21,7 @@ import dj_database_url
 from celery.schedules import crontab
 from django.core.exceptions import ImproperlyConfigured
 from environ import Env
+from kombu import Exchange, Queue
 
 env = Env()
 env.read_env(".env")
@@ -927,8 +928,25 @@ PDF_RENDERER_MAX_QUEUED_RENDERS = env.int(
 )
 
 CELERY_TASK_ACKS_LATE = True
-# Upload quote: the zero-credit measure has its own queue, consumed by the
-# existing worker service (scripts/start-worker.sh: -Q celery,quote_measure).
+# The task queues, declared so that a worker started WITHOUT -Q consumes
+# both: Railway's worker runs its own start command (docs/ops/
+# railway-services.md), not scripts/start-worker.sh, and with no declared
+# queues Celery's default consume set is "celery" alone. Each queue keeps the
+# binding Celery created for it before (exchange of its own name, direct,
+# routing key = name), so messages already waiting still arrive. A new queue
+# goes here, or no worker consumes it.
+CELERY_TASK_QUEUES = (
+    Queue("celery", Exchange("celery", type="direct"), routing_key="celery"),
+    Queue(
+        "quote_measure",
+        Exchange("quote_measure", type="direct"),
+        routing_key="quote_measure",
+    ),
+)
+# Upload quote: the zero-credit measure has its own queue, consumed by every
+# worker (declared above). Its 2-at-once limit is the Redis counter set by
+# UPLOAD_QUOTE_MEASURE_CONCURRENCY in students/upload_quote_measure.py, and
+# does not depend on the worker's pool type or concurrency.
 CELERY_TASK_ROUTES = {
     "students.tasks.measure_quote_file": {"queue": "quote_measure"},
 }

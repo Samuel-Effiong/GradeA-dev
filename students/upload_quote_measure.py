@@ -10,8 +10,8 @@ number for these bytes at that moment. It makes no AI call, takes no hold and
 writes no ledger row.
 
 It runs on its own queue `quote_measure`, consumed by the existing worker
-service (`scripts/start-worker.sh`: `-Q celery,quote_measure`; SM ruling
-2026-11-19: no second worker service in v1). One Celery worker has one
+service (declared in CELERY_TASK_QUEUES, so any worker started without -Q
+consumes it; SM ruling 2026-11-19: no second worker service in v1). One Celery worker has one
 concurrency for all its queues, so "low concurrency" is enforced here: a cache
 counter lets at most UPLOAD_QUOTE_MEASURE_CONCURRENCY measures run at once, so
 measures never take more than that many worker slots from grading.
