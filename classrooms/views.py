@@ -85,6 +85,7 @@ from .models import (  # , Classroom, ClassroomSettings
     Topic,
     teacher_can_reach_course,
     teacher_course_access_q,
+    teacher_sessions,
 )
 from .permissions import IsSuperAdmin, IsTeacher, IsTeacherOrReadOnly
 from .serializers import (  # ClassroomSerializer,; ClassroomSettingsSerializer,
@@ -2076,18 +2077,9 @@ class SessionViewSet(UserCacheMixin, viewsets.ModelViewSet):
             )
 
         if user.user_type == UserTypes.TEACHER:
-            if user.is_under_license():
-                # School-managed teacher: read-only view of their school's sessions.
-                return Session.objects.filter(
-                    owner_type=SessionOwnerType.SCHOOL, school=user.school
-                )
-            # Individual-track teacher: unchanged legacy behavior. Keyed off
-            # is_under_license() rather than school_id so a teacher who was
-            # removed from a license (or whose license lapsed) isn't stuck
-            # unable to see their own individual sessions.
-            return Session.objects.filter(
-                owner_type=SessionOwnerType.INDIVIDUAL, teacher=user
-            )
+            # School-managed teacher: read-only view of their school's
+            # sessions; anyone else their own (see teacher_sessions).
+            return teacher_sessions(user)
 
         if user.user_type == UserTypes.STUDENT:
             # COMPLETED included, unlike before: a student who finished the

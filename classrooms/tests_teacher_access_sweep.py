@@ -93,19 +93,6 @@ ALLOWED = {
         "if enrollment.course.teacher_id == request.user.id:",
     ): "display fallback choosing which course to show; the enrollments were "
     "already scoped by the queryset",
-    (
-        "dashboard/views.py",
-        "course__teacher=teacher, course__session=session",
-    ): "session was fetched with teacher=teacher, so it is an INDIVIDUAL "
-    "session (SCHOOL sessions have no teacher)",
-    (
-        "dashboard/views.py",
-        "Course.objects.filter(teacher=teacher, session=session)",
-    ): "same INDIVIDUAL-session lookup as above",
-    (
-        "dashboard/views.py",
-        "course__teacher=teacher,",
-    ): "same INDIVIDUAL-session lookup as above",
     # classrooms/scale_my_students.py is the H-22 Gate 6 measurement harness:
     # a TransactionTestCase run only by name (`manage.py test
     # classrooms.scale_my_students`), never collected by discovery, never

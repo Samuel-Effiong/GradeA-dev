@@ -408,6 +408,24 @@ def reachable_courses(user):
     return Course.objects.filter(teacher_course_access_q(user))
 
 
+def teacher_sessions(user):
+    """The Sessions `user` (a teacher) may read.
+
+    A school-managed teacher (under a license) reads their school's SCHOOL
+    sessions; any other teacher reads their own INDIVIDUAL sessions. Keyed
+    off is_under_license() rather than school_id, so a teacher removed from a
+    license (or whose license lapsed) still reaches their own individual
+    sessions. A SCHOOL session has no teacher, so `teacher=user` never finds
+    one. Narrower than teacher_course_access_q: which courses inside the
+    session are the teacher's is still that rule's question.
+    """
+    if user.is_under_license():
+        return Session.objects.filter(
+            owner_type=SessionOwnerType.SCHOOL, school=user.school
+        )
+    return Session.objects.filter(owner_type=SessionOwnerType.INDIVIDUAL, teacher=user)
+
+
 def grade_basis_enrollments(enrollments, *, session_id=None):
     """The enrolments every number of a my-students row is built from (H-234,
     the user's rule of 2026-10-14): the grade, at_risk and the three counts.
