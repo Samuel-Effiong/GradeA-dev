@@ -66,6 +66,7 @@ from classrooms.models import (
     StudentCourse,
     reachable_courses,
     teacher_course_access_q,
+    teacher_sessions,
 )
 from classrooms.permissions import IsSchoolAdmin, IsStudent, IsSuperAdmin, IsTeacher
 from dashboard.models import SchoolAtRiskSnapshot
@@ -3052,6 +3053,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
     )
     def overview(self, request, session_id, *args, **kwargs):
         teacher = request.user
+        # Resolved before the cache is read, so a teacher who loses the
+        # session (a seat removed, a license lapsed) is refused at once,
+        # not served a 15-minute copy. A SCHOOL session has no teacher, so
+        # `teacher=teacher` alone 404'd every school-managed teacher.
+        session = get_object_or_404(teacher_sessions(teacher), id=session_id)
         cache_key = versioned_key(
             f"teacheradmins:user_id__{teacher.id}"
             f":instance__id__{session_id}:view__overview:risk1",
@@ -3060,11 +3066,11 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
         data = cache.get(cache_key)
 
         if data is None:
-            session = get_object_or_404(Session, id=session_id, teacher=teacher)
+            # Only this teacher's courses: a SCHOOL session is shared, and
+            # every count below would otherwise include colleagues' students.
+            courses = reachable_courses(teacher).filter(session=session)
 
-            assignments = Assignment.objects.filter(
-                course__teacher=teacher, course__session=session
-            )
+            assignments = Assignment.objects.filter(course__in=courses)
             total_assigned = assignments.count()
 
             graded_submissions = StudentSubmission.objects.filter(
@@ -3091,7 +3097,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
             # Grade distribution for the session
             grade_stats = (
-                StudentCourse.objects.filter(course__session=session)
+                StudentCourse.objects.filter(course__in=courses)
                 .active()
                 .aggregate(
                     a=Count(Case(When(final_grade__gte=90, then=Value(1)))),
@@ -3128,7 +3134,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
             # total student in that session that the teacher has
             total_students = (
-                StudentCourse.objects.filter(course__session=session)
+                StudentCourse.objects.filter(course__in=courses)
                 .active()
                 .values("student")
                 .distinct()
@@ -3138,24 +3144,20 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             total_pending = total_assigned - graded_assignments
 
             # Course performance for all courses in the session
-            course_performance_raw = (
-                Course.objects.filter(teacher=teacher, session=session)
-                .annotate(
-                    avg_grade=grade_service.mean_percentage(
-                        "assignments__submissions__score_percentage"
-                    ),
-                    actual_subs=Count("assignments__submissions", distinct=True),
-                    enrollment_count=Count("enrollments", distinct=True),
-                    assignment_count=Count("assignments", distinct=True),
-                )
-                .values(
-                    "id",
-                    "name",
-                    "avg_grade",
-                    "actual_subs",
-                    "enrollment_count",
-                    "assignment_count",
-                )
+            course_performance_raw = courses.annotate(
+                avg_grade=grade_service.mean_percentage(
+                    "assignments__submissions__score_percentage"
+                ),
+                actual_subs=Count("assignments__submissions", distinct=True),
+                enrollment_count=Count("enrollments", distinct=True),
+                assignment_count=Count("assignments", distinct=True),
+            ).values(
+                "id",
+                "name",
+                "avg_grade",
+                "actual_subs",
+                "enrollment_count",
+                "assignment_count",
             )
 
             course_performance = []
@@ -3178,8 +3180,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             # Top 7 upcoming published assignments in the session
             upcoming_assignments = (
                 Assignment.objects.filter(
-                    course__teacher=teacher,
-                    course__session=session,
+                    course__in=courses,
                     status=AssignmentStatus.PUBLISHED,
                     due_date__gt=timezone.now(),
                 )
@@ -3187,24 +3188,34 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
                 .order_by("due_date")[:7]
             )
 
-            # AI Extraction Confidence across all assignments in session
-            avg_extraction_confidence = (
-                assignments.aggregate(avg=Avg("extraction_confidence"))["avg"] or 0
+            # AI Extraction Confidence across all assignments in session.
+            # One aggregate each (average, low count, rows) rather than one
+            # query per figure: the same numbers, two queries fewer each.
+            extraction = assignments.aggregate(
+                avg=Avg("extraction_confidence"),
+                low=Count(
+                    "id",
+                    filter=Q(extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD),
+                ),
             )
-            low_extraction_count = assignments.filter(
-                extraction_confidence__lt=AI_CONFIDENCE_THRESHOLD
-            ).count()
+            avg_extraction_confidence = extraction["avg"] or 0
+            low_extraction_count = extraction["low"]
 
             # AI Grading Confidence across all submissions in session
-            grading_qs = graded_submissions.filter(grading_confidence__isnull=False)
-            avg_grading_confidence = (
-                grading_qs.aggregate(avg=Avg("grading_confidence"))["avg"] or 0
+            grading = graded_submissions.filter(
+                grading_confidence__isnull=False
+            ).aggregate(
+                avg=Avg("grading_confidence"),
+                low=Count(
+                    "id", filter=Q(grading_confidence__lt=AI_CONFIDENCE_THRESHOLD)
+                ),
+                n=Count("id"),
             )
-            low_grading_count = grading_qs.filter(
-                grading_confidence__lt=AI_CONFIDENCE_THRESHOLD
-            ).count()
+            avg_grading_confidence = grading["avg"] or 0
+            low_grading_count = grading["low"]
 
-            total_confidence_records = assignments.count() + grading_qs.count()
+            # total_assigned is assignments.count(), already run above.
+            total_confidence_records = total_assigned + grading["n"]
 
             low_confidence_rate = (
                 (low_extraction_count + low_grading_count)
@@ -3215,7 +3226,7 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
             )
 
             # At-risk students across all courses in the session
-            at_risk_students = self._at_risk_students(session=session)
+            at_risk_students = self._at_risk_students(id__in=courses)
 
             data = {
                 "total_assignments_assigned": total_assigned,
@@ -3254,7 +3265,8 @@ class TeacherAdminDashboardView(viewsets.ViewSet):
 
     def _at_risk_students(self, **course_lookup):
         """The at-risk students of the courses `course_lookup` names
-        (`session=...` for the overview, `id=...` for one course, H-250):
+        (`id__in=<the teacher's courses in the session>` for the overview,
+        `id=...` for one course, H-250):
         one rule, so the two pages never disagree. Students whose enrollment
         counts only; missing work is published work that is due (H-237).
         """

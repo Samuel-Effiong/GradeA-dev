@@ -37,7 +37,7 @@ BUDGET = {
     "test_teacher_course_students": 16,
     "test_teacher_enrollment_list": 6,
     "test_teacher_my_students": 7,
-    "test_teacher_overview": 19,
+    "test_teacher_overview": 17,
     "test_teacher_performance_stats_and_rigor": 8,
     "test_weekly_course_summary_service": 6,
 }
