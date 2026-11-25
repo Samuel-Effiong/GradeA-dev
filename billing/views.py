@@ -1856,7 +1856,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         tags=["Beta Analytics Charts"],
         summary="Peak usage hours",
-        description="Get peak usage hours for the beta program, in AI credits.",
+        description="Get peak usage hours for the beta program, counting usage "
+        "up to now, in AI credits.",
         responses={
             200: OpenApiResponse(response=PeakUsageHourSerializer),
         },
@@ -1868,8 +1869,10 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="peak-usage-hours",
     )
     def peak_usage_hours(self, request, *args, **kwargs):
+        # Only usage up to now: future-dated rows do not add to an hour.
         hourly_distribution = (
             self.get_cohort_usage_logs()
+            .filter(created_at__lte=timezone.now())
             .annotate(hour=ExtractHour("created_at"))
             .values("hour")
             .annotate(total=Sum("amount"))
