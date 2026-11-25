@@ -63,7 +63,7 @@ balance down for display.
 
 ## How it holds together
 
-* Own tables (`UploadQuote`, `UploadQuoteFile`, migration 0045), so nothing in
+* Own tables (`UploadQuote`, `UploadQuoteFile`, migration 0046), so nothing in
   the task machinery can see an unconfirmed quote: no session, item, hold, job
   or ledger row exists before confirm (BE-B-04).
 * Row-first storage: a file's row commits with its random key before the
@@ -99,7 +99,7 @@ balance down for display.
   teacher owns a quote, so a student erasure does not reach it; a student
   account that somehow owns one is refused (`students.UploadQuote.teacher` is
   NOT_A_STUDENT in the data map, with a test).
-* Migration 0045 has not shipped; its `(quote, sha256)` unique constraint
+* Migration 0046 (renumbered from 0045 for staging) has not shipped; its `(quote, sha256)` unique constraint
   ignores NOT_KEPT rows so "Add that file again" works.
 
 ## Open items
