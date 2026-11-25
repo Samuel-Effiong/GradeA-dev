@@ -10,6 +10,11 @@ of review beside "answer not found" and "the second grader disagreed".
 
 No model change: the reason is one more entry in `review_reasons`, with
 the question numbers and counts and nothing of the answers.
+
+Owner, 2026-11-25 (beta 82bbbf8f9): a student is sent verification_status
+as saved, "CORRECTED" included; every other detail of the correction
+(calculation_notes, the correction note, the dropped-evaluation fields,
+snapped_to_rubric_level_count, the review reason) still never reaches them.
 """
 
 import json
@@ -245,16 +250,40 @@ class TheFormatterIsNotToldOfTheCorrection(TestCase):
         self.assertEqual(sent["recommendations"], [])
 
 
-#: What a corrected reply leaves in the saved row: the note's status, its
-#: field names, its sentence, and the review reason's type.
+#: What a corrected reply leaves in the saved row that a student must not
+#: read: the note's field names and sentence, the arithmetic note's text,
+#: the snapped count, and the review reason's type. Not the status: the
+#: owner ruled (2026-11-25) that a student is sent verification_status,
+#: "CORRECTED" included.
 OF_THE_CORRECTION = (
-    "CORRECTED",
     "correction_note",
     "left out of the sum",
     "repeated_evaluations_dropped",
     "unmatched_evaluations_dropped",
     "ai_reply_corrected",
+    "calculation_notes",
+    "8 + 8 + 8 = 24.",
+    "snapped_to_rubric_level_count",
 )
+
+#: All a student reads of the arithmetic note (STUDENT_VERIFICATION_FIELDS).
+STUDENT_NOTE = {
+    "individual_scores": [8, 8, 8],
+    "manual_sum": 24,
+    "verification_status": "CORRECTED",
+}
+
+
+def found(value, key):
+    """Every value stored under `key` anywhere inside `value`."""
+    if isinstance(value, dict):
+        for k, v in value.items():
+            if k == key:
+                yield v
+            yield from found(v, key)
+    elif isinstance(value, list):
+        for item in value:
+            yield from found(item, key)
 
 
 class NoStudentFacingAnswerHoldsTheCorrection(SavedGradeCase):
@@ -267,7 +296,7 @@ class NoStudentFacingAnswerHoldsTheCorrection(SavedGradeCase):
         super().setUp()
         self.save(
             grading_result(
-                REPEATED,
+                {**REPEATED, "snapped_to_rubric_level_count": 1},
                 question_evaluations=[
                     {"question_number": n, "score_awarded": 8, "max_points": 10}
                     for n in (1, 2, 3)
@@ -291,10 +320,11 @@ class NoStudentFacingAnswerHoldsTheCorrection(SavedGradeCase):
         self.submission.refresh_from_db()
         saved = self.submission.feedback or {}
         reasons = self.submission.review_reasons or []
-        self.assertEqual(
-            saved["score_calculation_verification"]["verification_status"],
-            "CORRECTED",
-        )
+        note = saved["score_calculation_verification"]
+        self.assertEqual(note["verification_status"], "CORRECTED")
+        self.assertEqual(note["calculation_notes"], "8 + 8 + 8 = 24.")
+        self.assertEqual(note["snapped_to_rubric_level_count"], 1)
+        self.assertIn("left out of the sum", note["correction_note"])
         self.assertEqual([reason["type"] for reason in reasons], ["ai_reply_corrected"])
         self.assertIn(
             "ai_reply_corrected",
@@ -309,6 +339,11 @@ class NoStudentFacingAnswerHoldsTheCorrection(SavedGradeCase):
         self.assertIn('"total_score": 24', answer)
         for word in OF_THE_CORRECTION:
             self.assertNotIn(word, answer)
+        # The owner's decision: the real status, and nothing else of the note.
+        self.assertEqual(
+            list(found(json.loads(answer), "score_calculation_verification")),
+            [STUDENT_NOTE],
+        )
 
     def test_the_students_list_of_submissions(self):
         answer = self.read(self.student, "student-submission-list")
