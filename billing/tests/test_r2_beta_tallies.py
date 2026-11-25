@@ -543,7 +543,9 @@ class ReadersTests(TallyFixture, APITestCase):
         self.assertEqual(response.status_code, 200, response.content[:300])
         body = response.json()
         body = body.get("data", body)
-        self.assertEqual(body["avg_credits_used"], 100)
+        # In AI credits (Step 1, 2026-11-25): the corrected 100 raw is 0
+        # credits; the drifted 900 raw would have shown as 1.
+        self.assertEqual(body["avg_credits_used"], 0)
         self.assertEqual(body["credit_used_greater_than_80_count"], 0)
         self.assertEqual(body["grading_percent_greater_than_creation_count"], 0)
 
