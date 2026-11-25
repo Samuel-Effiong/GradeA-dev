@@ -118,9 +118,6 @@ ESTIMATE = inline_serializer(
         "spendable": serializers.IntegerField(),
         "projected_remaining_p50": serializers.IntegerField(),
         "projected_remaining_p90": serializers.IntegerField(),
-        "source": serializers.CharField(),
-        "shape_basis": serializers.CharField(),
-        "sample_size": serializers.IntegerField(),
         "n": serializers.IntegerField(),
     },
 )

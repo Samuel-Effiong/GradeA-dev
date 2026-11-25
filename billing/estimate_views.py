@@ -92,9 +92,6 @@ ESTIMATE_REPLY = inline_serializer(
         "projected_remaining_p90": serializers.IntegerField(
             help_text="spendable - p90, in display credits."
         ),
-        "source": serializers.CharField(),
-        "shape_basis": serializers.CharField(),
-        "sample_size": serializers.IntegerField(),
         "n": serializers.IntegerField(),
     },
 )

@@ -79,7 +79,7 @@ DRIFT_CELL = 0.80
 DRIFT_CELL_MIN = 30
 
 # Upload quote (plan rev 3 section 4): the door's per-file figures as the
-# grading estimate's ten keys. The records of calls made under the old flat
+# grading estimate's seven keys. The records of calls made under the old flat
 # 20,000 allowance would put p50 about 2.4x too low, so only calls after
 # CALL_HEADROOM changed count (2026-11-19, b10f3b743). A test pins the digest
 # of CALL_HEADROOM: change one without the other and it fails.
@@ -500,7 +500,9 @@ def advise(teacher, assignment, n, *, representative=None):
     (owner, 2026-11-18), the ones the wallet shows. The verdict and the
     projected balances are worked out from the display figures, so the
     screen never shows SUFFICIENT next to a negative projected balance.
-    estimate() and everything else here stay in raw credits."""
+    estimate() and everything else here stay in raw credits. source,
+    shape_basis and sample_size stay inside the server (owner, 2026-11-25:
+    not sent to the frontend)."""
     result = estimate(assignment, n, teacher=teacher, representative=representative)
     p50 = _display_cost(result["p50"])
     p90 = _display_cost(result["p90"])
@@ -512,9 +514,6 @@ def advise(teacher, assignment, n, *, representative=None):
         "spendable": spendable,
         "projected_remaining_p50": spendable - p50,
         "projected_remaining_p90": spendable - p90,
-        "source": result["source"],
-        "shape_basis": result["shape_basis"],
-        "sample_size": result["sample_size"],
         "n": n,
     }
 
@@ -544,7 +543,7 @@ def upload_overestimate(task_type):
 
 
 def upload_advise(teacher, task_type, figures, *, already_uploaded=()):
-    """The ten keys of advise() for an upload quote: `figures` are the files'
+    """The seven keys of advise() for an upload quote: `figures` are the files'
     door figures in raw credits (None: the door cannot estimate the file, left
     out), in position order; `already_uploaded` the positions the course
     already has (they count 0). p90 is the sum, p50 is p90 over the measured
@@ -556,7 +555,7 @@ def upload_advise(teacher, task_type, figures, *, already_uploaded=()):
         if figure is not None
     ]
     raw_p90 = sum(counted)
-    divisor, sample = upload_overestimate(task_type)
+    divisor, _ = upload_overestimate(task_type)
     raw_p50 = min(raw_p90, math.ceil(raw_p90 / divisor)) if divisor >= 1 else raw_p90
     p50 = _display_cost(raw_p50)
     p90 = _display_cost(raw_p90)
@@ -568,11 +567,6 @@ def upload_advise(teacher, task_type, figures, *, already_uploaded=()):
         "spendable": spendable,
         "projected_remaining_p50": spendable - p50,
         "projected_remaining_p90": spendable - p90,
-        "source": (
-            SOURCE_UPLOAD_HISTORY if sample >= UPLOAD_DIVISOR_MIN else SOURCE_ROUGH
-        ),
-        "shape_basis": SHAPE_BASIS_UPLOAD_FILES,
-        "sample_size": sample,
         "n": len(counted),
     }
 

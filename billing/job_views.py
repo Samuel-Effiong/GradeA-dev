@@ -13,7 +13,7 @@ Anyone else gets 404, so a job's existence is not revealed.
 """
 
 from django.db.models import Q
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import extend_schema, extend_schema_field, inline_serializer
 from rest_framework import serializers
 from rest_framework.generics import RetrieveAPIView
 from rest_framework.permissions import IsAuthenticated
@@ -21,6 +21,14 @@ from rest_framework.permissions import IsAuthenticated
 from users.models import UserTypes
 
 from .models import AIJob
+
+JOB_ESTIMATE = inline_serializer(
+    "AIJobEstimate",
+    {
+        "p50": serializers.IntegerField(allow_null=True),
+        "p90": serializers.IntegerField(allow_null=True),
+    },
+)
 
 
 class AIJobDetailSerializer(serializers.ModelSerializer):
@@ -47,12 +55,11 @@ class AIJobDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = fields
 
+    @extend_schema_field(JOB_ESTIMATE)
     def get_estimate(self, job) -> dict:
-        return {
-            "p50": job.estimate_p50,
-            "p90": job.estimate_p90,
-            "source": job.estimate_source,
-        }
+        """p50 and p90 only: estimate_source stays inside the server (owner,
+        2026-11-25: not sent to the frontend)."""
+        return {"p50": job.estimate_p50, "p90": job.estimate_p90}
 
     def get_actual(self, job) -> dict:
         return {
