@@ -8,6 +8,8 @@ chosen, the evidence quotes, the advice to the teacher, the text of a failed
 second opinion. Every route that shows a student their graded work goes
 through `student_safe_feedback`, and none returns the column itself;
 AutoGrader/tests_student_feedback_guard.py holds the repository to that.
+Of the arithmetic note (score_calculation_verification) a student is shown
+the per-question scores and their sum, nothing else (owner, 2026-11-25).
 
 `grading_result_for_formatter` is what the feedback formatter (an AI call
 whose wording the student reads) is sent of the same result.
@@ -74,6 +76,12 @@ MAX_FORMATTED_GRADE_CHARACTERS = 500_000
 
 #: The fields of the grading summary that a student is shown.
 STUDENT_SUMMARY_FIELDS = ("total_score", "max_total_points", "percentage")
+#: The fields of the arithmetic note (score_calculation_verification) that a
+#: student is shown (QA bug, owner option 3, 2026-11-25: the student page
+#: reads individual_scores). Never verification_status, calculation_notes
+#: (it can describe a correction meant for the teacher) or
+#: snapped_to_rubric_level_count, whether the note says PASS or not.
+STUDENT_VERIFICATION_FIELDS = ("individual_scores", "manual_sum")
 
 #: --- What the feedback formatter is sent of the arithmetic note ---
 #: (H-154) A note that says anything but PASS means the AI's reply was
@@ -135,7 +143,13 @@ def student_safe_feedback(feedback):
     Under a copied name only plain values pass (`_copy_plain`). The one
     exception is `overall_performance_analysis`, copied whole: it is nested
     by design, students are shown it today, and its real keys are not
-    known without reading real rows. A stated limit."""
+    known without reading real rows. A stated limit.
+
+    What a student is shown: of grading_summary the total, the maximum and
+    the percentage; of each question evaluation STUDENT_EVALUATION_FIELDS;
+    overall_performance_analysis whole; of recommendations for_student; of
+    score_calculation_verification STUDENT_VERIFICATION_FIELDS (the block
+    is left out when missing or not a dictionary)."""
     if not isinstance(feedback, dict):
         return None
 
@@ -156,6 +170,10 @@ def student_safe_feedback(feedback):
     overall = feedback.get("overall_performance_analysis")
     if isinstance(overall, dict):
         safe["overall_performance_analysis"] = overall
+
+    note = feedback.get(VERIFICATION_NOTE)
+    if isinstance(note, dict):
+        safe[VERIFICATION_NOTE] = _copy_plain(note, STUDENT_VERIFICATION_FIELDS)
 
     recommendations = feedback.get("recommendations")
     if isinstance(recommendations, dict):

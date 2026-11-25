@@ -56,6 +56,9 @@ TEACHER_ONLY_MARKERS = (
     "RAW SECOND OPINION ERROR",
     "grading_model",
     "A KEY NOBODY HAS CLASSIFIED",
+    "verification_status",
+    "CALCULATION NOTE FOR THE TEACHER",
+    "snapped_to_rubric_level_count",
 )
 
 FULL_FEEDBACK = {
@@ -88,6 +91,13 @@ FULL_FEEDBACK = {
     ],
     "overall_performance_analysis": {
         "score_breakdown": "Student scored 8 out of 10 points (80.00%)",
+    },
+    "score_calculation_verification": {
+        "individual_scores": [8],
+        "manual_sum": 8,
+        "verification_status": "PASS",
+        "calculation_notes": "CALCULATION NOTE FOR THE TEACHER",
+        "snapped_to_rubric_level_count": 1,
     },
     "grading_confidence": 92,
     "grading_model": "first-grader-model",
@@ -140,6 +150,8 @@ STUDENT_FEEDBACK = {
         "score_breakdown": "Student scored 8 out of 10 points (80.00%)",
     },
     "recommendations": {"for_student": ["Review the missing detail."]},
+    # Owner, 2026-11-25 (QA bug, option 3): the arithmetic only.
+    "score_calculation_verification": {"individual_scores": [8], "manual_sum": 8},
 }
 
 
