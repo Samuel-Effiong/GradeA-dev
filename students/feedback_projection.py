@@ -78,10 +78,11 @@ MAX_FORMATTED_GRADE_CHARACTERS = 500_000
 STUDENT_SUMMARY_FIELDS = ("total_score", "max_total_points", "percentage")
 #: The fields of the arithmetic note (score_calculation_verification) that a
 #: student is shown (QA bug, owner option 3, 2026-11-25: the student page
-#: reads individual_scores). Never verification_status, calculation_notes
-#: (it can describe a correction meant for the teacher) or
-#: snapped_to_rubric_level_count, whether the note says PASS or not.
-STUDENT_VERIFICATION_FIELDS = ("individual_scores", "manual_sum")
+#: reads individual_scores; owner the same day: and verification_status,
+#: which the page formats). Never calculation_notes (it can describe a
+#: correction meant for the teacher) or snapped_to_rubric_level_count,
+#: whether the note says PASS or not.
+STUDENT_VERIFICATION_FIELDS = ("individual_scores", "manual_sum", "verification_status")
 
 #: --- What the feedback formatter is sent of the arithmetic note ---
 #: (H-154) A note that says anything but PASS means the AI's reply was
