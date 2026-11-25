@@ -99,8 +99,12 @@ FILE_ENTRY = inline_serializer(
         "reason_code": serializers.CharField(allow_null=True),
         "pages": serializers.IntegerField(allow_null=True),
         "calls": serializers.IntegerField(allow_null=True),
-        "high": serializers.IntegerField(
-            allow_null=True, help_text="This file's own high figure, display credits."
+        "estimated_cost": serializers.IntegerField(
+            allow_null=True,
+            help_text=(
+                "This file's own cautious (p90-basis) figure, display credits: "
+                "0 when already_uploaded, null when not measured."
+            ),
         ),
         "already_uploaded": serializers.BooleanField(),
         "duplicate_of": serializers.UUIDField(allow_null=True),
