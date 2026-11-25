@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("assignments", "0041_topic_set_null"),
         ("classrooms", "0018_alter_session_is_active"),
-        ("students", "0045_merge_excused_and_dismissed"),
+        ("students", "0044_item_dismissed"),
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
     ]
 
