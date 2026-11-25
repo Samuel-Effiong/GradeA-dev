@@ -3,21 +3,21 @@ Signals on the super admin user list (brief 4, owner-approved for beta
 2026-11-11; SM -31 rulings on checkpoint bc5eafb7c,
 docs/evidence/signals-beta/DESIGN.md).
 
-The list gains five read-only values from the teacher's BetaProfile, through
-billing/intent_signals.py (the same rules as the Credit Usage page):
+The list gains read-only values from the teacher's BetaProfile, through
+billing/intent_signals.py (the same rules as the Credit Usage page). Step 2
+(owner, 2026-11-25): two signals instead of four.
 
-- at_80_percent: has_hit_80_percent
-- frequent_user: distinct_login_days >= 8
+- at_60_percent: total_credits_used >= 60% of initial_beta_credits (no
+  allocation -> False)
 - active_last_week: last_active_at >= now - 7 days (null -> False)
-- is_power_grader: credits_used_grading > credits_used_creation
-- signal_count: how many of the four are True (0-4)
+- signal_count: how many of the two are True (0-2)
 
 TEACHER only (Q-S3): any other user, and a teacher with no profile, gets 0,
 every flag False and a null score. Ordering `signals` = count ascending,
 `-signals` = count descending; ties ALWAYS conversion_probability DESC NULLS
-LAST, then id ascending (Q-S2). Filters signals_min (0-4) and one boolean per
+LAST, then id ascending (Q-S2). Filters signals_min (0-2) and one boolean per
 flag, gated to super admins like the other list filters. Retrieve and every
-non-list response carry none of the five keys.
+non-list response carry none of the signal keys.
 """
 
 from datetime import timedelta
@@ -36,7 +36,7 @@ from users.models import UserTypes
 
 from .tests_user_list_sorting import SIGNAL_KEYS, Base
 
-FLAGS = ("at_80_percent", "frequent_user", "active_last_week", "is_power_grader")
+FLAGS = ("at_60_percent", "active_last_week")
 #: The ordering parameter's description must say this about `signals`
 #: (Q-S2's rule; brief 6 put it in plain words at the owner's request, SM -cf
 #: ruling 2, 2026-11-11). Compared with the line breaks folded to spaces.
@@ -45,13 +45,10 @@ SIGNALS_ORDERING_DOC = (
     "first, with users who have no score last, and then by ID. That order for "
     "equal numbers stays the same with `-signals`."
 )
-ALL4 = {
-    "has_hit_80_percent": True,
-    "distinct_login_days": 9,
-    "last_active_at": NOW - timedelta(days=1),
-    "credits_used_grading": 5,
-    "credits_used_creation": 1,
-}
+#: Step 2 (owner, 2026-11-25): the two signals. 60% or more used (one):
+HIGH_USAGE = {"total_credits_used": 6_000, "initial_beta_credits": 10_000}
+#: Both signals.
+BOTH = {**HIGH_USAGE, "last_active_at": NOW - timedelta(days=1)}
 
 
 class SignalBase(Base):
@@ -80,10 +77,8 @@ class SignalBase(Base):
 class SignalValueTests(SignalBase):
     def test_each_flag_follows_its_rule(self):
         cases: dict[str, dict[str, Any]] = {
-            "at_80_percent": {"has_hit_80_percent": True},
-            "frequent_user": {"distinct_login_days": 8},
+            "at_60_percent": HIGH_USAGE,
             "active_last_week": {"last_active_at": NOW - timedelta(days=2)},
-            "is_power_grader": {"credits_used_grading": 2, "credits_used_creation": 1},
         }
         users = {flag: self.teacher(**fields) for flag, fields in cases.items()}
         for flag, user in users.items():
@@ -93,18 +88,22 @@ class SignalValueTests(SignalBase):
                 self.assertEqual(self.signals_of(user), expected)
 
     def test_signal_count_is_the_number_of_true_flags(self):
-        user = self.teacher(**ALL4)
+        user = self.teacher(**BOTH)
 
         self.assertEqual(
-            self.signals_of(user), {**dict.fromkeys(FLAGS, True), "signal_count": 4}
+            self.signals_of(user), {**dict.fromkeys(FLAGS, True), "signal_count": 2}
         )
 
     def test_just_below_each_threshold_is_false(self):
         user = self.teacher(
-            distinct_login_days=7,
+            total_credits_used=5_999,
+            initial_beta_credits=10_000,
             last_active_at=NOW - timedelta(days=7, microseconds=1),
-            credits_used_grading=3,
-            credits_used_creation=3,
+            # The old signals no longer count.
+            distinct_login_days=30,
+            has_hit_80_percent=True,
+            credits_used_grading=9,
+            credits_used_creation=1,
         )
 
         self.assertEqual(
@@ -127,7 +126,7 @@ class SignalValueTests(SignalBase):
     def test_a_non_teacher_profile_gives_zero_and_every_flag_false(self):
         # Q-S3: the list agrees with the Credit Usage page (teachers only).
         admin = self.person(user_type=UserTypes.SCHOOL_ADMIN)
-        profile(admin, **ALL4)
+        profile(admin, **BOTH)
 
         self.assertEqual(
             self.signals_of(admin), {**dict.fromkeys(FLAGS, False), "signal_count": 0}
@@ -147,26 +146,28 @@ class SignalOrderingTests(SignalBase):
         return self.stamp(user, first_name=name)
 
     def test_signals_is_count_ascending(self):
-        four = self.named(self.teacher(10.0, **ALL4), "A")
-        one = self.named(self.teacher(90.0, has_hit_80_percent=True), "B")
+        two = self.named(self.teacher(10.0, **BOTH), "A")
+        one = self.named(self.teacher(90.0, **HIGH_USAGE), "B")
         zero = self.named(self.teacher(50.0), "C")
 
         self.assertEqual(
-            self.order_of([four, one, zero], ordering="signals"), [zero, one, four]
+            self.order_of([two, one, zero], ordering="signals"), [zero, one, two]
         )
 
     def test_minus_signals_is_count_descending(self):
-        four = self.named(self.teacher(10.0, **ALL4), "C")
-        one = self.named(self.teacher(90.0, has_hit_80_percent=True), "B")
+        two = self.named(self.teacher(10.0, **BOTH), "C")
+        one = self.named(self.teacher(90.0, **HIGH_USAGE), "B")
         zero = self.named(self.teacher(50.0), "A")
 
         self.assertEqual(
-            self.order_of([four, one, zero], ordering="-signals"), [four, one, zero]
+            self.order_of([two, one, zero], ordering="-signals"), [two, one, zero]
         )
 
     def test_a_tie_is_broken_by_score_highest_first_in_both_directions(self):
-        low = self.named(self.teacher(20.0, has_hit_80_percent=True), "A")
-        high = self.named(self.teacher(80.0, distinct_login_days=10), "B")
+        low = self.named(self.teacher(20.0, **HIGH_USAGE), "A")
+        high = self.named(
+            self.teacher(80.0, last_active_at=NOW - timedelta(days=2)), "B"
+        )
 
         for ordering in ("signals", "-signals"):
             with self.subTest(ordering):
@@ -190,7 +191,7 @@ class SignalOrderingTests(SignalBase):
                 self.assertEqual(set(listed[1:]), {no_profile, not_teacher})
 
     def test_id_breaks_a_tie_of_count_and_score_in_both_directions(self):
-        people = [self.teacher(30.0, has_hit_80_percent=True) for _ in range(4)]
+        people = [self.teacher(30.0, **HIGH_USAGE) for _ in range(4)]
         by_id = sorted(people, key=lambda u: str(u.pk))
         # The default order is first_name, then id: name them against the id
         # order so the default cannot pass this test.
@@ -209,8 +210,8 @@ class SignalOrderingTests(SignalBase):
             key=lambda u: str(u.pk),
         )
         profile(first, conversion_probability=5.0)
-        profile(second, conversion_probability=5.0, has_hit_80_percent=True)
-        b = self.teacher(5.0, **ALL4)
+        profile(second, conversion_probability=5.0, **HIGH_USAGE)
+        b = self.teacher(5.0, **BOTH)
         self.stamp(b, first_name="B")
 
         self.assertEqual(
@@ -228,9 +229,8 @@ class SignalFilterTests(SignalBase):
     def make(self):
         return {
             0: self.teacher(1.0),
-            1: self.teacher(2.0, has_hit_80_percent=True),
-            2: self.teacher(3.0, has_hit_80_percent=True, distinct_login_days=8),
-            4: self.teacher(4.0, **ALL4),
+            1: self.teacher(2.0, **HIGH_USAGE),
+            2: self.teacher(4.0, **BOTH),
         }
 
     def listed(self, people, **params):
@@ -238,7 +238,7 @@ class SignalFilterTests(SignalBase):
 
     def test_signals_min(self):
         people = self.make()
-        for minimum in range(5):
+        for minimum in range(3):
             with self.subTest(minimum):
                 expected = {u for n, u in people.items() if n >= minimum}
                 self.assertEqual(self.listed(people, signals_min=minimum), expected)
@@ -258,10 +258,10 @@ class SignalFilterTests(SignalBase):
 
     def test_a_bad_value_is_a_400(self):
         for params in (
-            {"signals_min": "5"},
+            {"signals_min": "3"},
             {"signals_min": "-1"},
             {"signals_min": "many"},
-            {"at_80_percent": "sometimes"},
+            {"at_60_percent": "sometimes"},
         ):
             with self.subTest(params):
                 self.assertEqual(self.get_list(**params).status_code, 400)
@@ -273,10 +273,10 @@ class SignalFilterTests(SignalBase):
             self.order_of(
                 list(people.values()),
                 signals_min=1,
-                frequent_user="true",
+                at_60_percent="true",
                 ordering="-signals",
             ),
-            [people[4], people[2]],
+            [people[2], people[1]],
         )
 
     def test_the_signal_filters_do_nothing_off_the_list_for_others(self):
@@ -285,11 +285,9 @@ class SignalFilterTests(SignalBase):
         client = self.as_user(teacher)
         detail = reverse("user-detail", kwargs={"pk": teacher.pk})
         for params in (
-            {"signals_min": 4},
-            {"at_80_percent": "true"},
-            {"frequent_user": "true"},
+            {"signals_min": 2},
+            {"at_60_percent": "true"},
             {"active_last_week": "true"},
-            {"is_power_grader": "true"},
         ):
             with self.subTest(params):
                 cache.clear()
@@ -302,8 +300,8 @@ class SignalFilterTests(SignalBase):
 
 
 class SignalListOnlyTests(SignalBase):
-    def test_non_list_responses_carry_none_of_the_five(self):
-        teacher = self.teacher(50.0, **ALL4)
+    def test_non_list_responses_carry_none_of_the_signal_keys(self):
+        teacher = self.teacher(50.0, **BOTH)
         for who, client in (
             ("super admin", self.as_user(self.admin)),
             ("teacher", self.as_user(teacher)),
@@ -319,7 +317,7 @@ class SignalListOnlyTests(SignalBase):
                     data = response.data
                     self.assertEqual(sorted(set(SIGNAL_KEYS) & set(data)), [])
 
-    def test_the_list_carries_all_five(self):
+    def test_the_list_carries_every_signal_key(self):
         row = self.row(self.teacher(1.0))
 
         for key in SIGNAL_KEYS:
@@ -330,15 +328,15 @@ class SignalCacheKeyTests(SignalBase):
     """No cache.clear() between requests: one generation, two keys each."""
 
     def test_ordering_in_both_directions_from_one_generation(self):
-        few, many = self.teacher(1.0), self.teacher(2.0, **ALL4)
+        few, many = self.teacher(1.0), self.teacher(2.0, **BOTH)
 
         self.assertEqual(self.order_of([few, many], ordering="signals"), [few, many])
         self.assertEqual(self.order_of([few, many], ordering="-signals"), [many, few])
 
     def test_each_filter_from_one_generation(self):
-        none, every = self.teacher(1.0), self.teacher(2.0, **ALL4)
+        none, every = self.teacher(1.0), self.teacher(2.0, **BOTH)
         for name, on, off in (
-            ("signals_min", 4, 0),
+            ("signals_min", 2, 0),
             *((flag, "true", "false") for flag in FLAGS),
         ):
             with self.subTest(name):
@@ -352,7 +350,7 @@ class SignalCacheKeyTests(SignalBase):
 class SignalQueryCountTests(SignalBase):
     def make_teachers(self, n):
         for i in range(n):
-            user = self.teacher(float(i), has_hit_80_percent=bool(i % 2))
+            user = self.teacher(float(i), **(HIGH_USAGE if i % 2 else {}))
             CreditWallet.objects.get_or_create(user=user)
 
     def count(self, page_size, **params):
@@ -369,9 +367,9 @@ class SignalQueryCountTests(SignalBase):
             for params in (
                 {"ordering": "signals"},
                 {"ordering": "-signals"},
-                {"signals_min": 0, "at_80_percent": "true", "ordering": "-signals"},
-                {"frequent_user": "false", "active_last_week": "false"},
-                {"is_power_grader": "false"},
+                {"signals_min": 0, "at_60_percent": "true", "ordering": "-signals"},
+                {"at_60_percent": "false", "active_last_week": "false"},
+                {"active_last_week": "false"},
             ):
                 with self.subTest(size=size, **params):
                     self.assertEqual(self.count(size, **params), base)
@@ -379,7 +377,7 @@ class SignalQueryCountTests(SignalBase):
 
 class SignalClockTests(SignalBase):
     def test_the_list_reads_the_clock_once_per_request(self):
-        self.teacher(1.0, **ALL4)
+        self.teacher(1.0, **BOTH)
         with patch("billing.intent_signals.clock", return_value=NOW) as clock:
             self.rows(ordering="-signals", active_last_week="true")
 

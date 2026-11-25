@@ -143,9 +143,7 @@ class PlanFiltersTests(LeadFilterBase):
 
     def test_a_plan_filter_and_a_signal_filter_combine(self):
         for email in (self.who["pro"], self.who["none"]):
-            BetaProfile.objects.filter(user__email=email).update(
-                has_hit_80_percent=True, distinct_login_days=9
-            )
+            BetaProfile.objects.filter(user__email=email).update(**base.BOTH)
         self.assertEqual(self.kept(has_plan="true", signals_min=2), {self.who["pro"]})
         self.assertEqual(self.kept(has_plan="false", signals_min=2), {self.who["none"]})
         self.assertEqual(self.kept(plan_tier="STANDARD", signals_min=1), set())
@@ -283,10 +281,8 @@ class EveryParameterIsDescribedTests(LeadFilterBase):
     PARAMS = (
         "ordering",
         "signals_min",
-        "at_80_percent",
-        "frequent_user",
+        "at_60_percent",
         "active_last_week",
-        "is_power_grader",
         "last_login_after",
         "last_login_before",
         "plan_tier",

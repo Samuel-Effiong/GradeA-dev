@@ -73,13 +73,7 @@ class FilterDocsTests(APITestCase):
 
     def test_the_signal_filters_say_teachers_only_and_super_admin_only(self):
         params = list_parameters(self)
-        for name in (
-            "signals_min",
-            "at_80_percent",
-            "frequent_user",
-            "active_last_week",
-            "is_power_grader",
-        ):
+        for name in ("signals_min", "at_60_percent", "active_last_week"):
             with self.subTest(name):
                 text = own_text(params[name].get("description")).lower()
                 self.assertIn("teacher", text)

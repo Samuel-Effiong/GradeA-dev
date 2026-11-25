@@ -13,6 +13,10 @@ the base commit (origin/beta 44904774a), BEFORE any change, by running this
 file once with INTENT_SIGNALS_PIN_WRITE=1 (NOTES, step P0). The clock is
 frozen, so every date is fixed. Each user's random UUID is replaced by
 their email.
+
+Step 2 (owner, 2026-11-25): the four signals became two (at_60_percent,
+active_last_week). The fixture was rebuilt for them and the pin rewritten
+the same way, every changed value checked by hand.
 """
 
 import json
@@ -74,11 +78,13 @@ class SignalsFixture(APITestCase):
     def build(self):
         week = timedelta(days=7)
         rows: list[tuple[str, str, str, dict[str, Any]]] = [
-            # email, first, last, profile fields
+            # email, first, last, profile fields. Step 2 (2026-11-25): the
+            # two signals, each boundary on both sides (60% exactly and just
+            # under, 7 days exactly and a microsecond more, no allocation).
             (
-                "a.all4.sig@x.example",
+                "a.two.sig@x.example",
                 "Ada",
-                "Four",
+                "Two",
                 {
                     "has_hit_80_percent": True,
                     "distinct_login_days": 9,
@@ -91,42 +97,47 @@ class SignalsFixture(APITestCase):
                 },
             ),
             (
-                "b.three.sig@x.example",
+                "b.two.sig@x.example",
                 "Ben",
-                "Three",
+                "Two",
                 {
-                    "has_hit_80_percent": True,
                     "distinct_login_days": 8,
                     "last_active_at": NOW - week,
                     "credits_used_grading": 100,
                     "credits_used_creation": 300,
                     "conversion_probability": 72.25,
-                    "total_credits_used": 16_500_000,
+                    "total_credits_used": 12_000_000,
+                    "initial_beta_credits": 20_000_000,
                 },
             ),
             (
-                "c.one.sig@x.example",
+                "c.zero.sig@x.example",
                 "Cy",
-                "One",
+                "Zero",
                 {
                     "distinct_login_days": 7,
                     "last_active_at": NOW - week - timedelta(microseconds=1),
                     "credits_used_grading": 300,
                     "credits_used_creation": 200,
                     "conversion_probability": 40.0,
-                    "total_credits_used": 500,
+                    "total_credits_used": 11_999_999,
+                    "initial_beta_credits": 20_000_000,
                 },
             ),
             (
                 "d.none.sig@x.example",
                 "Di",
                 "None",
-                {"conversion_probability": 10.5, "initial_beta_credits": 0},
+                {
+                    "conversion_probability": 10.5,
+                    "initial_beta_credits": 0,
+                    "total_credits_used": 500,
+                },
             ),
             (
-                "e.two.sig@x.example",
+                "e.one.sig@x.example",
                 "Ed",
-                "Two",
+                "One",
                 {
                     "has_hit_80_percent": True,
                     "distinct_login_days": 12,
@@ -134,6 +145,7 @@ class SignalsFixture(APITestCase):
                     "credits_used_creation": 50,
                     "conversion_probability": 55.0,
                     "total_credits_used": 16_000_000,
+                    "initial_beta_credits": 20_000_000,
                     "credits_used_feedback": 20,
                     "analytics_view_count": 3,
                     "days_to_first_action": 2,
@@ -154,6 +166,8 @@ class SignalsFixture(APITestCase):
             has_hit_80_percent=True,
             distinct_login_days=20,
             last_active_at=NOW,
+            total_credits_used=15_000_000,
+            initial_beta_credits=20_000_000,
             credits_used_grading=9,
             credits_used_creation=1,
             conversion_probability=99.0,
@@ -181,7 +195,7 @@ class SignalsFixture(APITestCase):
             ),
             "summary": self.get("analytics-summary"),
         }
-        for email in ("a.all4.sig@x.example", "g.admin.sig@x.example"):
+        for email in ("a.two.sig@x.example", "g.admin.sig@x.example"):
             out[f"intent_signal_detail {email}"] = self.get(
                 "analytics-intent-signal-detail", user_id=people[email].pk
             )
@@ -205,17 +219,16 @@ class IntentSignalsPinTests(SignalsFixture):
         flags = {row["email"]: row["flags"] for row in leads}
 
         # Every flag is True somewhere and False somewhere.
-        for name in (
-            "at_80_percent",
-            "frequent_user",
-            "active_last_week",
-            "is_power_grader",
-        ):
+        for name in ("at_60_percent", "active_last_week"):
             values = {f[name] for f in flags.values()}
             self.assertEqual(values, {True, False}, name)
         # The 7-day boundary is on both sides.
-        self.assertTrue(flags["b.three.sig@x.example"]["active_last_week"])
-        self.assertFalse(flags["c.one.sig@x.example"]["active_last_week"])
+        self.assertTrue(flags["b.two.sig@x.example"]["active_last_week"])
+        self.assertFalse(flags["c.zero.sig@x.example"]["active_last_week"])
+        # The 60% boundary is on both sides; no allocation is False.
+        self.assertTrue(flags["b.two.sig@x.example"]["at_60_percent"])
+        self.assertFalse(flags["c.zero.sig@x.example"]["at_60_percent"])
+        self.assertFalse(flags["d.none.sig@x.example"]["at_60_percent"])
         # The non-teacher is in summary's cohort only.
         self.assertNotIn("g.admin.sig@x.example", flags)
         self.assertEqual(pinned["summary"]["total_beta_users"], 6)
@@ -223,4 +236,4 @@ class IntentSignalsPinTests(SignalsFixture):
             d["signal_count"]: d["user_count"]
             for d in pinned["intent_signal_distribution"]["distribution"]
         }
-        self.assertEqual(counts, {1: 1, 2: 1, 3: 1, 4: 1})
+        self.assertEqual(counts, {0: 2, 1: 1, 2: 2})

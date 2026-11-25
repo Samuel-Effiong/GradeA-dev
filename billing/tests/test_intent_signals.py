@@ -6,11 +6,11 @@ docs/evidence/signals-beta/DESIGN.md).
 GET analytics beta/intent-signals gains an optional ordering (`signals` =
 signal count ascending, `-signals` = descending; ties ALWAYS
 conversion_probability DESC NULLS LAST, then id ascending) and the filters
-signals_min (0-4), at_80_percent, frequent_user, active_last_week and
-is_power_grader. With no param its order and payload are unchanged (pinned
-in test_intent_signals_pins).
+signals_min (0-2), at_60_percent and active_last_week (Step 2, owner
+2026-11-25: four signals became two). With no param its order and payload
+are pinned in test_intent_signals_pins.
 
-The four rules come from one module, billing/intent_signals.py, which also
+The rules come from one module, billing/intent_signals.py, which also
 serves the per-row flags, the distribution chart, the single-lead detail,
 the cohort summary and the super admin user list. So these tests also check
 that every surface agrees, and that `now` is read once per request through
@@ -32,7 +32,7 @@ from users.models import UserTypes
 
 from .test_intent_signals_pins import NOW, SignalsFixture, profile
 
-FLAGS = ("at_80_percent", "frequent_user", "active_last_week", "is_power_grader")
+FLAGS = ("at_60_percent", "active_last_week")
 SIGNALS_ORDERING_DOC = (
     "Sorts the leads. `signals` puts teachers with the fewest signals first; "
     "`-signals` puts teachers with the most signals first. Teachers with the "
@@ -40,21 +40,26 @@ SIGNALS_ORDERING_DOC = (
     "first, with empty ones last, then by their ID. Left empty, leads come in "
     "order of conversion probability, highest first."
 )
-ALL4 = {
-    "has_hit_80_percent": True,
-    "distinct_login_days": 9,
-    "last_active_at": NOW - timedelta(days=1),
-    "credits_used_grading": 5,
-    "credits_used_creation": 1,
+#: Used at least 60% of the allocation (one signal).
+HIGH_USAGE = {"total_credits_used": 15_000_000, "initial_beta_credits": 20_000_000}
+#: Both signals.
+BOTH = {**HIGH_USAGE, "last_active_at": NOW - timedelta(days=1)}
+#: SignalsFixture's teachers and their signal counts.
+COUNTS = {
+    "a.two.sig@x.example": 2,
+    "b.two.sig@x.example": 2,
+    "e.one.sig@x.example": 1,
+    "c.zero.sig@x.example": 0,
+    "d.none.sig@x.example": 0,
 }
-#: SignalsFixture's teachers, by signal count.
-BY_COUNT = {
-    4: "a.all4.sig@x.example",
-    3: "b.three.sig@x.example",
-    2: "e.two.sig@x.example",
-    1: "c.one.sig@x.example",
-    0: "d.none.sig@x.example",
-}
+#: SignalsFixture's teachers by `signals`: count up, then score down.
+BY_SIGNALS = [
+    "c.zero.sig@x.example",
+    "d.none.sig@x.example",
+    "e.one.sig@x.example",
+    "a.two.sig@x.example",
+    "b.two.sig@x.example",
+]
 
 
 class LeadsBase(SignalsFixture):
@@ -85,10 +90,10 @@ class LeadOrderingTests(LeadsBase):
     def test_no_param_keeps_todays_order(self):
         self.build()
         today = [
-            "a.all4.sig@x.example",
-            "b.three.sig@x.example",
-            "e.two.sig@x.example",
-            "c.one.sig@x.example",
+            "a.two.sig@x.example",
+            "b.two.sig@x.example",
+            "e.one.sig@x.example",
+            "c.zero.sig@x.example",
             "d.none.sig@x.example",
         ]
 
@@ -102,16 +107,16 @@ class LeadOrderingTests(LeadsBase):
     # default order (by score) must differ from the asserted one.
 
     def mixed(self):
-        four = self.teacher(10.0, **ALL4)
-        one = self.teacher(90.0, has_hit_80_percent=True)
+        two = self.teacher(10.0, **BOTH)
+        one = self.teacher(90.0, **HIGH_USAGE)
         zero = self.teacher(50.0)
-        return four, one, zero
+        return two, one, zero
 
     def test_no_param_keeps_the_score_order_when_counts_disagree(self):
         # The fixture above cannot tell the default from -signals (its score
         # order is its count order); this one can (added before the plants).
-        four, one, zero = self.mixed()
-        by_score = [one.email, zero.email, four.email]
+        two, one, zero = self.mixed()
+        by_score = [one.email, zero.email, two.email]
 
         self.assertEqual(self.emails(), by_score)
         for ignored in ("", "score", "signal_count"):
@@ -119,23 +124,23 @@ class LeadOrderingTests(LeadsBase):
                 self.assertEqual(self.emails(ordering=ignored), by_score)
 
     def test_signals_is_count_ascending(self):
-        four, one, zero = self.mixed()
+        two, one, zero = self.mixed()
 
         self.assertEqual(
-            self.emails(ordering="signals"), [zero.email, one.email, four.email]
+            self.emails(ordering="signals"), [zero.email, one.email, two.email]
         )
 
     def test_minus_signals_is_count_descending(self):
-        four, one, zero = self.mixed()
+        two, one, zero = self.mixed()
 
         self.assertEqual(
-            self.emails(ordering="-signals"), [four.email, one.email, zero.email]
+            self.emails(ordering="-signals"), [two.email, one.email, zero.email]
         )
 
     def test_a_tie_is_broken_by_score_highest_first_in_both_directions(self):
-        low = self.teacher(20.0, has_hit_80_percent=True)
-        high = self.teacher(80.0, distinct_login_days=10)
-        mid = self.teacher(50.0, **ALL4)
+        low = self.teacher(20.0, **HIGH_USAGE)
+        high = self.teacher(80.0, last_active_at=NOW - timedelta(days=2))
+        mid = self.teacher(50.0, **BOTH)
 
         self.assertEqual(
             self.emails(ordering="signals"), [high.email, low.email, mid.email]
@@ -145,7 +150,7 @@ class LeadOrderingTests(LeadsBase):
         )
 
     def test_id_breaks_a_tie_of_count_and_score_in_both_directions(self):
-        people = [self.teacher(30.0, has_hit_80_percent=True) for _ in range(4)]
+        people = [self.teacher(30.0, **HIGH_USAGE) for _ in range(4)]
         by_id = [u.email for u in sorted(people, key=lambda u: str(u.pk))]
         # The highest score, the fewest signals: first by default, first for
         # `signals`, last for `-signals`.
@@ -159,11 +164,11 @@ class LeadOrderingTests(LeadsBase):
 
         self.assertEqual(
             self.emails(ordering="signals", search=".sig@", page_size=2),
-            [BY_COUNT[0], BY_COUNT[1]],
+            BY_SIGNALS[:2],
         )
         self.assertEqual(
             self.emails(ordering="signals", search=".sig@", page_size=2, page=2),
-            [BY_COUNT[2], BY_COUNT[3]],
+            BY_SIGNALS[2:4],
         )
 
 
@@ -175,9 +180,9 @@ class LeadOrderingTests(LeadsBase):
 class LeadFilterTests(LeadsBase):
     def test_signals_min(self):
         self.build()
-        for minimum in range(5):
+        for minimum in range(3):
             with self.subTest(minimum):
-                expected = {e for n, e in BY_COUNT.items() if n >= minimum}
+                expected = {e for e, n in COUNTS.items() if n >= minimum}
                 self.assertEqual(set(self.emails(signals_min=minimum)), expected)
 
     def test_each_flag_filter_true_and_false(self):
@@ -194,17 +199,17 @@ class LeadFilterTests(LeadsBase):
     def test_the_count_follows_the_filters(self):
         self.build()
         response = self.client.get(
-            reverse("analytics-intent-signals"), {"signals_min": 3}
+            reverse("analytics-intent-signals"), {"signals_min": 2}
         )
 
         self.assertEqual(response.json()["data"]["count"], 2)
 
     def test_a_bad_value_is_a_400(self):
         for params in (
-            {"signals_min": "5"},
+            {"signals_min": "3"},
             {"signals_min": "-1"},
             {"signals_min": "many"},
-            {"is_power_grader": "sometimes"},
+            {"at_60_percent": "sometimes"},
         ):
             with self.subTest(params):
                 response = self.client.get(reverse("analytics-intent-signals"), params)
@@ -217,10 +222,14 @@ class LeadFilterTests(LeadsBase):
             self.emails(
                 search=".sig@",
                 signals_min=1,
-                at_80_percent="true",
+                at_60_percent="true",
                 ordering="signals",
             ),
-            [BY_COUNT[2], BY_COUNT[3], BY_COUNT[4]],
+            [
+                "e.one.sig@x.example",
+                "a.two.sig@x.example",
+                "b.two.sig@x.example",
+            ],
         )
 
 
@@ -262,7 +271,7 @@ class ClockTests(LeadsBase):
             "detail": (
                 reverse(
                     "analytics-intent-signal-detail",
-                    kwargs={"user_id": people[BY_COUNT[4]].pk},
+                    kwargs={"user_id": people["a.two.sig@x.example"].pk},
                 ),
                 {},
             ),
@@ -287,7 +296,7 @@ class ClockTests(LeadsBase):
             detail = self.client.get(
                 reverse(
                     "analytics-intent-signal-detail",
-                    kwargs={"user_id": people[BY_COUNT[4]].pk},
+                    kwargs={"user_id": people["a.two.sig@x.example"].pk},
                 )
             ).json()["data"]
 
@@ -332,18 +341,18 @@ class AgreementTests(LeadsBase):
         counts = Counter(sum(f.values()) for f in flags.values())
         self.assertEqual(
             {d["signal_count"]: d["user_count"] for d in chart},
-            {n: counts.get(n, 0) for n in (1, 2, 3, 4)},
+            {n: counts.get(n, 0) for n in (0, 1, 2)},
         )
 
-        # summary counts every profile; the non-teacher meets all four.
+        # summary counts every profile; the non-teacher meets both.
         summary = self.client.get(reverse("analytics-summary")).json()["data"]
         outsider = BetaProfile.objects.get(user__user_type=UserTypes.SCHOOL_ADMIN)
-        self.assertTrue(outsider.has_hit_80_percent)
+        self.assertGreaterEqual(
+            outsider.total_credits_used * 10, outsider.initial_beta_credits * 6
+        )
         for key, flag in (
-            ("credit_used_greater_than_80_count", "at_80_percent"),
-            ("login_greater_than_8_days_count", "frequent_user"),
+            ("credit_used_greater_than_60_count", "at_60_percent"),
             ("active_last_7_days_count", "active_last_week"),
-            ("grading_percent_greater_than_creation_count", "is_power_grader"),
         ):
             with self.subTest(summary=key):
                 teachers = sum(1 for f in flags.values() if f[flag])
@@ -367,7 +376,7 @@ class LeadQueryCountTests(LeadsBase):
 
     def test_the_lead_list_cost_is_fixed_with_ordering_and_filters(self):
         for i in range(30):
-            self.teacher(float(i), has_hit_80_percent=bool(i % 2))
+            self.teacher(float(i), **(HIGH_USAGE if i % 2 else {}))
         base = self.count("analytics-intent-signals", page_size=25)
         for size in (5, 25):
             for params in (
@@ -375,8 +384,8 @@ class LeadQueryCountTests(LeadsBase):
                 {"ordering": "signals"},
                 {"ordering": "-signals"},
                 {"signals_min": 1, "ordering": "-signals"},
-                {"at_80_percent": "true", "frequent_user": "false"},
-                {"active_last_week": "false", "is_power_grader": "false"},
+                {"at_60_percent": "true", "active_last_week": "false"},
+                {"active_last_week": "false"},
             ):
                 with self.subTest(size=size, **params):
                     self.assertEqual(
@@ -388,7 +397,7 @@ class LeadQueryCountTests(LeadsBase):
 
     def test_the_distribution_cost_is_fixed(self):
         for i in range(5):
-            self.teacher(float(i), has_hit_80_percent=True)
+            self.teacher(float(i), **HIGH_USAGE)
         five = self.count("beta-chart-intent-signal-distribution")
         for i in range(25):
             self.teacher(float(i), distinct_login_days=9)
@@ -440,7 +449,7 @@ class LeadOpenApiTests(LeadsBase):
         for name in ("signals_min", *FLAGS):
             self.assertIn(name, params)
 
-    def test_the_example_shows_all_four_flags(self):
+    def test_the_example_shows_both_flags(self):
         examples = self.operation()["responses"]["200"]["content"]["application/json"][
             "examples"
         ]

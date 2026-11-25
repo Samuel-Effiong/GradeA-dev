@@ -89,7 +89,8 @@ class PromptFixture(APITestCase):
             BetaProfile.objects.filter(pk=profile.pk).update(
                 conversion_probability=5.0 + 7.5 * n,
                 total_credits_used=1_000 * n,
-                initial_beta_credits=20_000,
+                # Step 2: 60% of 10,000 is reached from lead 6 up.
+                initial_beta_credits=10_000,
                 has_hit_80_percent=n % 3 == 0,
                 distinct_login_days=n,
                 last_active_at=NOW - timedelta(days=n),
@@ -195,16 +196,15 @@ def expected_row(n):
         "score": round(5.0 + 7.5 * n, 1),
         "metrics": {
             "credit_usage": 2 * n,  # wallet charges of 2,000 * n
-            "usage_percentage": round(2_000 * n / 20_000 * 100, 1),
+            "usage_percentage": round(2_000 * n / 10_000 * 100, 1),
             "login_days": n,
             "last_active": (NOW - timedelta(days=n)).date().isoformat(),
             "primary_use_case": "Grading" if grading > creation else "Creation",
         },
+        # Step 2 (owner, 2026-11-25): the two signals.
         "flags": {
-            "at_80_percent": n % 3 == 0,
+            "at_60_percent": 1_000 * n * 10 >= 10_000 * 6,
             "active_last_week": n <= 7,
-            "is_power_grader": grading > creation,
-            "frequent_user": n >= 8,
         },
     }
 

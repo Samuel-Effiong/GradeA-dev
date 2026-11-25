@@ -288,7 +288,7 @@ SIGNAL_SORT_KEY = "signals"
 
 
 def ensure_signals(queryset, now, annotate=False):
-    """The four flags, signal_count and signals_score (billing.intent_signals)."""
+    """The signal flags, signal_count and signals_score (billing.intent_signals)."""
     return signal_rules.annotate_signals(
         queryset, now, SIGNALS_PREFIX, SIGNALS_SCOPE, alias=not annotate
     )
