@@ -82,6 +82,9 @@ class AuditAction(models.TextChoices):
     # owner (SM 2026-11-11).
     CREDIT_REQUEST_CREATE = "CREDIT_REQUEST_CREATE", "Credit request made"
     CREDIT_REQUEST_DECIDE = "CREDIT_REQUEST_DECIDE", "Credit request answered"
+    # Upload quote: an unconfirmed quote ended by cancel or expiry. A confirm
+    # is the existing SUBMISSION_UPLOAD.
+    UPLOAD_QUOTE_ENDED = "UPLOAD_QUOTE_ENDED", "Upload quote ended"
     DEPARTMENT_CREATE = "DEPARTMENT_CREATE", "Department created"
     DEPARTMENT_UPDATE = "DEPARTMENT_UPDATE", "Department updated"
     DEPARTMENT_DELETE = "DEPARTMENT_DELETE", "Department deleted"
@@ -315,6 +318,15 @@ class ReasonCode(models.TextChoices):
     TAG_NAME_MISSING = "TAG_NAME_MISSING", "Tag name missing"
     TAG_NAME_TOO_LONG = "TAG_NAME_TOO_LONG", "Tag name too long"
     TOO_MANY_TAGS = "TOO_MANY_TAGS", "Too many tags"
+    # Upload quote (plan rev 3 section 3): what an upload will cost, asked
+    # before anything is processed. Wording is a PROPOSAL until the owner
+    # approves it (docs/evidence/upload-quotes/WORDING.md).
+    QUOTE_NOT_READY = "QUOTE_NOT_READY", "Quote: cost not worked out yet"
+    QUOTE_EXPIRED = "QUOTE_EXPIRED", "Quote: expired"
+    QUOTE_CLOSED = "QUOTE_CLOSED", "Quote: already started or cancelled"
+    QUOTE_STORAGE_FULL = "QUOTE_STORAGE_FULL", "Quote: no room to hold more files"
+    QUOTE_TOO_MANY_OPEN = "QUOTE_TOO_MANY_OPEN", "Quote: too many open"
+    QUOTE_FILE_NOT_KEPT = "QUOTE_FILE_NOT_KEPT", "Quote: a file could not be kept"
 
 
 # The ten FR-A-06 conditions, as QA-ERR-02 lists them.

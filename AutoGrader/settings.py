@@ -927,6 +927,11 @@ PDF_RENDERER_MAX_QUEUED_RENDERS = env.int(
 )
 
 CELERY_TASK_ACKS_LATE = True
+# Upload quote: the zero-credit measure has its own queue, consumed by the
+# existing worker service (scripts/start-worker.sh: -Q celery,quote_measure).
+CELERY_TASK_ROUTES = {
+    "students.tasks.measure_quote_file": {"queue": "quote_measure"},
+}
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
 
@@ -1002,6 +1007,16 @@ CELERY_BEAT_SCHEDULE = {
     "purge-kept-uploads-hourly": {
         "task": "students.tasks.purge_kept_uploads",
         "schedule": crontab(minute=15),
+    },
+    # Upload quote: expire open quotes, delete their files, drop old rows.
+    "purge-upload-quotes": {
+        "task": "students.tasks.purge_upload_quotes",
+        "schedule": crontab(minute="*/5"),
+    },
+    # Upload quote: ask again for files stored and unmeasured for over 10 minutes.
+    "requeue-stuck-quote-measures": {
+        "task": "students.tasks.requeue_stuck_quote_measures",
+        "schedule": crontab(minute="*/5"),
     },
     "process-annual_plan-credit-grants": {
         "task": "billing.tasks.process_annual_plan_credit_grants",
@@ -1363,6 +1378,10 @@ REST_FRAMEWORK = {
         # AIProcessor.execute_graded_task), so this is its only volume
         # control.
         "custom_ai_prompt": "10/min",
+        # Upload quote: creating one stores files; polling one must not share
+        # that budget.
+        "upload_quote_create": "10/min",
+        "upload_quote_read": "120/min",
     },
 }
 
@@ -1746,6 +1765,39 @@ MAX_UPLOAD_FILE_SIZE_BYTES = MAX_UPLOAD_FILE_SIZE_MB * 1024 * 1024
 # in-memory store for the same reason uploading is off above.
 KEPT_UPLOADS_BACKEND = env.str(
     "KEPT_UPLOADS_BACKEND", default="memory" if _RUNNING_TESTS else "cloudinary"
+)
+
+# Upload quote (plan rev 3 section 6): what an upload will cost, asked before
+# anything is processed. The route switch is read by the routes
+# (students.upload_quote_views); off answers 404 before authentication.
+# On by default (owner ruling 2026-11-20); it reaches staging only as the
+# finished build.
+UPLOAD_QUOTES_ENABLED = env.bool("UPLOAD_QUOTES_ENABLED", default=True)
+# How long a READY quote waits for the teacher (owner Q5, 2026-11-20): the
+# clock starts at create and restarts when the quote becomes ready. A quote
+# still measuring never expires; an unready one is purged after the ceiling.
+UPLOAD_QUOTE_LIFETIME_MINUTES = env.int("UPLOAD_QUOTE_LIFETIME_MINUTES", default=10)
+UPLOAD_QUOTE_UNREADY_CEILING_MINUTES = env.int(
+    "UPLOAD_QUOTE_UNREADY_CEILING_MINUTES", default=60
+)
+UPLOAD_QUOTE_MAX_FILES = env.int("UPLOAD_QUOTE_MAX_FILES", default=100)
+#: A teacher's open quotes hold at most this many bytes and this many quotes.
+UPLOAD_QUOTE_OPEN_BYTES = env.int("UPLOAD_QUOTE_OPEN_BYTES", default=1_000 * 1024**2)
+UPLOAD_QUOTE_MAX_OPEN = env.int("UPLOAD_QUOTE_MAX_OPEN", default=3)
+#: Every open quote together: refuse new files at MAX, alert at ALERT.
+UPLOAD_QUOTE_GLOBAL_OPEN_BYTES_MAX = env.int(
+    "UPLOAD_QUOTE_GLOBAL_OPEN_BYTES_MAX", default=40 * 1024**3
+)
+UPLOAD_QUOTE_GLOBAL_OPEN_BYTES_ALERT = env.int(
+    "UPLOAD_QUOTE_GLOBAL_OPEN_BYTES_ALERT", default=20 * 1024**3
+)
+#: How long an ended quote's row stays (the replay window of a second confirm).
+UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS = env.int(
+    "UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS", default=7
+)
+#: Measures at once, so they never take more than this many worker slots.
+UPLOAD_QUOTE_MEASURE_CONCURRENCY = env.int(
+    "UPLOAD_QUOTE_MEASURE_CONCURRENCY", default=2
 )
 
 # Email domain for users the live-QA suite creates. Defaults to a

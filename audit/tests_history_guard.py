@@ -41,6 +41,10 @@ def tracked_field_names():
 
 # (file, enclosing function) -> why this bulk write needs no history.
 ALLOWED = {
+    ("students/upload_quote_measure.py", "_give_up"): (
+        "UploadQuoteFile measure state (untracked model, zero-credit; the "
+        "quote is not a student record)"
+    ),
     ("billing/credit_requests.py", "_move"): (
         "Epic B1c CreditRequest status moves (untracked model); every move "
         "is audited as CREDIT_REQUEST_CREATE/DECIDE"

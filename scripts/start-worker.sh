@@ -6,5 +6,6 @@
 set -eu
 
 exec celery -A AutoGrader worker \
+    -Q celery,quote_measure \
     --concurrency="${CELERY_WORKER_CONCURRENCY:-4}" \
     --loglevel="${CELERY_WORKER_LOGLEVEL:-info}"
