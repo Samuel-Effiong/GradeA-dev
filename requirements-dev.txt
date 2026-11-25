@@ -65,4 +65,4 @@ types-python-dateutil==2.9.0.20250822
 types-pytz==2025.2.0.20250809
 types-PyYAML==6.0.12.20250915
 types-requests==2.32.4.20250913
-virtualenv==21.14.10
+virtualenv==21.14.13
