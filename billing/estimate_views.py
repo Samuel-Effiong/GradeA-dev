@@ -97,7 +97,7 @@ ESTIMATE_REPLY = inline_serializer(
 )
 
 
-@extend_schema(tags=["Billing"])
+@extend_schema(tags=["Credit Requests"])
 class BillingEstimateView(APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 

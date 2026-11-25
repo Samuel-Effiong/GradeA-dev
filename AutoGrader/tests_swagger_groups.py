@@ -8,7 +8,7 @@ from drf_spectacular import extensions
 from rest_framework.test import APITestCase
 
 APPROVED = {
-    ("post", "/api/v1/billing/estimate"): "Billing",
+    ("post", "/api/v1/billing/estimate"): "Credit Requests",
     ("get", "/api/v1/billing/credit-requests"): "Credit Requests",
     ("post", "/api/v1/billing/credit-requests"): "Credit Requests",
     ("get", "/api/v1/billing/credit-requests/counts"): "Credit Requests",
