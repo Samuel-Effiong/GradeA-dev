@@ -418,9 +418,11 @@ def payload(quote):
             would_park = [rows[i].position for i in sorted(parked)]
     files = []
     for row, figure in zip(rows, figures, strict=True):
-        high = None
+        estimated_cost = None
         if figure is not None:
-            high = 0 if row.position in already else estimates._display_cost(figure)
+            estimated_cost = (
+                0 if row.position in already else estimates._display_cost(figure)
+            )
         files.append(
             {
                 "id": str(row.pk),
@@ -430,7 +432,7 @@ def payload(quote):
                 "reason_code": row.reason_code or None,
                 "pages": row.pages,
                 "calls": calls_of(task_type, row.pages) if row.pages else None,
-                "high": high,
+                "estimated_cost": estimated_cost,
                 "already_uploaded": row.position in already,
                 "duplicate_of": None,
             }

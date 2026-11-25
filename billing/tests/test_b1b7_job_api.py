@@ -107,9 +107,7 @@ class JobApiTests(TestCase):
         self.assertEqual(data["id"], str(self.job.pk))
         self.assertEqual(data["job_type"], "BATCH_GRADING")
         self.assertEqual(data["state"], AIJobStatus.QUEUED_PENDING_CREDITS)
-        self.assertEqual(
-            data["estimate"], {"p50": 300, "p90": 450, "source": "assignment"}
-        )
+        self.assertEqual(data["estimate"], {"p50": 300, "p90": 450})
         self.assertEqual(data["verdict"], "MAYBE")
         self.assertEqual(
             data["actual"], {"consumed_credits": 640, "unbilled_credits": 12}

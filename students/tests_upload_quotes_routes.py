@@ -462,7 +462,7 @@ class Read(Base):
         del tokens
         return quote
 
-    def test_get_shows_the_estimate_in_the_ten_keys_once_ready(self):
+    def test_get_shows_the_estimate_in_the_seven_keys_once_ready(self):
         quote = self.measured_quote((2, 4))
         body = data_of(self.get(quote.pk))
         self.assertTrue(body["ready"])
@@ -476,22 +476,18 @@ class Read(Base):
                 "spendable",
                 "projected_remaining_p50",
                 "projected_remaining_p90",
-                "source",
-                "shape_basis",
-                "sample_size",
                 "n",
             },
         )
-        self.assertEqual(body["estimate"]["shape_basis"], "upload_files")
         self.assertEqual(body["estimate"]["n"], 2)
         self.assertEqual(body["would_park"], [])
 
-    def test_each_file_carries_its_own_high_figure_pages_and_calls(self):
+    def test_each_file_carries_its_own_estimated_cost_pages_and_calls(self):
         body = data_of(self.get(self.measured_quote((2, 7)).pk))
         small, large = body["files"]
         self.assertEqual((small["pages"], small["calls"]), (2, 1))
         self.assertEqual((large["pages"], large["calls"]), (7, 3))
-        self.assertGreater(large["high"], small["high"])
+        self.assertGreater(large["estimated_cost"], small["estimated_cost"])
         self.assertEqual(
             body["estimate"]["p90"],
             -(-(self.raw(2) + self.raw(7)) // self.factor()),

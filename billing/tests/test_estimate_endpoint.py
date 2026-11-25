@@ -77,7 +77,6 @@ class EstimateEndpointTests(EndpointFixture):
         # Display credits (owner, 2026-11-18): 300 raw rounds up to 1 and
         # the 10,000 raw wallet shows as 10.
         self.assertEqual(body["p50"], 1)
-        self.assertEqual(body["source"], "assignment")
         self.assertEqual(body["verdict"], "SUFFICIENT")
         self.assertEqual(body["spendable"], 10)
 
@@ -110,9 +109,6 @@ class EstimateEndpointTests(EndpointFixture):
                 "spendable",
                 "projected_remaining_p50",
                 "projected_remaining_p90",
-                "source",
-                "shape_basis",
-                "sample_size",
                 "n",
             },
         )
