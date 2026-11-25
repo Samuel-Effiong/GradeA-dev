@@ -42,6 +42,7 @@ from users.models import UserTypes
 
 from . import intent_signals as signal_rules
 from . import lead_filters
+from .credit_units import AVERAGE_PLACES, display_credits
 from .imports import stripe
 from .job_ref import ai_job_schema, with_ai_job_id
 from .models import (
@@ -1772,7 +1773,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         tags=["Beta Analytics Charts"],
         summary="Daily credit consumption",
-        description="Get daily credit consumption for the beta program.",
+        description="Get daily credit consumption for the beta program, in AI credits.",
         responses={
             200: OpenApiResponse(response=DailyTimeSeriesSerializer),
         },
@@ -1800,7 +1801,10 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         for i in range(61):
             target_date = sixty_days_ago + timedelta(days=i)
             daily_time_series.append(
-                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+                {
+                    "date": target_date,
+                    "credits": display_credits(usage_dict.get(target_date, 0)),
+                }
             )
 
         serializer = DailyTimeSeriesSerializer(daily_time_series, many=True)
@@ -1809,7 +1813,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         tags=["Beta Analytics Charts"],
         summary="Weekly credit trends",
-        description="Get weekly credit trends for the beta program.",
+        description="Get weekly credit trends for the beta program, in AI credits.",
         responses={
             200: OpenApiResponse(response=WeeklyGrowthSerializer),
         },
@@ -1830,7 +1834,10 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         weekly_growth = [
-            {"week_start": w["week"].date(), "total_credits": w["total"]}
+            {
+                "week_start": w["week"].date(),
+                "total_credits": display_credits(w["total"]),
+            }
             for w in weekly_usage
         ]
 
@@ -1840,7 +1847,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         tags=["Beta Analytics Charts"],
         summary="Peak usage hours",
-        description="Get peak usage hours for the beta program.",
+        description="Get peak usage hours for the beta program, in AI credits.",
         responses={
             200: OpenApiResponse(response=PeakUsageHourSerializer),
         },
@@ -1861,7 +1868,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         peak_usage = [
-            {"hour_24h": h["hour"], "total_credits": h["total"]}
+            {"hour_24h": h["hour"], "total_credits": display_credits(h["total"])}
             for h in hourly_distribution
         ]
 
@@ -1870,8 +1877,9 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
 
     @extend_schema(
         tags=["Beta Analytics Charts"],
-        summary="Token per submission",
-        description="Get token per submission for the beta program.",
+        summary="AI credits per submission",
+        description="Get the average AI credits per submission, per day, for the "
+        "beta program.",
     )
     @action(
         detail=False,
@@ -1880,7 +1888,7 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="daily-credit-consumption-grouping",
     )
     def daily_credit_consumption_grouping(self, request, *args, **kwargs):
-        # Time series stats showing the average tokens consumed daily per AI action for each feature
+        # Time series stats showing the average AI credits consumed daily per AI action for each feature
         # Three lines: Grading, Feedback, Assignment Creation
 
         sixty_days_ago = timezone.now().date() - timedelta(days=60)
@@ -1925,9 +1933,15 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
             consumption_series.append(
                 {
                     "date": target_date,
-                    "avg_tokens_grading": round(day_data["grading"], 2),
-                    "avg_tokens_feedback": round(day_data["feedback"], 2),
-                    "avg_tokens_creation": round(day_data["creation"], 2),
+                    "avg_tokens_grading": display_credits(
+                        day_data["grading"], AVERAGE_PLACES
+                    ),
+                    "avg_tokens_feedback": display_credits(
+                        day_data["feedback"], AVERAGE_PLACES
+                    ),
+                    "avg_tokens_creation": display_credits(
+                        day_data["creation"], AVERAGE_PLACES
+                    ),
                 }
             )
 
@@ -2122,39 +2136,29 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         feedback_cats = ["Formatted Grade", "Student Summary"]
         creation_cats = ["Assignment Extraction", "Assignment Generation"]
 
-        # 2. Aggregate global totals and event counts across the entire cohort
+        # 2. The cohort's totals, one row per profile, and the event counts
+        # from the cohort's usage logs in a query of their own. They used to
+        # be one aggregate over a join with the logs, which repeated each
+        # profile once per log row and inflated every sum (SM ruling,
+        # 2026-11-25); the shares were right only because the same factor
+        # scaled both sides.
         mix_stats = self.get_queryset().aggregate(
             total_spent=Sum("total_credits_used"),
             total_grading=Sum("credits_used_grading"),
             total_creation=Sum("credits_used_creation"),
             total_feedback=Sum("credits_used_feedback"),
             total_views=Sum("analytics_view_count"),
-            grading_events=Count(
-                "user__credit_wallet__credit_usage_logs",
-                filter=Q(
-                    user__credit_wallet__credit_usage_logs__feature__in=grading_cats
+        )
+        mix_stats.update(
+            self.get_cohort_usage_logs().aggregate(
+                grading_events=Count("id", filter=Q(feature__in=grading_cats)),
+                creation_events=Count("id", filter=Q(feature__in=creation_cats)),
+                feedback_events=Count("id", filter=Q(feature__in=feedback_cats)),
+                other_events=Count(
+                    "id",
+                    filter=~Q(feature__in=grading_cats + feedback_cats + creation_cats),
                 ),
-            ),
-            creation_events=Count(
-                "user__credit_wallet__credit_usage_logs",
-                filter=Q(
-                    user__credit_wallet__credit_usage_logs__feature__in=creation_cats
-                ),
-            ),
-            feedback_events=Count(
-                "user__credit_wallet__credit_usage_logs",
-                filter=Q(
-                    user__credit_wallet__credit_usage_logs__feature__in=feedback_cats
-                ),
-            ),
-            other_events=Count(
-                "user__credit_wallet__credit_usage_logs",
-                filter=~Q(
-                    user__credit_wallet__credit_usage_logs__feature__in=grading_cats
-                    + feedback_cats
-                    + creation_cats
-                ),
-            ),
+            )
         )
 
         total_spent = mix_stats["total_spent"] or 1
@@ -2170,21 +2174,21 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
             "creation_percent": round((total_creation / total_spent) * 100, 2),
             "feedback_percent": round((total_feedback / total_spent) * 100, 2),
             "other_percent": round((total_other / total_spent) * 100, 2),
-            "avg_tokens_grading": round(
-                total_grading / (mix_stats["grading_events"] or 1), 2
+            "avg_tokens_grading": display_credits(
+                total_grading / (mix_stats["grading_events"] or 1), AVERAGE_PLACES
             ),
-            "avg_tokens_creation": round(
-                total_creation / (mix_stats["creation_events"] or 1), 2
+            "avg_tokens_creation": display_credits(
+                total_creation / (mix_stats["creation_events"] or 1), AVERAGE_PLACES
             ),
-            "avg_tokens_feedback": round(
-                total_feedback / (mix_stats["feedback_events"] or 1), 2
+            "avg_tokens_feedback": display_credits(
+                total_feedback / (mix_stats["feedback_events"] or 1), AVERAGE_PLACES
             ),
-            "avg_tokens_other": round(
-                total_other / (mix_stats["other_events"] or 1), 2
+            "avg_tokens_other": display_credits(
+                total_other / (mix_stats["other_events"] or 1), AVERAGE_PLACES
             ),
-            "total_analytics_views": mix_stats["total_views"],
+            "total_analytics_views": mix_stats["total_views"] or 0,
             "views_per_user": round(
-                mix_stats["total_views"] / (self.get_queryset().count() or 1), 1
+                (mix_stats["total_views"] or 0) / (self.get_queryset().count() or 1), 1
             ),
             "primary_driver": (
                 "GRADING" if total_grading > total_creation else "CREATION"
@@ -2233,7 +2237,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Beta Analytics"],
         summary="Get beta program summary statistics",
         description="Retrieve high-level summary metrics for the entire beta cohort, including "
-        "total users, recent activity rates, average credit consumption, capacity "
+        "total users, recent activity rates, average credit consumption (in AI "
+        "credits), capacity "
         "utilization, and onboarding speed. Cached for 15 minutes to optimize performance.",
         responses={
             200: OpenApiResponse(
@@ -2272,7 +2277,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "active_last_7_days_percent": round(
                 (stats["active_recent"] / total) * 100, 2
             ),
-            "avg_credits_used": round(stats["avg_usage"] or 0, 0),
+            "avg_credits_used": display_credits(stats["avg_usage"]),
             "percent_users_at_cap": round((stats["hit_cap"] / total) * 100, 2),
             "avg_days_to_first_action": round(stats["avg_days_to_action"] or 0, 1),
             "credit_used_greater_than_80_percent": round(
@@ -2299,7 +2304,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Beta Analytics"],
         summary="Get beta credit usage statistics",
         description="""
-            Statistical breakdown of 20 Million / 20k AI Credit Beta Cohort
+            Statistical breakdown of the 20,000 AI credit Beta Cohort (figures in AI credits)
 
         This endpoint provides comprehensive usage metrics for the beta program, including:
         - Percentiles (p50, p90, p99)
@@ -2363,11 +2368,11 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         )
 
         data = {
-            "standard_allocation": standard_allocation,
+            "standard_allocation": display_credits(standard_allocation),
             "total_users_analyzed": count,
-            "average_credit_used": round(avg_used, 0),
-            "median_credit_used": median_credits,
-            "p90_credit_used": p90_credits,
+            "average_credit_used": display_credits(avg_used),
+            "median_credit_used": display_credits(median_credits),
+            "p90_credit_used": display_credits(p90_credits),
             "average_days_to_reach_cap": avg_days_to_reach_cap,
             "percent_unused_credits": round(unused_credits_pct, 2),
         }
@@ -2696,8 +2701,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Beta Analytics"],
         summary="Detailed usage data for a specific high-intent lead",
         description=(
-            "Returns daily consumption trends, feature mix percentages, and "
-            "engagement metrics for a specific user ID."
+            "Returns daily consumption trends (in AI credits), feature mix "
+            "percentages, and engagement metrics for a specific user ID."
         ),
         responses={200: BetaUserDetailResponseSerializer},
     )
@@ -2767,7 +2772,10 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         for i in range(61):
             target_date = sixty_days_ago + timedelta(days=i)
             daily_time_series.append(
-                {"date": target_date, "credits": usage_dict.get(target_date, 0)}
+                {
+                    "date": target_date,
+                    "credits": display_credits(usage_dict.get(target_date, 0)),
+                }
             )
 
         # 3. Feature Mix Percentages
@@ -2912,7 +2920,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         Your goal is to analyze the following data and answer the Super Admin's query.
 
         ### BUSINESS LOGIC DEFINITIONS:
-        - HIGH INTENT: User has hit 80% of their 20M credit grant.
+        - HIGH INTENT: User has hit 80% of their 20,000 AI credit grant.
         - HABIT FORMATION: User has logged in >= 8 distinct days.
         - STICKY: User was active in the last 7 days.
         - POWER GRADER: User uses 'Grading' features more than 'Assignment Creation'.
