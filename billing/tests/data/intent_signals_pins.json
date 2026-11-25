@@ -712,14 +712,19 @@
     "active_last_7_days_percent": 50.0,
     "avg_credits_used": 12000.0,
     "avg_days_to_first_action": 2.0,
+    "churn_30d_base_count": null,
+    "churn_30d_lost_count": null,
+    "churn_30d_percent": null,
+    "conversion_start_date": "2026-11-25",
     "credit_used_greater_than_60_count": 4,
     "credit_used_greater_than_60_percent": 66.67,
-    "grading_percent_greater_than_creation_count": 3,
-    "grading_percent_greater_than_creation_percent": 50.0,
-    "login_greater_than_8_days": 66.67,
-    "login_greater_than_8_days_count": 4,
+    "new_trial_signups_count": 0,
+    "paying_users_count": 0,
     "percent_unused_credits": 40.0,
     "percent_users_at_cap": 16.67,
-    "total_beta_users": 6
+    "total_beta_users": 6,
+    "trial_conversion_converted_count": 0,
+    "trial_conversion_percent": 0.0,
+    "trial_conversion_trials_count": 0
   }
 }

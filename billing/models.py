@@ -637,6 +637,29 @@ class UserSubscription(models.Model):
         ),
     )
 
+    # Step 4 (owner, 2026-11-25): the history churn is read from. Both are
+    # stamped by save() below; a queryset write must set ended_at itself
+    # (billing.tests.test_conversion_numbers guards it). Migration 0092
+    # filled them for the rows that existed before.
+    paid_since = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When this subscription became a non-trial plan: created as one, "
+            "or a trial converted on this row. Null while a trial, and for a "
+            "trial that ended without converting."
+        ),
+    )
+    ended_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text=(
+            "When is_active went from true to false: the subscription "
+            "actually ended (not the cancel request, see cancelled_at). "
+            "Null while active."
+        ),
+    )
+
     class Meta:
         ordering = ["-created_at"]
 
@@ -647,6 +670,71 @@ class UserSubscription(models.Model):
                 name="one_active_subscription_per_user",
             )
         ]
+
+    @classmethod
+    def from_db(cls, db, field_names, values):
+        instance = super().from_db(db, field_names, values)
+        # The stored is_active / is_trial, for save() to see a change.
+        instance._stored_lifecycle = (
+            instance.__dict__.get("is_active"),
+            instance.__dict__.get("is_trial"),
+        )
+        return instance
+
+    def _stamp_lifecycle(self, update_fields):
+        """Set paid_since / ended_at for the change this save writes; return
+        the fields set. Only a save that writes is_active (or is_trial) can
+        stamp, so a partial save of other fields changes nothing."""
+
+        def writes(name):
+            return update_fields is None or name in update_fields
+
+        now = timezone.now()
+        stamped = []
+        if self._state.adding:
+            if self.is_active and not self.is_trial and self.paid_since is None:
+                self.paid_since = now
+                stamped.append("paid_since")
+            return stamped
+        stored = getattr(self, "_stored_lifecycle", None)
+        if stored is None:
+            return stamped
+        was_active, was_trial = stored
+        if (
+            writes("is_active")
+            and was_active
+            and not self.is_active
+            and self.ended_at is None
+        ):
+            self.ended_at = now
+            stamped.append("ended_at")
+        if (
+            writes("is_trial")
+            and was_trial
+            and not self.is_trial
+            and self.is_active
+            and self.paid_since is None
+        ):
+            self.paid_since = now
+            stamped.append("paid_since")
+        return stamped
+
+    def save(self, *args, **kwargs):
+        update_fields = kwargs.get("update_fields")
+        if update_fields is not None:
+            update_fields = list(update_fields)
+        stamped = self._stamp_lifecycle(update_fields)
+        if update_fields is not None and stamped:
+            kwargs["update_fields"] = update_fields + [
+                name for name in stamped if name not in update_fields
+            ]
+        super().save(*args, **kwargs)
+        was_active, was_trial = getattr(self, "_stored_lifecycle", (None, None))
+        if update_fields is None or "is_active" in update_fields:
+            was_active = self.is_active
+        if update_fields is None or "is_trial" in update_fields:
+            was_trial = self.is_trial
+        self._stored_lifecycle = (was_active, was_trial)
 
 
 class CreditWallet(models.Model):
@@ -2028,6 +2116,17 @@ class BillingSettings(models.Model):
         help_text=(
             "Minutes past the redelivery window (and past the time limit for "
             "jobs with no task row) before a stale credit hold is returned."
+        ),
+    )
+    # Step 4: set once by migration 0092 (the first audited subscription
+    # change), never edited. Churn months that begin before it have no data.
+    subscription_history_from = models.DateTimeField(
+        null=True,
+        blank=True,
+        editable=False,
+        help_text=(
+            "From when subscription start and end times are exact (the audit "
+            "trail's first subscription change). Churn before it is not shown."
         ),
     )
 

@@ -509,14 +509,14 @@ class BackfillTests(Plans, TestCase):
             )
             with freeze_time(at(8, 5)):
                 touched_row.is_active = False
-                touched_row.save(update_fields=["is_active"])
+                touched_row.save(update_fields=["is_active", "updated_at"])
             with freeze_time(at(8, 25)):
                 switched_first.is_active = False
                 switched_first.save(update_fields=["is_active"])
                 switched_second = self.sub(switched, self.pro, at(8, 25))
             with freeze_time(at(10, 1)):
                 touched_row.auto_renew = False
-                touched_row.save(update_fields=["auto_renew"])
+                touched_row.save(update_fields=["auto_renew", "updated_at"])
         # --- The audit trail starts ---
         with freeze_time(at(9, 1)):
             audited = self.teacher("audited")

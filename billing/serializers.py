@@ -1687,17 +1687,76 @@ class BetaSummarySerializer(serializers.Serializer):
     credit_used_greater_than_60_percent = serializers.FloatField(
         help_text="Percent of beta users who have used at least 60% of their credits."
     )
-    login_greater_than_8_days = serializers.FloatField()
-    grading_percent_greater_than_creation_percent = serializers.FloatField()
     percent_unused_credits = serializers.FloatField()
 
     # Absolute counts
     credit_used_greater_than_60_count = serializers.IntegerField(
         help_text="Beta users who have used at least 60% of their credits."
     )
-    login_greater_than_8_days_count = serializers.IntegerField()
-    grading_percent_greater_than_creation_count = serializers.IntegerField()
     active_last_7_days_count = serializers.IntegerField()
+
+    # Step 4 (owner, 2026-11-25): conversion page numbers. These cover ALL
+    # individual teachers, not only the beta cohort above.
+    paying_users_count = serializers.IntegerField(
+        help_text=(
+            "All individual teachers (not only the beta cohort) with an active, "
+            "Stripe-billed individual plan (Standard, Pro, Power or Custom; not "
+            "a trial, Beta, a school license or a plan given without payment)."
+        )
+    )
+    conversion_start_date = serializers.DateField(
+        help_text=(
+            "Trials started on or after this date (00:00 UTC) are the ones "
+            "counted in new_trial_signups_count and the trial conversion rate."
+        )
+    )
+    new_trial_signups_count = serializers.IntegerField(
+        help_text=(
+            "Individual teachers whose free trial started in the last 30 days "
+            "and on or after conversion_start_date."
+        )
+    )
+    trial_conversion_trials_count = serializers.IntegerField(
+        help_text=(
+            "Conversion rate denominator: individual teachers whose free trial "
+            "started on or after conversion_start_date."
+        )
+    )
+    trial_conversion_converted_count = serializers.IntegerField(
+        help_text=(
+            "Conversion rate numerator: of those teachers, the ones with an "
+            "active, Stripe-billed individual plan now."
+        )
+    )
+    trial_conversion_percent = serializers.FloatField(
+        help_text=(
+            "trial_conversion_converted_count / trial_conversion_trials_count "
+            "x 100, rounded to 2 places; 0 when there are no trials."
+        )
+    )
+    churn_30d_base_count = serializers.IntegerField(
+        allow_null=True,
+        help_text=(
+            "All individual teachers paying (active, Stripe-billed individual "
+            "plan) 30 days ago. Null when subscription history does not reach "
+            "back that far."
+        ),
+    )
+    churn_30d_lost_count = serializers.IntegerField(
+        allow_null=True,
+        help_text=(
+            "Of those, the teachers not paying now: their paid subscription "
+            "ended in the last 30 days (a switch to another paid plan is not "
+            "lost). Null as above."
+        ),
+    )
+    churn_30d_percent = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "churn_30d_lost_count / churn_30d_base_count x 100, rounded to 2 "
+            "places; 0 when nobody was paying; null as above."
+        ),
+    )
 
 
 class DailyTimeSeriesSerializer(serializers.Serializer):
@@ -1769,6 +1828,47 @@ class IntentSignalDistributionSerializer(serializers.Serializer):
     signal_count = serializers.IntegerField()
     user_count = serializers.IntegerField()
     user_ids = serializers.ListField(child=serializers.UUIDField())
+
+
+class ChurnMonthSerializer(serializers.Serializer):
+    month = serializers.CharField(help_text="Calendar month, YYYY-MM (UTC).")
+    base_count = serializers.IntegerField(
+        allow_null=True,
+        help_text=(
+            "Individual teachers paying (active, Stripe-billed individual "
+            "plan) at the start of the month. Null when no_data."
+        ),
+    )
+    lost_count = serializers.IntegerField(
+        allow_null=True,
+        help_text=(
+            "Of those, the teachers not paying at the end of the month (now, "
+            "for the current month): their paid subscription ended in it. A "
+            "switch to another paid plan is not lost. Null when no_data."
+        ),
+    )
+    churn_percent = serializers.FloatField(
+        allow_null=True,
+        help_text=(
+            "lost_count / base_count x 100, rounded to 2 places; 0 when nobody "
+            "was paying. Null when no_data."
+        ),
+    )
+    partial = serializers.BooleanField(
+        help_text="True for the current month: its figures run to now."
+    )
+    no_data = serializers.BooleanField(
+        help_text=(
+            "True when the month begins before subscription start and end "
+            "times were recorded exactly; its figures are null."
+        )
+    )
+
+
+class ChurnMonthlyResponseSerializer(serializers.Serializer):
+    months = ChurnMonthSerializer(
+        many=True, help_text="The last 12 calendar months, oldest first."
+    )
 
 
 class IntentSignalResponseSerializer(serializers.Serializer):
