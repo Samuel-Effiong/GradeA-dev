@@ -729,7 +729,7 @@
   "summary": {
     "active_last_7_days_count": 3,
     "active_last_7_days_percent": 50.0,
-    "avg_credits_used": 8250083.0,
+    "avg_credits_used": 8250.0,
     "avg_days_to_first_action": 2.0,
     "credit_used_greater_than_80_count": 4,
     "credit_used_greater_than_80_percent": 66.67,
