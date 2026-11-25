@@ -1817,7 +1817,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         tags=["Beta Analytics Charts"],
         summary="Weekly credit trends",
-        description="Get weekly credit trends for the beta program, in AI credits.",
+        description="Get weekly credit trends for the beta program: the last 12 "
+        "weeks up to the current week, oldest first, in AI credits.",
         responses={
             200: OpenApiResponse(response=WeeklyGrowthSerializer),
         },
@@ -1829,20 +1830,24 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="weekly-credit-trends",
     )
     def weekly_credit_trends(self, request, *args, **kwargs):
+        # Only usage up to now: rows dated in the future are left out, so they
+        # cannot show as future weeks or push real weeks out of the last 12.
         weekly_usage = (
             self.get_cohort_usage_logs()
+            .filter(created_at__lte=timezone.now())
             .annotate(week=TruncWeek("created_at"))
             .values("week")
             .annotate(total=Sum("amount"))
             .order_by("-week")[:12]
         )
 
+        # Newest 12 weeks, returned oldest to newest for a left-to-right chart.
         weekly_growth = [
             {
                 "week_start": w["week"].date(),
                 "total_credits": display_credits(w["total"]),
             }
-            for w in weekly_usage
+            for w in reversed(list(weekly_usage))
         ]
 
         serializer = WeeklyGrowthSerializer(weekly_growth, many=True)
