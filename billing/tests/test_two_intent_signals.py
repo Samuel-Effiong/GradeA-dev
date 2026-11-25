@@ -256,8 +256,9 @@ class SurfaceTests(APITestCase):
         body = self.data("analytics-summary")
         self.assertEqual(body["credit_used_greater_than_60_count"], 2)
         self.assertEqual(body["credit_used_greater_than_60_percent"], 66.67)
-        # Deprecated, kept for the beta frontend: from has_hit_80_percent.
-        self.assertEqual(body["credit_used_greater_than_80_count"], 2)
+        # Removed (owner, 2026-11-25): the 60% fields replace them.
+        self.assertNotIn("credit_used_greater_than_80_count", body)
+        self.assertNotIn("credit_used_greater_than_80_percent", body)
         # Kept until Step 4: no longer signals, the same rules.
         self.assertEqual(body["login_greater_than_8_days_count"], 1)
         self.assertEqual(body["grading_percent_greater_than_creation_count"], 1)

@@ -1684,13 +1684,17 @@ class BetaSummarySerializer(serializers.Serializer):
     avg_credits_used = serializers.FloatField()
     percent_users_at_cap = serializers.FloatField()
     avg_days_to_first_action = serializers.FloatField()
-    credit_used_greater_than_80_percent = serializers.FloatField()
+    credit_used_greater_than_60_percent = serializers.FloatField(
+        help_text="Percent of beta users who have used at least 60% of their credits."
+    )
     login_greater_than_8_days = serializers.FloatField()
     grading_percent_greater_than_creation_percent = serializers.FloatField()
     percent_unused_credits = serializers.FloatField()
 
     # Absolute counts
-    credit_used_greater_than_80_count = serializers.IntegerField()
+    credit_used_greater_than_60_count = serializers.IntegerField(
+        help_text="Beta users who have used at least 60% of their credits."
+    )
     login_greater_than_8_days_count = serializers.IntegerField()
     grading_percent_greater_than_creation_count = serializers.IntegerField()
     active_last_7_days_count = serializers.IntegerField()
@@ -1797,10 +1801,12 @@ class ConversionLeadMetricsSerializer(serializers.Serializer):
 
 
 class ConversionLeadFlagsSerializer(serializers.Serializer):
-    at_80_percent = serializers.BooleanField()
-    active_last_week = serializers.BooleanField()
-    is_power_grader = serializers.BooleanField()
-    frequent_user = serializers.BooleanField()
+    """The two signals (Step 2, owner 2026-11-25; billing.intent_signals)."""
+
+    at_60_percent = serializers.BooleanField(
+        help_text="Used at least 60% of their credit allocation."
+    )
+    active_last_week = serializers.BooleanField(help_text="Active in the last 7 days.")
 
 
 class BetaUserDetailResponseSerializer(serializers.Serializer):

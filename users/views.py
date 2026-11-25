@@ -265,8 +265,8 @@ Keys:
   wallet have an empty value.
 - `credit_usage`: all the credits they have ever used, not counting
   refunds. Shown and sorted like `credits_left`.
-- `signals`: how many of the 4 signals they meet, from 0 to 4
-  (at_80_percent, frequent_user, active_last_week, is_power_grader). Only
+- `signals`: how many of the 2 signals they meet, from 0 to 2
+  (at_60_percent, active_last_week). Only
   teachers have signals; everyone else counts as 0. Users with the same
   number are sorted by conversion score, highest first, with users who have
   no score last, and then by ID. That order for equal numbers stays the same

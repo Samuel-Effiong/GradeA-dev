@@ -323,20 +323,20 @@ class SortTests(UsageBase):
         )
 
     def test_the_signals_order_and_the_default_order_are_as_they_were(self):
-        four = self.teacher(10.0, **base.ALL4)
-        one = self.teacher(90.0, has_hit_80_percent=True)
+        two = self.teacher(10.0, **base.BOTH)
+        one = self.teacher(90.0, **base.HIGH_USAGE)
         zero = self.teacher(50.0)
-        self.assertEqual(self.emails(), [one.email, zero.email, four.email])
+        self.assertEqual(self.emails(), [one.email, zero.email, two.email])
         self.assertEqual(
-            self.emails(ordering="signals"), [zero.email, one.email, four.email]
+            self.emails(ordering="signals"), [zero.email, one.email, two.email]
         )
         self.assertEqual(
-            self.emails(ordering="-signals"), [four.email, one.email, zero.email]
+            self.emails(ordering="-signals"), [two.email, one.email, zero.email]
         )
         for ignored in ("", "score", "signal_count", "credits", "-nonsense"):
             with self.subTest(ignored):
                 self.assertEqual(
-                    self.emails(ordering=ignored), [one.email, zero.email, four.email]
+                    self.emails(ordering=ignored), [one.email, zero.email, two.email]
                 )
 
 

@@ -109,10 +109,8 @@ class UserEnrollmentFilter(django_filters.FilterSet):
     assignments_created_max = WholeNumberFilter(method="filter_usage_range")
     # Brief 4: the signals (billing.intent_signals), teachers only.
     signals_min = signal_rules.count_filter("filter_signal_value")
-    at_80_percent = signal_rules.flag_filter("filter_signal_value")
-    frequent_user = signal_rules.flag_filter("filter_signal_value")
+    at_60_percent = signal_rules.flag_filter("filter_signal_value")
     active_last_week = signal_rules.flag_filter("filter_signal_value")
-    is_power_grader = signal_rules.flag_filter("filter_signal_value")
 
     #: param -> (value, lookup)
     LIST_FILTERS = {
@@ -330,35 +328,23 @@ FILTER_HELP = {
         f"keeps users who have none. {_EMPTY} {_SUPER_ADMIN_ONLY}"
     ),
     "signals_min": (
-        "Keeps users who meet at least this many of the 4 signals "
-        "(at_80_percent, frequent_user, active_last_week, is_power_grader), "
-        "from 0 to 4. Only teachers can have signals, so 1 or more keeps "
+        "Keeps users who meet at least this many of the 2 signals "
+        "(at_60_percent, active_last_week), "
+        "from 0 to 2. Only teachers can have signals, so 1 or more keeps "
         f"teachers only, and 0 keeps everyone. {_EMPTY} {_SUPER_ADMIN_ONLY}"
     ),
-    "at_80_percent": (
-        "true: keeps teachers who have been marked as reaching 80% of their "
-        "beta credits. It is worked out from the credits they have really "
-        "used, after refunds, so a refund that takes them below 80% removes "
-        "it. false: keeps everyone else. "
-        f"{_TEACHERS_ONLY} {_EMPTY} {_SUPER_ADMIN_ONLY}"
-    ),
-    "frequent_user": (
-        "true: keeps teachers who have been active on 8 or more different "
-        f"days. false: keeps everyone else. {_TEACHERS_ONLY} {_EMPTY} "
-        f"{_SUPER_ADMIN_ONLY}"
+    "at_60_percent": (
+        "true: keeps teachers who have used at least 60% of their credit "
+        "allocation. It is worked out from the credits they have really "
+        "used, after refunds, so a refund that takes them below 60% removes "
+        "it. A teacher with no allocation counts as false. false: keeps "
+        f"everyone else. {_TEACHERS_ONLY} {_EMPTY} {_SUPER_ADMIN_ONLY}"
     ),
     "active_last_week": (
         "true: keeps teachers who were last active in the past 7 days, "
         "counting back from the moment you ask, to the second; exactly 7 "
         "days ago still counts. A teacher who was never active counts as "
         f"false. false: keeps everyone else. {_TEACHERS_ONLY} {_EMPTY} "
-        f"{_SUPER_ADMIN_ONLY}"
-    ),
-    "is_power_grader": (
-        "true: keeps teachers who have spent more credits on grading than on "
-        "creating assignments (reading them in and generating them). Equal "
-        "amounts count as false, and credits spent on feedback are not "
-        f"counted. false: keeps everyone else. {_TEACHERS_ONLY} {_EMPTY} "
         f"{_SUPER_ADMIN_ONLY}"
     ),
 }

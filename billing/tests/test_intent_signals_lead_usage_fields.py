@@ -164,8 +164,7 @@ class LeadUsageFieldsTests(UsageBase):
             )
             self.assertEqual(
                 set(row["flags"]),
-                {"at_80_percent", "active_last_week", "is_power_grader",
-                 "frequent_user"},  # fmt: skip
+                {"at_60_percent", "active_last_week"},
             )
 
     def test_no_wallet_is_null_even_when_a_wallet_row_is_gone(self):
@@ -250,10 +249,9 @@ class SwaggerExamplesShowEveryFieldTests(UsageBase):
                 self.assertIn(row["plan_interval"], BillingInterval.values)
         self.assertTrue(any(r["plan_tier"] is None for r in rows))
         for row in rows:
-            self.assertEqual(
-                row["metrics"]["primary_use_case"],
-                "Grading" if row["flags"]["is_power_grader"] else "Creation",
-            )
+            # Step 2: the two signals; primary_use_case is a metric of its own.
+            self.assertEqual(set(row["flags"]), {"at_60_percent", "active_last_week"})
+            self.assertIn(row["metrics"]["primary_use_case"], ("Grading", "Creation"))
 
 
 class LeadDetailFieldsTests(UsageBase):

@@ -145,6 +145,15 @@ def top_leads(now, limit=None):
     return leads[:limit] if limit is not None else leads
 
 
+def primary_use_case(profile):
+    """ "Grading" when more credits went to grading than to creating
+    assignments, else "Creation". A metric, not a signal (Step 2: it used
+    to read the is_power_grader signal, which has the same rule)."""
+    if profile.credits_used_grading > profile.credits_used_creation:
+        return "Grading"
+    return "Creation"
+
+
 def lead_rows(leads, usage=None):
     """One sales-lead row per profile, as the leads list shows it. `leads`
     must carry the signal annotations (annotate_signals). The custom AI
@@ -181,14 +190,9 @@ def lead_rows(leads, usage=None):
                     "last_active": (
                         p.last_active_at.date() if p.last_active_at else None
                     ),
-                    "primary_use_case": "Grading" if p.is_power_grader else "Creation",
+                    "primary_use_case": primary_use_case(p),
                 },
-                "flags": {
-                    "at_80_percent": p.at_80_percent,
-                    "active_last_week": p.active_last_week,
-                    "is_power_grader": p.is_power_grader,
-                    "frequent_user": p.frequent_user,
-                },
+                "flags": {name: getattr(p, name) for name in signal_rules.FLAGS},
             }
         )
     return rows
@@ -2023,9 +2027,9 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(
         tags=["Beta Analytics Charts"],
         summary="Conversion intent distribution",
-        description="Categorizes users by the number of conversion signals they meet (1-4). "
-        "Signals: High Consumption (>=80%), High Frequency (>=8 days), Recent Activity (<7 days), "
-        "and Grading-Heavy Usage.",
+        description="Categorizes users by the number of conversion signals they meet (0-2). "
+        "Signals: High Consumption (at least 60% of their credits used) and Recent "
+        "Activity (active in the last 7 days).",
         responses={200: IntentSignalResponseSerializer},
     )
     @action(
@@ -2043,18 +2047,16 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
 
         import typing
 
-        # Initialize structure for buckets 1, 2, 3, 4
+        # One bucket per signal count, 0 to 2 (Step 2, SM ruling 2026-11-25:
+        # 0 is shown too).
         distribution: typing.Dict[int, typing.Dict[str, typing.Any]] = {
-            1: {"user_count": 0, "user_ids": []},
-            2: {"user_count": 0, "user_ids": []},
-            3: {"user_count": 0, "user_ids": []},
-            4: {"user_count": 0, "user_ids": []},
+            count: {"user_count": 0, "user_ids": []}
+            for count in signal_rules.SIGNAL_COUNTS
         }
 
         for profile in profiles:
             signals = profile.signal_count
 
-            # Increment the corresponding bucket if signals >= 1
             if signals in distribution:
                 distribution[signals]["user_count"] += 1
                 distribution[signals]["user_ids"].append(profile.user_id)
@@ -2260,9 +2262,12 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             avg_usage=Avg("total_credits_used"),
             hit_cap=Count("id", filter=Q(has_hit_cap=True)),
             avg_days_to_action=Avg("days_to_first_action"),
-            high_consumption=Count("id", filter=signal["at_80_percent"]),
-            habit_formation=Count("id", filter=signal["frequent_user"]),
-            primary_graders=Count("id", filter=signal["is_power_grader"]),
+            high_consumption=Count("id", filter=signal["at_60_percent"]),
+            # Kept until Step 4 replaces these cards; no longer signals.
+            habit_formation=Count("id", filter=Q(distinct_login_days__gte=8)),
+            primary_graders=Count(
+                "id", filter=Q(credits_used_grading__gt=F("credits_used_creation"))
+            ),
         )
 
         total = stats["total"] or 1
@@ -2280,7 +2285,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "avg_credits_used": display_credits(stats["avg_usage"]),
             "percent_users_at_cap": round((stats["hit_cap"] / total) * 100, 2),
             "avg_days_to_first_action": round(stats["avg_days_to_action"] or 0, 1),
-            "credit_used_greater_than_80_percent": round(
+            "credit_used_greater_than_60_percent": round(
                 (stats["high_consumption"] / total) * 100, 2
             ),
             "login_greater_than_8_days": round(
@@ -2291,7 +2296,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             ),
             "percent_unused_credits": round(unused_credits_percent, 2),
             # Absolute counts
-            "credit_used_greater_than_80_count": stats["high_consumption"],
+            "credit_used_greater_than_60_count": stats["high_consumption"],
             "login_greater_than_8_days_count": stats["habit_formation"],
             "grading_percent_greater_than_creation_count": stats["primary_graders"],
             "active_last_7_days_count": stats["active_recent"],
@@ -2561,7 +2566,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             "id": "3f1c2a7e-8b4d-4e6a-9c15-7d2e0b9a4f31",
                             "name": "Ada Okafor",
                             "email": "teacher1@school.edu",
-                            "score": 87.5,
+                            "score": 100.0,
                             "metrics": {
                                 "credit_usage": 46,
                                 "usage_percentage": 92.3,
@@ -2570,10 +2575,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                                 "primary_use_case": "Grading",
                             },
                             "flags": {
-                                "at_80_percent": True,
+                                "at_60_percent": True,
                                 "active_last_week": True,
-                                "is_power_grader": True,
-                                "frequent_user": True,
                             },
                             "plan_tier": "PRO",
                             "plan_category": "INDIVIDUAL",
@@ -2591,7 +2594,7 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                             "id": "b7d94e12-5a3c-4f80-a1e6-2c8f6d3b9e07",
                             "name": "Ben Mwangi",
                             "email": "teacher2@school.edu",
-                            "score": 72.1,
+                            "score": 50.0,
                             "metrics": {
                                 "credit_usage": 32,
                                 "usage_percentage": 65.8,
@@ -2600,10 +2603,8 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                                 "primary_use_case": "Creation",
                             },
                             "flags": {
-                                "at_80_percent": False,
+                                "at_60_percent": False,
                                 "active_last_week": True,
-                                "is_power_grader": False,
-                                "frequent_user": True,
                             },
                             "plan_tier": None,
                             "plan_category": None,
@@ -2741,16 +2742,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
                 "last_active": (
                     profile.last_active_at.date() if profile.last_active_at else None
                 ),
-                "primary_use_case": (
-                    "Grading" if profile.is_power_grader else "Creation"
-                ),
+                "primary_use_case": primary_use_case(profile),
             },
-            "flags": {
-                "at_80_percent": profile.at_80_percent,
-                "active_last_week": profile.active_last_week,
-                "is_power_grader": profile.is_power_grader,
-                "frequent_user": profile.frequent_user,
-            },
+            "flags": {name: getattr(profile, name) for name in signal_rules.FLAGS},
             # The lead row's other fields, the same user-list values (S11).
             **{name: wallet[name] for name in lead_filters.ROW_FIELDS},
         }
@@ -2920,10 +2914,9 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         Your goal is to analyze the following data and answer the Super Admin's query.
 
         ### BUSINESS LOGIC DEFINITIONS:
-        - HIGH INTENT: User has hit 80% of their 20,000 AI credit grant.
-        - HABIT FORMATION: User has logged in >= 8 distinct days.
+        - HIGH CONSUMPTION: User has used at least 60% of their AI credit grant.
         - STICKY: User was active in the last 7 days.
-        - POWER GRADER: User uses 'Grading' features more than 'Assignment Creation'.
+        - CONVERSION SCORE: 50 points for each of the two signals above (0-100).
 
         ### COHORT SUMMARY:
         {summary_data}

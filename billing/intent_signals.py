@@ -1,22 +1,25 @@
 """
-The four conversion signals, in one place (brief 4, owner-approved for beta
-2026-11-11; SM -31 rulings, docs/evidence/signals-beta/DESIGN.md).
+The two conversion signals, in one place (brief 4, owner-approved for beta
+2026-11-11; SM -31 rulings, docs/evidence/signals-beta/DESIGN.md; Step 2,
+owner 2026-11-25: four signals became two).
 
 A teacher's BetaProfile meets a signal when:
 
-- at_80_percent: has_hit_80_percent
-- frequent_user: distinct_login_days >= 8
+- at_60_percent: total_credits_used >= 60% of initial_beta_credits (the
+  ratio the stored 80% flag uses, at 0.6; computed here, never stored; an
+  allocation of 0 or none -> False)
 - active_last_week: last_active_at >= now - 7 days (inclusive; null -> False)
-- is_power_grader: credits_used_grading > credits_used_creation
 
-signal_count is how many are met (0-4). Every surface that shows them reads
+frequent_user (8+ days) and is_power_grader are no longer signals.
+
+signal_count is how many are met (0-2). Every surface that shows them reads
 these SQL expressions, so they cannot disagree:
 
 - the sales-leads list (beta/intent-signals): its per-row "flags", and its
   optional `signals` ordering and filters;
 - the signal distribution chart;
 - the single-lead detail;
-- the cohort summary's four counts;
+- the cohort summary's signal counts;
 - the super admin user list (users.user_list), teachers only.
 
 `now` is read once per request through `clock()` (tests patch it) and kept on
@@ -27,11 +30,25 @@ from datetime import timedelta
 from typing import Any
 
 import django_filters
-from django.db.models import BooleanField, Case, F, IntegerField, Q, Value, When
+from django.db.models import (
+    BigIntegerField,
+    BooleanField,
+    Case,
+    F,
+    IntegerField,
+    Q,
+    Value,
+    When,
+)
+from django.db.models.functions import Cast
+from django.db.models.lookups import GreaterThanOrEqual
 from django.utils import timezone
 
-FLAGS = ("at_80_percent", "frequent_user", "active_last_week", "is_power_grader")
-FREQUENT_DAYS = 8
+FLAGS = ("at_60_percent", "active_last_week")
+#: at_60_percent: used * HIGH_USAGE_DENOMINATOR >= allocation *
+#: HIGH_USAGE_NUMERATOR, in whole numbers (60%).
+HIGH_USAGE_NUMERATOR = 6
+HIGH_USAGE_DENOMINATOR = 10
 ACTIVE_WINDOW = timedelta(days=7)
 SIGNAL_COUNTS = tuple(range(len(FLAGS) + 1))
 
@@ -66,21 +83,40 @@ def request_now(request):
     return now
 
 
+def at_high_usage(used, allocation):
+    """The at_60_percent rule in Python (the conversion score): `used` is
+    at least 60% of `allocation`; no allocation is False."""
+    allocation = allocation or 0
+    if allocation <= 0:
+        return False
+    return (used or 0) * HIGH_USAGE_DENOMINATOR >= allocation * HIGH_USAGE_NUMERATOR
+
+
+def is_active(last_active_at, now):
+    """The active_last_week rule in Python (the conversion score)."""
+    return last_active_at is not None and last_active_at >= now - ACTIVE_WINDOW
+
+
 def flag_q(now, prefix=""):
     """name -> Q for each signal, on a BetaProfile reached through
     `prefix` (e.g. "beta_profile__")."""
     return {
-        "at_80_percent": Q(**{f"{prefix}has_hit_80_percent": True}),
-        "frequent_user": Q(**{f"{prefix}distinct_login_days__gte": FREQUENT_DAYS}),
-        "active_last_week": Q(**{f"{prefix}last_active_at__gte": now - ACTIVE_WINDOW}),
-        "is_power_grader": Q(
-            **{f"{prefix}credits_used_grading__gt": F(f"{prefix}credits_used_creation")}
+        "at_60_percent": Q(**{f"{prefix}initial_beta_credits__gt": 0})
+        & Q(
+            GreaterThanOrEqual(
+                # bigint: a whole-number product must not overflow int4.
+                Cast(f"{prefix}total_credits_used", BigIntegerField())
+                * HIGH_USAGE_DENOMINATOR,
+                Cast(f"{prefix}initial_beta_credits", BigIntegerField())
+                * HIGH_USAGE_NUMERATOR,
+            )
         ),
+        "active_last_week": Q(**{f"{prefix}last_active_at__gte": now - ACTIVE_WINDOW}),
     }
 
 
 def expressions(now, prefix="", scope=None):
-    """name -> SQL expression for the four flags, signal_count and
+    """name -> SQL expression for the flags, signal_count and
     signals_score. `scope` (a Q) limits who can have signals at all; anyone
     outside it gets every flag False, 0 and a null score."""
     conditions = flag_q(now, prefix)
@@ -107,7 +143,7 @@ def expressions(now, prefix="", scope=None):
 
 
 def annotate_signals(queryset, now, prefix="", scope=None, alias=False):
-    """Add the four flags, signal_count and signals_score unless present."""
+    """Add the flags, signal_count and signals_score unless present."""
     present = set(queryset.query.annotations)
     missing = {
         name: expr
@@ -139,7 +175,7 @@ def filter_signals(queryset, name, value):
 
 
 def count_filter(method):
-    """signals_min: 0-4."""
+    """signals_min: 0 to the number of flags."""
     return django_filters.ChoiceFilter(
         choices=[(str(n), str(n)) for n in SIGNAL_COUNTS], method=method
     )
@@ -154,14 +190,12 @@ def flag_filter(method):
 
 
 class SignalFilterSet(django_filters.FilterSet):
-    """signals_min (0-4) and one true/false filter per flag. A bad value is a
+    """signals_min (0-2) and one true/false filter per flag. A bad value is a
     400 with django-filter's own message."""
 
     signals_min = count_filter("filter_signal")
-    at_80_percent = flag_filter("filter_signal")
-    frequent_user = flag_filter("filter_signal")
+    at_60_percent = flag_filter("filter_signal")
     active_last_week = flag_filter("filter_signal")
-    is_power_grader = flag_filter("filter_signal")
 
     def filter_signal(self, queryset, name, value):
         return filter_signals(queryset, name, value)

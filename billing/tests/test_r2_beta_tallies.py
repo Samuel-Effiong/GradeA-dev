@@ -121,7 +121,7 @@ class ReconcileTests(TallyFixture, TestCase):
             credits_used_feedback=0,
             has_hit_80_percent=True,
             has_hit_cap=True,
-            conversion_probability=50.0,
+            conversion_probability=90.0,
             usage_velocity=500.0,
         )
         self.charge(user, 300, GRADING)
@@ -139,8 +139,9 @@ class ReconcileTests(TallyFixture, TestCase):
         self.assertEqual(profile.credits_used_feedback, 100)
         self.assertFalse(profile.has_hit_80_percent)
         self.assertFalse(profile.has_hit_cap)
-        # Rescored: only grading > creation (+20); 650 over 10 days.
-        self.assertEqual(profile.conversion_probability, 20.0)
+        # Rescored (Step 2, 50 + 50): 650 of 1000 is 60% or more (+50), not
+        # active (0); 650 over 10 days.
+        self.assertEqual(profile.conversion_probability, 50.0)
         self.assertEqual(profile.usage_velocity, 65.0)
         self.assertEqual(len(corrections), 1)
         self.assertEqual(corrections[0].user_id, user.id)
@@ -405,21 +406,22 @@ class RefundRuleTests(TallyFixture, TestCase):
 
     def test_a_refund_below_80_percent_clears_the_flag_and_the_score_at_once(self):
         set_profile(self.user, initial_beta_credits=1000)
-        self.consume(770, "keep")
-        self.consume(50, "fail")
+        self.consume(550, "keep")
+        self.consume(300, "fail")
         profile = BetaProfile.objects.get(user=self.user)
         AnalyticsService.calculate_conversion_probability(profile)
         profile.refresh_from_db()
-        self.assertTrue(profile.has_hit_80_percent)  # 82%
+        self.assertTrue(profile.has_hit_80_percent)  # 85%
         before = profile.conversion_probability
 
         SubscriptionService.refund_credits("fail")
 
         profile.refresh_from_db()
-        self.assertEqual(profile.total_credits_used, 770)  # 77%
+        self.assertEqual(profile.total_credits_used, 550)  # 55%
         self.assertFalse(profile.has_hit_80_percent)
         self.assertFalse(profile.has_hit_cap)
-        self.assertEqual(profile.conversion_probability, before - 30)
+        # Step 2: below 60% loses the usage signal's 50 points at once.
+        self.assertEqual(profile.conversion_probability, before - 50)
 
     def test_a_refund_below_the_cap_clears_the_cap_only(self):
         set_profile(self.user, initial_beta_credits=1000)
@@ -497,7 +499,8 @@ class NightlyTaskTests(TallyFixture, TestCase):
         self.assertEqual(profile.total_credits_used, 10)
         self.assertFalse(profile.has_hit_80_percent)
         self.assertFalse(profile.has_hit_cap)
-        self.assertEqual(profile.conversion_probability, 20.0)
+        # 10 of 1000 is under 60%, and never active.
+        self.assertEqual(profile.conversion_probability, 0.0)
 
     def test_the_beat_entry_runs_nightly_before_the_scoring(self):
         entry = settings.CELERY_BEAT_SCHEDULE["reconcile-beta-tallies"]
@@ -546,7 +549,8 @@ class ReadersTests(TallyFixture, APITestCase):
         # In AI credits (Step 1, 2026-11-25): the corrected 100 raw is 0
         # credits; the drifted 900 raw would have shown as 1.
         self.assertEqual(body["avg_credits_used"], 0)
-        self.assertEqual(body["credit_used_greater_than_80_count"], 0)
+        # Corrected: 100 of 1000 is under 60% (the drifted 900 was over).
+        self.assertEqual(body["credit_used_greater_than_60_count"], 0)
         self.assertEqual(body["grading_percent_greater_than_creation_count"], 0)
 
     def test_the_lead_flags_read_the_corrected_tallies(self):
@@ -558,24 +562,28 @@ class ReadersTests(TallyFixture, APITestCase):
             if row["email"] == self.user.email
         ]
         self.assertEqual(len(rows), 1)
-        self.assertFalse(rows[0]["flags"]["at_80_percent"])
-        self.assertFalse(rows[0]["flags"]["is_power_grader"])
+        self.assertFalse(rows[0]["flags"]["at_60_percent"])
+        # Grading 30 against creation 70 once corrected (a metric now).
+        self.assertEqual(rows[0]["metrics"]["primary_use_case"], "Creation")
 
 
-class AtEightyPercentSwaggerTests(APITestCase):
-    """The users list's at_80_percent text (approved wording, 2026-11-12)."""
+class AtSixtyPercentSwaggerTests(APITestCase):
+    """The users list's at_60_percent text (the at_80_percent wording
+    approved 2026-11-12, at 60% since Step 2, 2026-11-25)."""
 
     NEW = (
         "It is worked out from the credits they have really used, after "
-        "refunds, so a refund that takes them below 80% removes it."
+        "refunds, so a refund that takes them below 60% removes it."
     )
 
-    def test_the_swagger_text_says_a_refund_below_80_percent_removes_it(self):
+    def test_the_swagger_text_says_a_refund_below_60_percent_removes_it(self):
         from users.tests_user_list_docs import list_parameters, own_text
 
         text = " ".join(
-            own_text(list_parameters(self)["at_80_percent"].get("description")).split()
+            own_text(list_parameters(self)["at_60_percent"].get("description")).split()
         )
         self.assertIn(self.NEW, text)
         self.assertNotIn("Once marked, it stays marked.", text)
-        self.assertTrue(text.startswith("true: keeps teachers who have been marked"))
+        self.assertTrue(
+            text.startswith("true: keeps teachers who have used at least 60%")
+        )

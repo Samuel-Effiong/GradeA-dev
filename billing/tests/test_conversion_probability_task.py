@@ -77,12 +77,12 @@ class ConversionProbabilityTaskTests(TestCase):
         now = timezone.now()
         profile = set_profile(
             user,
-            distinct_login_days=10,  # +30
-            has_hit_80_percent=True,  # +30
-            last_active_at=now - timedelta(days=1),  # +20
-            credits_used_grading=900,  # +20 (grading > creation)
+            # Step 2 (owner, 2026-11-25): 50 + 50.
+            last_active_at=now - timedelta(days=1),  # +50 (active)
+            initial_beta_credits=1000,
+            total_credits_used=1000,  # +50 (60% or more used)
+            credits_used_grading=900,
             credits_used_creation=100,
-            total_credits_used=1000,
             joined_beta_at=now - timedelta(days=10),
         )
         self.assertEqual(profile.conversion_probability, 0.0)
@@ -121,7 +121,7 @@ class ConversionProbabilityTaskTests(TestCase):
             user = make_teacher(f"batch{index}@gmail.com")
             set_profile(
                 user,
-                distinct_login_days=10,
+                last_active_at=now - timedelta(days=1),
                 total_credits_used=100,
                 joined_beta_at=now - timedelta(days=5),
             )
@@ -129,7 +129,7 @@ class ConversionProbabilityTaskTests(TestCase):
         summary = recalculate_conversion_probabilities()
 
         self.assertEqual(
-            BetaProfile.objects.filter(conversion_probability=30.0).count(), 3
+            BetaProfile.objects.filter(conversion_probability=50.0).count(), 3
         )
         self.assertIn("3 scored", summary)
 
@@ -156,7 +156,7 @@ class ConversionProbabilityTaskTests(TestCase):
         good = make_teacher("survivor@gmail.com")
         set_profile(
             good,
-            distinct_login_days=10,
+            last_active_at=now - timedelta(days=1),
             total_credits_used=100,
             joined_beta_at=now - timedelta(days=5),
         )
@@ -181,7 +181,7 @@ class ConversionProbabilityTaskTests(TestCase):
         self.assertIn("1 failed", summary)
         # The healthy profile was still scored and its write survived.
         self.assertEqual(
-            BetaProfile.objects.get(user=good).conversion_probability, 30.0
+            BetaProfile.objects.get(user=good).conversion_probability, 50.0
         )
 
     def test_the_failure_is_logged_with_the_profile_identity(self):

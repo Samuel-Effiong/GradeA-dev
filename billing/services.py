@@ -17,6 +17,7 @@ from AutoGrader.tasks import send_email_task
 from billing.errors import BillingRequestError
 from users.mailerlite_service import queue_sync
 
+from . import intent_signals as signal_rules
 from .licence_rollup import roll_up_after_commit
 from .locks import lock_wallet_first
 from .models import CONVERSION_FACTOR  # CreditUsageLog,; SubscriptionPlan,
@@ -2440,7 +2441,7 @@ class AnalyticsService:
         #
         # These two flags mean "uses 80%/100% OF THEIR ALLOCATION now", from
         # the credits really used after refunds (R2, owner 2026-11-12: they
-        # always match real usage; a refund below 80% clears at_80_percent).
+        # always match real usage; a refund below 80% clears has_hit_80_percent).
         # With no allocation there is no fraction to be a proportion of, so
         # the honest answer is to leave both untouched rather than invent a
         # ratio. The consumption totals above are still recorded either way,
@@ -2569,23 +2570,15 @@ class AnalyticsService:
         now = now or timezone.now()
         score = 0
 
-        # +30 points for high engagement (8+ distinct days)
-        if profile.distinct_login_days >= 8:
-            score += 30
-
-        # +30 point for high credit usage (80% or more)
-        if profile.has_hit_80_percent:
-            score += 30
-
-        # +20 point for "Sticky" users (Active in the last 7 days)
-        if profile.last_active_at:
-            days_since_active = (now - profile.last_active_at).days
-            if days_since_active <= 7:
-                score += 20
-
-        # +20 points for "Core Use Case" (Grading > Creation)
-        if profile.credits_used_grading > profile.credits_used_creation:
-            score += 20
+        # Step 2 (owner, 2026-11-25): the two signals, 50 points each, by
+        # the same rules as billing.intent_signals (the 8+ days and
+        # grading-over-creation signals are gone).
+        if signal_rules.at_high_usage(
+            profile.total_credits_used, profile.initial_beta_credits
+        ):
+            score += 50
+        if signal_rules.is_active(profile.last_active_at, now):
+            score += 50
 
         # Calculate Velocity (Credits per day)
         #

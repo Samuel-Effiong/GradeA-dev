@@ -79,10 +79,8 @@ NEW_KEYS = (
 #: Brief 4 (signals, users.tests_user_list_signals): five more list-only keys.
 SIGNAL_KEYS = (
     "signal_count",
-    "at_80_percent",
-    "frequent_user",
+    "at_60_percent",
     "active_last_week",
-    "is_power_grader",
 )
 #: "username" was removed (brief 6, owner 2026-11-11): CustomUser has no
 #: username field, so it was a 500.
