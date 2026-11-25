@@ -254,3 +254,62 @@ class WeeklyCreditTrendsWindowTests(AdminFixture):
             "the last 12 weeks up to the current week, oldest first, in AI credits",
             paths[path]["get"]["description"],
         )
+
+
+class PeakUsageHoursWindowTests(AdminFixture):
+    """Step 4 (owner go, 2026-11-25): the peak-usage chart counts usage up to
+    now only. A row dated in the future is left out of its hour; past rows
+    still count; totals are in AI credits."""
+
+    URL = "beta-chart-peak-usage-hours"
+
+    def setUp(self):
+        self.sign_in_admin()
+        self.user = self.teacher()
+        set_profile(
+            self.user,
+            joined_beta_at=timezone.now() - timedelta(days=400),
+            initial_beta_credits=20_000_000,
+        )
+
+    def charge_at(self, amount, when):
+        # The ledger is append-only, so the row is written at the wanted time.
+        with freeze_time(when):
+            return self.charge(self.user, amount, GRADING)
+
+    def at_hour(self, days, hour):
+        base = timezone.now() + timedelta(days=days)
+        return base.replace(hour=hour, minute=30, second=0, microsecond=0)
+
+    def by_hour(self, rows):
+        return {r["hour_24h"]: r["total_credits"] for r in rows}
+
+    def test_a_future_dated_row_is_left_out_of_its_hour(self):
+        self.charge_at(5_000, self.at_hour(-3, 14))
+        self.charge_at(7_000, self.at_hour(400, 14))
+        self.charge_at(9_000, self.at_hour(400, 20))
+        hours = self.by_hour(self.get(self.URL))
+        self.assertEqual(hours, {14: 5})
+
+    def test_past_rows_still_count_and_stay_in_hour_order(self):
+        self.charge_at(3_000, self.at_hour(-10, 9))
+        self.charge_at(4_000, self.at_hour(-2, 9))
+        self.charge_at(6_000, self.at_hour(-5, 3))
+        rows = self.get(self.URL)
+        self.assertEqual([r["hour_24h"] for r in rows], [3, 9])
+        self.assertEqual(self.by_hour(rows), {3: 6, 9: 7})
+
+    def test_values_are_in_ai_credits(self):
+        self.charge_at(9_150, self.at_hour(-1, 11))
+        self.charge_at(10_850, self.at_hour(-1, 11))
+        self.assertEqual(self.by_hour(self.get(self.URL)), {11: 20})
+
+    def test_the_swagger_text_says_up_to_now(self):
+        from drf_spectacular.generators import SchemaGenerator
+
+        paths = SchemaGenerator().get_schema(request=None, public=True)["paths"]
+        (path,) = [p for p in paths if p.rstrip("/").endswith("peak-usage-hours")]
+        self.assertIn(
+            "counting usage up to now, in AI credits",
+            paths[path]["get"]["description"],
+        )
