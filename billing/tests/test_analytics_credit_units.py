@@ -16,6 +16,7 @@ from django.core.cache import cache
 from django.test import SimpleTestCase
 from django.urls import reverse
 from django.utils import timezone
+from freezegun import freeze_time
 from rest_framework.test import APITestCase
 
 from billing.tests.test_r2_beta_tallies import (
@@ -177,3 +178,79 @@ class HalfUpOnTheEndpointsTests(AdminFixture):
         self.assertEqual(body["average_credit_used"], 3)
         self.assertEqual(body["median_credit_used"], 3)
         self.assertEqual(body["p90_credit_used"], 3)
+
+
+class WeeklyCreditTrendsWindowTests(AdminFixture):
+    """Step 3 (owner go, 2026-11-25): the Week-over-Week chart counts usage up
+    to now only, returns at most the last 12 weeks that have data, oldest
+    first, in AI credits. Rows dated in the future are left out."""
+
+    URL = "beta-chart-weekly-credit-trends"
+
+    def setUp(self):
+        self.sign_in_admin()
+        self.user = self.teacher()
+        set_profile(
+            self.user,
+            joined_beta_at=timezone.now() - timedelta(days=400),
+            initial_beta_credits=20_000_000,
+        )
+
+    def charge_at(self, amount, when):
+        # The ledger is append-only, so the row is written at the wanted time.
+        with freeze_time(when):
+            return self.charge(self.user, amount, GRADING)
+
+    def week_start(self, when):
+        day = when.date()
+        return day - timedelta(days=day.weekday())
+
+    def test_a_future_dated_row_is_left_out(self):
+        now = timezone.now()
+        self.charge_at(5_000, now)
+        self.charge_at(7_000, now + timedelta(days=400))
+        rows = self.get(self.URL)
+        self.assertEqual(len(rows), 1)
+        self.assertEqual(rows[0]["total_credits"], 5)
+        self.assertLessEqual(rows[0]["week_start"], timezone.now().date().isoformat())
+
+    def test_the_current_partial_week_is_included(self):
+        now = timezone.now()
+        self.charge_at(3_000, now)
+        rows = self.get(self.URL)
+        self.assertEqual(rows[-1]["week_start"], self.week_start(now).isoformat())
+        self.assertEqual(rows[-1]["total_credits"], 3)
+
+    def test_at_most_twelve_weeks_and_they_are_the_latest(self):
+        now = timezone.now()
+        for n in range(15):
+            self.charge_at(1_000, now - timedelta(weeks=n))
+        rows = self.get(self.URL)
+        self.assertEqual(len(rows), 12)
+        oldest_kept = self.week_start(now - timedelta(weeks=11)).isoformat()
+        self.assertEqual(rows[0]["week_start"], oldest_kept)
+
+    def test_oldest_first(self):
+        now = timezone.now()
+        for n in (0, 2, 5):
+            self.charge_at(1_000, now - timedelta(weeks=n))
+        starts = [r["week_start"] for r in self.get(self.URL)]
+        self.assertEqual(starts, sorted(starts))
+        self.assertEqual(len(starts), 3)
+
+    def test_values_are_in_ai_credits(self):
+        now = timezone.now()
+        self.charge_at(9_150, now)
+        self.charge_at(10_850, now)
+        (row,) = self.get(self.URL)
+        self.assertEqual(row["total_credits"], 20)
+
+    def test_the_swagger_text_says_the_window(self):
+        from drf_spectacular.generators import SchemaGenerator
+
+        paths = SchemaGenerator().get_schema(request=None, public=True)["paths"]
+        (path,) = [p for p in paths if p.rstrip("/").endswith("weekly-credit-trends")]
+        self.assertIn(
+            "the last 12 weeks up to the current week, oldest first, in AI credits",
+            paths[path]["get"]["description"],
+        )
