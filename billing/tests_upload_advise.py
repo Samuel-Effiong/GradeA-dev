@@ -111,7 +111,7 @@ class Advise(TestCase):
     def advise(self, figures, **kwargs):
         return est().upload_advise(self.teacher, "extract_answer", figures, **kwargs)
 
-    def test_the_ten_keys(self):
+    def test_the_seven_keys(self):
         result = self.advise([CONVERSION_FACTOR * 10])
         self.assertEqual(
             set(result),
@@ -122,13 +122,9 @@ class Advise(TestCase):
                 "spendable",
                 "projected_remaining_p50",
                 "projected_remaining_p90",
-                "source",
-                "shape_basis",
-                "sample_size",
                 "n",
             },
         )
-        self.assertEqual(result["shape_basis"], "upload_files")
 
     def test_p90_is_the_sum_rounded_up_once_in_display_credits(self):
         result = self.advise([CONVERSION_FACTOR * 3 + 1, CONVERSION_FACTOR * 2 + 1])
@@ -140,15 +136,12 @@ class Advise(TestCase):
         result = self.advise([CONVERSION_FACTOR * 146])
         self.assertEqual(result["p90"], 146)
         self.assertEqual(result["p50"], 100)  # 146 / 1.46
-        self.assertEqual(result["source"], "rough")
         self.assertLessEqual(result["p50"], result["p90"])
 
-    def test_source_says_upload_history_with_enough_calls(self):
+    def test_enough_calls_use_the_measured_divisor(self):
         for _ in range(30):
             make_call("extract_answer", 20_000, 10_000)
         result = self.advise([CONVERSION_FACTOR * 100])
-        self.assertEqual(result["source"], "upload_history")
-        self.assertEqual(result["sample_size"], 30)
         self.assertEqual(result["p50"], 50)
 
     def test_a_divisor_below_one_clamps_p50_to_p90(self):

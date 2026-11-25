@@ -108,9 +108,6 @@ class SwaggerGroupsTests(APITestCase):
             "spendable",
             "projected_remaining_p50",
             "projected_remaining_p90",
-            "source",
-            "shape_basis",
-            "sample_size",
             "n",
         ),
         ("get", "/api/v1/billing/credit-requests/counts"): (
