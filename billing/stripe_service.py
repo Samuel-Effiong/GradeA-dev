@@ -309,6 +309,9 @@ def extract_subscription_billing_period(stripe_subscription):
 # H-274 (b), BUG-009: shown when a checkout session can't be created. It
 # never carries Stripe's text ("No such customer: cus_..."). True as worded:
 # a checkout session collects payment only after the redirect.
+#: Owner-approved 2026-11-25: buying extra credits needs a paid plan.
+PAID_PLAN_FOR_OVERAGE_MESSAGE = "Choose a paid plan to buy more credits."
+
 CHECKOUT_FAILED_MESSAGE = (
     "We couldn't start checkout for your account. You haven't been charged. "
     "Please contact support."
@@ -2424,8 +2427,18 @@ class StripeOverageService:
         user_sub = (
             user.subscriptions.filter(is_active=True).select_related("plan").first()
         )
-        if not user_sub:
-            raise BillingRequestError("No active subscription found.")
+        # Owner, 2026-11-25 (QA bug): extra credits are for a paid plan. A
+        # teacher with no active subscription, or whose trial has ended (by
+        # its end date, so before the expiry task has switched it off too),
+        # is told what to do instead.
+        trial_over = (
+            user_sub is not None
+            and user_sub.is_trial
+            and user_sub.trial_end is not None
+            and user_sub.trial_end <= timezone.now()
+        )
+        if not user_sub or trial_over:
+            raise BillingRequestError(PAID_PLAN_FOR_OVERAGE_MESSAGE)
 
         plan = user_sub.plan
         if plan.max_overage_blocks <= 0 or plan.overage_block_price <= 0:
@@ -2462,31 +2475,34 @@ class StripeOverageService:
 
         customer_id = StripeCustomerService.get_or_create_customer(user)
 
-        try:
-            session = stripe.checkout.Session.create(
-                customer=customer_id,
-                mode="payment",
-                line_items=[
-                    {"price": plan.stripe_overage_price_id, "quantity": quantity},
-                ],
-                success_url=success_url,
-                cancel_url=cancel_url,
-                metadata={
-                    "flow": "overage_block_purchase_checkout",
-                    "user_id": str(user.id),
-                    "wallet_id": str(wallet.id),
-                    "plan_id": str(plan.id),
-                    "user_subscription_id": str(user_sub.id),
-                    "quantity": str(quantity),
-                },
-            )
-        except stripe.error.StripeError as exc:
-            raise BillingRequestError(
-                "Could not start overage checkout: "
-                + describe_stripe_error(
-                    exc, fallback_message="Please try again in a moment."
-                )
-            ) from exc
+        session_kwargs = {
+            "customer": customer_id,
+            "mode": "payment",
+            "line_items": [
+                {"price": plan.stripe_overage_price_id, "quantity": quantity},
+            ],
+            "success_url": success_url,
+            "cancel_url": cancel_url,
+            "metadata": {
+                "flow": "overage_block_purchase_checkout",
+                "user_id": str(user.id),
+                "wallet_id": str(wallet.id),
+                "plan_id": str(plan.id),
+                "user_subscription_id": str(user_sub.id),
+                "quantity": str(quantity),
+            },
+        }
+
+        # H-274's repair, as on the plan checkout (owner, 2026-11-25): a
+        # saved customer Stripe no longer knows (deleted, or made with the
+        # other mode's key) is replaced and the session made once more.
+        def heal(stale_id):
+            new_id = StripeCustomerService.replace_stale_customer(user, stale_id)
+            return {**session_kwargs, "customer": new_id}
+
+        session = _create_checkout_session(
+            f"overage for user {user.id}", session_kwargs, heal=heal
+        )
 
         logger.info(
             "Created overage checkout session for user %s (plan %s, price "
