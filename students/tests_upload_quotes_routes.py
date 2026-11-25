@@ -482,12 +482,12 @@ class Read(Base):
         self.assertEqual(body["estimate"]["n"], 2)
         self.assertEqual(body["would_park"], [])
 
-    def test_each_file_carries_its_own_high_figure_pages_and_calls(self):
+    def test_each_file_carries_its_own_estimated_cost_pages_and_calls(self):
         body = data_of(self.get(self.measured_quote((2, 7)).pk))
         small, large = body["files"]
         self.assertEqual((small["pages"], small["calls"]), (2, 1))
         self.assertEqual((large["pages"], large["calls"]), (7, 3))
-        self.assertGreater(large["high"], small["high"])
+        self.assertGreater(large["estimated_cost"], small["estimated_cost"])
         self.assertEqual(
             body["estimate"]["p90"],
             -(-(self.raw(2) + self.raw(7)) // self.factor()),

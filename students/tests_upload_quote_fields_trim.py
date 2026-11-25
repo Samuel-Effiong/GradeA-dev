@@ -1,9 +1,11 @@
 """Estimate fields trim (owner, 2026-11-25): the upload quote's estimate,
 in the GET reply and in the create's reply, carries no source, sample_size
-or shape_basis.
+or shape_basis; each file's own figure is "estimated_cost" (it was "high").
 
     python manage.py test students.tests_upload_quote_fields_trim
 """
+
+from django.core.files.uploadedfile import SimpleUploadedFile
 
 from students import tests_upload_quotes_routes as routes
 from students.models import UploadQuoteFile
@@ -50,3 +52,26 @@ class QuoteEstimateTrim(routes.Base):
         second = self.create([routes.pdf()], key=KEY)
         self.assertEqual(second.status_code, 200, second.content)
         self.assert_trimmed(routes.data_of(second))
+
+    def test_get_names_each_files_figure_estimated_cost(self):
+        body = routes.data_of(self.get(self.ready_quote()))
+        (entry,) = body["files"]
+        self.assertNotIn("high", entry)
+        self.assertIsInstance(entry["estimated_cost"], int)
+        self.assertGreater(entry["estimated_cost"], 0)
+
+    def test_an_unmeasured_file_has_a_null_estimated_cost(self):
+        body = routes.data_of(self.create([routes.pdf()]))
+        (entry,) = body["files"]
+        self.assertNotIn("high", entry)
+        self.assertIsNone(entry["estimated_cost"])
+
+    def test_a_duplicate_entry_carries_estimated_cost_too(self):
+        one = routes.pdf("a.pdf")
+        two = SimpleUploadedFile("copy.pdf", one.read(), "application/pdf")
+        one.seek(0)
+        first, second = routes.data_of(self.create([one, two]))["files"]
+        self.assertEqual(second["duplicate_of"], first["id"])
+        for entry in (first, second):
+            self.assertNotIn("high", entry)
+            self.assertIn("estimated_cost", entry)

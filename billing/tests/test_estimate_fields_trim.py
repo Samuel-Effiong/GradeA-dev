@@ -122,3 +122,8 @@ class SwaggerTests(TestCase):
         job = self.schema["components"]["schemas"]["AIJobDetail"]
         estimate = self.resolve(job["properties"]["estimate"])
         self.assertEqual(set(estimate.get("properties", {})), {"p50", "p90"})
+
+    def test_upload_quote_file_entry_names_its_figure_estimated_cost(self):
+        entry = self.component("UploadQuoteFileEntry")
+        self.assertIn("estimated_cost", entry)
+        self.assertNotIn("high", entry)
