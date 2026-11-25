@@ -551,7 +551,8 @@ class ReadersTests(TallyFixture, APITestCase):
         self.assertEqual(body["avg_credits_used"], 0)
         # Corrected: 100 of 1000 is under 60% (the drifted 900 was over).
         self.assertEqual(body["credit_used_greater_than_60_count"], 0)
-        self.assertEqual(body["grading_percent_greater_than_creation_count"], 0)
+        # Step 4 (owner, 2026-11-25): the grading-over-creation card is gone.
+        self.assertNotIn("grading_percent_greater_than_creation_count", body)
 
     def test_the_lead_flags_read_the_corrected_tallies(self):
         response = self.client.get(reverse("analytics-intent-signals"))
