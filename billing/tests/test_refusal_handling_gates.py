@@ -25,6 +25,7 @@ from rest_framework.test import APIClient, APITestCase
 
 from ai_processor.models import ChatMessage
 from ai_processor.services import STUDENT_AI_UNAVAILABLE_MESSAGE, AIProcessor
+from AutoGrader.reason_codes import REASON_CODES, ReasonCode
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import (
     INSUFFICIENT_CREDITS_INDIVIDUAL_MESSAGE,
@@ -474,18 +475,25 @@ class RefusalIsolationTest(APITestCase):
         ):
             self.assertNotIn(leaked, body)
 
-    def test_the_teachers_own_refusal_still_states_the_real_reason(self):
-        """The other half of D12: detail is withheld from the STUDENT, not
-        from the account holder, who needs to know what to fix."""
+    def test_the_teachers_own_refusal_reads_the_plan_sentence(self):
+        """Was D12's other half (the account holder read the raw reason).
+        Owner 2026-11-26 (1A): the teacher reads the standard plan sentence
+        too; the reason stays in the server log."""
         teacher = cancelled_teacher("g9-own")
         classroom(teacher)
         self.client.force_authenticate(user=teacher)
-        with spied_gate():
-            response = self.client.post(
-                reverse(CHAT_URL), {"prompt": "How are my classes?"}, format="json"
-            )
+        with self.assertLogs("ai_processor.services", level="WARNING") as logs:
+            with spied_gate():
+                response = self.client.post(
+                    reverse(CHAT_URL), {"prompt": "How are my classes?"}, format="json"
+                )
         self.assertEqual(response.status_code, FORBIDDEN, response.content)
-        self.assertIn("No active subscription", response.data["error"])
+        self.assertEqual(
+            response.data["error"],
+            REASON_CODES[ReasonCode.AI_FEATURE_NOT_AVAILABLE].message,
+        )
+        self.assertNotIn("No active subscription", response.content.decode())
+        self.assertIn("No active subscription", "\n".join(logs.output))
 
     def test_the_withheld_reason_is_still_recorded_server_side(self):
         """Operators must not lose the diagnosis the student no longer sees."""
