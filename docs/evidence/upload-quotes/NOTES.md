@@ -10,9 +10,9 @@ BE-A-01 (audit), BE-A-06 (reason codes).
 1. `POST /api/v1/upload-quotes/` (multipart): `kind`, `assignment_id`
    (answers) or `course_id` + optional `topic_id` (assignment files), and
    `files` (list order is the position). One request carries every file; the
-   frontend does no check of its own. 201 with the quote and one entry per
-   file (stored, or refused with its own reason code). One bad file never
-   fails the others.
+   frontend does no check of its own. 201 at once with the quote and one
+   entry per file: `STORING` (kept; the bytes are stored after the reply), or
+   `REFUSED` with its own reason code. One bad file never fails the others.
 2. Poll `GET /upload-quotes/{id}` until `ready`. Add more with
    `POST /upload-quotes/{id}/files` (positions continue; sha256 de-dup; 100
    files per quote; 500 MB per request; open quotes only).
@@ -47,6 +47,26 @@ BE-A-01 (audit), BE-A-06 (reason codes).
 * The switch `UPLOAD_QUOTES_ENABLED` is on by default (owner, 2026-11-20); off
   answers 404 before authentication.
 
+### Frontend note: the reply comes before the storage (2026-11-26)
+
+* **STORING.** The create and add-files 201 no longer wait for Cloudinary. A
+  kept file starts `STORING`, then goes `STORED` -> `MEASURING` ->
+  `MEASURED` on later polls. `ready` is false until every file is settled
+  (`MEASURED`, `REFUSED` or `NOT_KEPT`), and `measured`/`total` count the
+  settled files. STORING is a state code, not wording: no new sentence.
+* **NOT_KEPT can arrive on a poll.** A file the storage could not keep (after
+  one retry, and the store task's own retries) turns `NOT_KEPT` with
+  `QUOTE_FILE_NOT_KEPT` after the 201, not in it. Show it as today's
+  `NOT_KEPT` entry.
+* **duplicate_of.** An entry with `duplicate_of` (the same bytes as an earlier
+  file in this quote) has `id: null` and is in the create/add reply only.
+  GET lists one entry per stored file, so read a duplicate's state from the
+  file its `duplicate_of` names.
+* **Polling.** Poll GET every 2 s at first, rising to 5 s (for example 2, 3,
+  4, 5, 5, ...), until `ready`. The read throttle is 120 a minute per teacher.
+* **A replay** with the same `Idempotency-Key` while files are storing
+  answers 200 with every row (all written in one transaction), never a part.
+
 ## The figure (BE-B-03)
 
 A file's figure is exactly the door's: the measure stores per-page tokens
@@ -66,20 +86,45 @@ balance down for display.
 * Own tables (`UploadQuote`, `UploadQuoteFile`, migration 0046), so nothing in
   the task machinery can see an unconfirmed quote: no session, item, hold, job
   or ledger row exists before confirm (BE-B-04).
+* Reply first (owner, 2026-11-26): the request writes every row and, for a
+  kept file, its bytes (`UploadQuoteStagedFile`, migration 0048) in ONE
+  transaction and answers 201; on commit it asks the Celery task
+  `students.tasks.store_quote_files` (queue `quote_measure`, consumed by every
+  worker) for the STORING rows. The task loads `UPLOAD_QUOTE_STORE_CONCURRENCY`
+  files' bytes at a time, recomputes sha256 and size against the row and the
+  staged row (a mismatch: `NOT_KEPT`, metric `upload_quote_bytes_changed`,
+  nothing stored), stores them, and checks Cloudinary's reply (`bytes` = the
+  size, `etag` = the md5; `UPLOAD_QUOTE_VERIFY_ETAG` can switch the etag
+  check off; a mismatch deletes the asset: `NOT_KEPT`, metric
+  `upload_quote_reply_mismatch`). It settles each batch under the quote's
+  lock: STORING -> STORED (with `stored_at`) only while the quote is open and
+  the row still holds the key; otherwise it deletes what it stored, unless a
+  duplicate run already settled the row. Staged bytes go once a row settles;
+  then the task asks for the measure and restarts the clock. A storage fault
+  keeps the bytes staged and retries the task (5 times, a minute apart); the
+  last try ends `NOT_KEPT`.
+* The store's net (with `requeue_stuck_quote_measures`, every 5 minutes): a
+  STORING file not settled after 10 minutes is asked for again while its
+  bytes are staged; with none staged, or after 30 minutes, it ends
+  `NOT_KEPT` and its key is deleted (metric `upload_quote_store_gave_up`).
+  Cancel, the purge and a row's delete (erasure, a cascade) remove staged
+  bytes. Cancel and the purge delete a STORING file's key but leave it on the
+  row until 30 minutes have passed, so bytes that land late are deleted on
+  the next purge; the task also deletes what it stored for an ended or
+  erased quote. The measure's stale and alarm clocks run from `stored_at`.
 * Row-first storage: a file's row commits with its random key before the
-  bytes are stored, so a dead request leaves a row the purge clears by key.
+  bytes are stored, so a dead store leaves a row the purge clears by key.
 * Stores run `UPLOAD_QUOTE_STORE_CONCURRENCY` (default 5, owner 2026-11-26)
-  at a time (`students.quote_store_pool`). A store the storage did not answer
+  at a time (`students.quote_store_pool`, used by the store task). A store the storage did not answer
   (an error or a timeout) is tried once more (metric
   `upload_quote_store_retried`) before the file is `NOT_KEPT`; a Cloudinary
-  400 and changed bytes are never retried. Only the storage call runs in the pool; every
-  row write stays on the caller's thread, in position order. A file is hashed
-  in chunks at intake and read whole only by the thread that stores it, which
-  checks its sha256 and size against the row first (a mismatch stores nothing
-  and ends `NOT_KEPT`, metric `upload_quote_bytes_changed`). Django writes
-  every upload over `FILE_UPLOAD_MAX_MEMORY_SIZE` (256 KB, set for this) to a
-  temporary file as it arrives, so the request holds in RAM only the files
-  under 256 KB and the few files being stored, not the whole request.
+  400 and changed bytes are never retried. Only the storage call runs in the
+  pool; every row write stays on the task's thread. Django writes every upload
+  over `FILE_UPLOAD_MAX_MEMORY_SIZE` (256 KB, set for this) to a temporary
+  file as it arrives, and the request reads one file at a time to stage it,
+  so it holds in RAM only the files under 256 KB and the file being staged.
+  Staged bytes take database space until stored (up to the 1 GB per-teacher
+  room); the store usually empties them within seconds.
 * A quote with no file is not ready (confirm answers `QUOTE_NOT_READY`).
   `open_bytes` counts only rows that hold or will hold bytes (STORING, STORED,
   MEASURING, MEASURED): a refused or not-kept file fills no room.
@@ -116,6 +161,11 @@ balance down for display.
   NOT_A_STUDENT in the data map, with a test).
 * Migration 0046 (renumbered from 0045 for staging) has not shipped; its `(quote, sha256)` unique constraint
   ignores NOT_KEPT rows so "Add that file again" works.
+* Migration 0048 (`UploadQuoteStagedFile`, `UploadQuoteFile.stored_at`)
+  depends on 0046; staging, which already has 0047_merge_upload_quotes, needs
+  a merge migration (prepared on `task/quote-reply-first-staging`). The store
+  task runs on `quote_measure`, which every worker consumes (declared in
+  `CELERY_TASK_QUEUES`); no start command changes.
 
 ## Open items
 

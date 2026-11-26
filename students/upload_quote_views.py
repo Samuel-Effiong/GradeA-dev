@@ -124,6 +124,8 @@ ESTIMATE = inline_serializer(
         "projected_remaining_p90": serializers.IntegerField(),
         "n": serializers.IntegerField(),
     },
+    # null until the quote is ready.
+    allow_null=True,
 )
 QUOTE_REPLY = inline_serializer(
     "UploadQuote",
@@ -241,7 +243,12 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
             "and optional `topic_id` (assignment_files), and `files` (one or "
             "many; list order is the order the files are walked). The server "
             "checks every file; a refused file is its own entry with its "
-            "reason code. Header `Idempotency-Key`: a repeat returns the same "
+            "reason code. The reply does not wait for the storage: a kept "
+            "file starts `STORING`; poll GET until `ready` (STORING -> STORED "
+            "-> MEASURING -> MEASURED). A file can end `NOT_KEPT` "
+            "(`QUOTE_FILE_NOT_KEPT`) after this reply. An entry with "
+            "`duplicate_of` repeats that file: read its state from that file "
+            "in GET. Header `Idempotency-Key`: a repeat returns the same "
             "quote (200) and stores nothing again; without one a retry makes "
             "a new quote."
         ),
@@ -309,7 +316,7 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         refused = nothing_spendable(request.user)
         if refused is not None:
             return refused
-        service.check_room(request.user, sum(f.size or 0 for f in files))
+        service.check_room(request.user, service.kept_size(files))
         quote, created = service.create_quote(
             request.user,
             kind=data["kind"],
@@ -320,9 +327,11 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         )
         if not created:
             return Response(service.payload(quote), status=status.HTTP_200_OK)
+        # Rows and staged bytes commit together; the store task stores the
+        # bytes after this reply, then asks for the measure and restarts the
+        # clock (an all-refused quote is ready now: the clock restarts here).
         entries = service.add_files(quote, files)
         service.restart_clock(quote.pk)
-        service.after_commit_measure([e for e in entries if not isinstance(e, tuple)])
         service.note_global_alert()
         return Response(
             service.create_reply(quote, entries), status=status.HTTP_201_CREATED
@@ -391,7 +400,10 @@ class UploadQuoteFiles(CappedUpload, DarkUntilEnabled, APIView):
             "Multipart: `files`. Positions continue after the quote's last "
             "file; a file whose bytes the quote already holds is not stored "
             "again. Up to 100 files per quote and 500 MB per request. Open "
-            "quotes only: QUOTE_CLOSED, or 410 QUOTE_EXPIRED."
+            "quotes only: QUOTE_CLOSED, or 410 QUOTE_EXPIRED. As with the "
+            "create, kept files start `STORING` and the reply does not wait "
+            "for the storage; poll GET until `ready`. A file can end "
+            "`NOT_KEPT` after this reply."
         ),
         request={
             "multipart/form-data": {

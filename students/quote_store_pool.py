@@ -10,9 +10,10 @@ With a concurrency of 1, or a single call, the calls run inline on the
 caller's thread.
 """
 
+from collections.abc import Callable, Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Callable
+from typing import Any
 
 from django.conf import settings
 
@@ -30,7 +31,7 @@ def _run(call: Callable[[], Any]) -> Outcome:
         return Outcome(error=exc)
 
 
-def run_all(calls: list[Callable[[], Any]]) -> list[Outcome]:
+def run_all(calls: Sequence[Callable[[], Any]]) -> list[Outcome]:
     """One Outcome per call, in order."""
     workers = max(1, int(settings.UPLOAD_QUOTE_STORE_CONCURRENCY))
     if workers == 1 or len(calls) <= 1:

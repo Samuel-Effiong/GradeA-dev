@@ -72,6 +72,27 @@ def sha(upload):
     return hashlib.sha256(upload.read()).hexdigest()
 
 
+def run_the_store():
+    """The store task, run eagerly when the request commits (a Celery task on
+    a worker in production): the reply comes first, then the store, with the
+    task's own retries (no countdown when eager)."""
+    from students.tasks import store_quote_files
+
+    return patch(
+        "students.upload_quote_service.enqueue_store",
+        side_effect=lambda quote_id, ids: store_quote_files.apply(
+            args=(str(quote_id), [str(i) for i in ids])
+        ),
+    )
+
+
+def states():
+    """Every file's state now, in position order (after the store ran)."""
+    return list(
+        UploadQuoteFile.objects.order_by("position").values_list("state", flat=True)
+    )
+
+
 def data_of(response):
     body = response.json()
     return body.get("data", body)
@@ -97,7 +118,9 @@ class Base(APITestCase):
         headers = {"HTTP_IDEMPOTENCY_KEY": key} if key else {}
         with patch(
             "students.upload_quote_service.enqueue_measures"
-        ) as self.enqueued, self.captureOnCommitCallbacks(execute=True):
+        ) as self.enqueued, run_the_store(), self.captureOnCommitCallbacks(
+            execute=True
+        ):
             return self.client.post(
                 reverse(LIST_URL), body, format="multipart", **headers
             )
@@ -120,7 +143,9 @@ class Create(Base):
         self.assertIsNone(quote["estimate"])
         self.assertIsNone(quote["session_id"])
         self.assertEqual([f["position"] for f in quote["files"]], [0, 1])
-        self.assertEqual({f["state"] for f in quote["files"]}, {"STORED"})
+        # The reply does not wait for the storage; the task stores after it.
+        self.assertEqual({f["state"] for f in quote["files"]}, {"STORING"})
+        self.assertEqual(states(), ["STORED", "STORED"])
         self.assertTrue(UploadQuote.objects.get().assignment_id == self.assignment.pk)
 
     def test_assignment_files_create_with_a_topic(self):
@@ -175,8 +200,9 @@ class Create(Base):
 
     def test_a_refused_file_among_good_ones(self):
         response = self.create([pdf("a.pdf"), text_file(), png("c.png")])
-        states = [f["state"] for f in data_of(response)["files"]]
-        self.assertEqual(states, ["STORED", "REFUSED", "STORED"])
+        replied = [f["state"] for f in data_of(response)["files"]]
+        self.assertEqual(replied, ["STORING", "REFUSED", "STORING"])
+        self.assertEqual(states(), ["STORED", "REFUSED", "STORED"])
         self.assertEqual(len(kept_files.MEMORY), 2)
 
     def test_no_files_is_a_400(self):
@@ -242,7 +268,8 @@ class Create(Base):
         with patch.object(kept_files, "store", side_effect=flaky):
             response = self.create([pdf("a.pdf"), png("b.png")])
         self.assertEqual(response.status_code, 201, response.content)
-        first, second = data_of(response)["files"]
+        # The verdict arrives after the reply, on a poll.
+        first, second = data_of(self.get(data_of(response)["id"]))["files"]
         self.assertEqual(first["state"], "NOT_KEPT")
         self.assertEqual(first["reason_code"], "QUOTE_FILE_NOT_KEPT")
         self.assertEqual(second["state"], "STORED")
@@ -268,7 +295,7 @@ class Create(Base):
             )
             response = self.create([big_file, png("b.png")])
         self.assertEqual(response.status_code, 201, response.content)
-        big, small = data_of(response)["files"]
+        big, small = data_of(self.get(data_of(response)["id"]))["files"]
         self.assertEqual(big["state"], "NOT_KEPT")
         self.assertEqual(big["reason_code"], "QUOTE_FILE_NOT_KEPT")
         self.assertEqual(small["state"], "STORED")
@@ -286,16 +313,22 @@ class Create(Base):
         self.assertEqual(seen, [True])
 
     def test_a_file_that_dies_between_row_and_bytes_leaves_a_row_the_purge_clears(self):
-        with patch.object(kept_files, "store", side_effect=RuntimeError("killed")):
-            self.assertEqual(self.create([pdf()]).status_code, 500)
+        # The store task dies before it settles anything (its worker is
+        # killed): the reply was already sent, the row stays STORING.
+        with patch(
+            "students.upload_quote_service.store_staged",
+            side_effect=RuntimeError("killed"),
+        ):
+            self.assertEqual(self.create([pdf()]).status_code, 201)
         row = UploadQuoteFile.objects.get()
         self.assertEqual(row.state, UploadQuoteFile.State.STORING)
         quotes: Any = importlib.import_module("students.upload_quotes")
         # Never ready, so only the unready ceiling can clear it.
-        UploadQuote.objects.update(
-            created_at=timezone.now()
-            - timedelta(minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES + 1)
+        long_ago = timezone.now() - timedelta(
+            minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES + 1
         )
+        UploadQuote.objects.update(created_at=long_ago)
+        UploadQuoteFile.objects.update(created_at=long_ago)
         with self.captureOnCommitCallbacks(execute=True):
             result = quotes.purge_due()
         row.refresh_from_db()

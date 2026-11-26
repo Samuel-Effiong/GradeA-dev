@@ -44,12 +44,37 @@ def measure_quote_file(self, file_id):
         ) from None
 
 
+#: A store task tries a file this many more times on a storage fault, a
+#: minute apart, before the file ends NOT_KEPT.
+STORE_MAX_RETRIES = 5
+STORE_RETRY_COUNTDOWN = 60
+
+
+@shared_task(bind=True, max_retries=STORE_MAX_RETRIES)
+def store_quote_files(self, quote_id, file_ids):
+    """Store the staged bytes of an upload quote's STORING files (the create
+    and add-files reply first), on the `quote_measure` queue, several files
+    at a time (students.upload_quote_service.store_staged). Files the storage
+    did not answer for are tried again, their bytes still staged; on the
+    last try they end NOT_KEPT."""
+    from students import upload_quote_service as service
+
+    final = self.request.retries >= self.max_retries
+    pending = service.store_staged(quote_id, file_ids, final=final)
+    if pending:
+        raise self.retry(args=(quote_id, pending), countdown=STORE_RETRY_COUNTDOWN)
+    return None
+
+
 @shared_task(bind=True, max_retries=0)
 @single_instance(max_hold=beat_locks.EVERY_5_MIN, ttl=beat_locks.EVERY_5_MIN_TTL)
 def requeue_stuck_quote_measures(self):
     """Every 5 minutes: ask again for quote files stored and unmeasured for
     over 10 minutes (3 attempts), and raise the alarm on a quote still
-    measuring after 30."""
+    measuring after 30. Also the store's net: a STORING file is asked for
+    again after 10 minutes while its bytes are staged, and ends NOT_KEPT with
+    none staged or after 30."""
     from students.upload_quote_measure import requeue_stuck
+    from students.upload_quote_service import sweep_storing
 
-    return requeue_stuck()
+    return {**requeue_stuck(), **sweep_storing()}

@@ -47,6 +47,12 @@ def _file_model():
     return UploadQuoteFile
 
 
+def _staged_model():
+    from students.models import UploadQuoteStagedFile
+
+    return UploadQuoteStagedFile
+
+
 #: File states that hold bytes or will: a REFUSED or NOT_KEPT row holds none,
 #: so its size never counts toward the open-bytes limits.
 HOLDING = ("STORING", "STORED", "MEASURING", "MEASURED")
@@ -91,6 +97,12 @@ def _delete_then_mark(row_id, storage_key):
 
 
 UNSETTLED = ("STORING", "STORED", "MEASURING")
+#: A STORING file not settled after STORE_STALE_AFTER is asked for again (its
+#: bytes still staged); after STORE_DEADLINE no store can still be running
+#: for it (the sweeper ends it NOT_KEPT, and the purge marks an ended quote's
+#: STORING file purged only then).
+STORE_STALE_AFTER = timedelta(minutes=10)
+STORE_DEADLINE = timedelta(minutes=30)
 
 
 def lifetime():
@@ -141,6 +153,11 @@ def purge_due(now=None):
     if expired:
         audit_metrics.count("upload_quote_expired", expired)
 
+    # Staged bytes of an ended quote are never stored.
+    _staged_model().objects.filter(
+        file__quote__state__in=[state.CONFIRMED, state.EXPIRED, state.CANCELLED]
+    ).delete()
+    recent = now - STORE_DEADLINE
     purged = failed = 0
     tried = set()
     while True:
@@ -154,12 +171,17 @@ def purge_due(now=None):
             )
             .exclude(pk__in=tried)
             .order_by("created_at", "pk")
-            .values_list("pk", "storage_key")[:PURGE_BATCH]
+            .values_list("pk", "storage_key", "state", "created_at")[:PURGE_BATCH]
         )
         if not batch:
             break
-        for row_id, storage_key in batch:
+        for row_id, storage_key, file_state, created_at in batch:
             tried.add(row_id)
+            if file_state == "STORING" and created_at > recent:
+                # A store may still be running: delete the key's bytes so far
+                # but keep the key, so the next run deletes what lands later.
+                _delete_key(storage_key)
+                continue
             if _delete_then_mark(row_id, storage_key):
                 purged += 1
             else:
@@ -216,6 +238,18 @@ def note_gate_for_task(processing_task_id, gate):
     except Exception:  # noqa: BLE001 - the counter must never stop a real call
         logger.error("Upload quote: the gate figure could not be noted.")
         audit_metrics.count("upload_quote_gate_note_failed")
+
+
+def _delete_key(storage_key):
+    """Delete a key's asset, if any, leaving its row as it is; a failure is
+    logged (the purge tries again while the row keeps the key)."""
+    try:
+        kept_files.delete(storage_key)
+    except kept_files.KeptFileError as exc:
+        logger.warning(
+            "Upload quote: a storing file's key wasn't deleted (%s).",
+            type(exc.__cause__ or exc).__name__,
+        )
 
 
 def _delete_after_commit(storage_key):

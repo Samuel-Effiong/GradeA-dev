@@ -891,6 +891,9 @@ class UploadQuoteFile(models.Model):
     already_uploaded = models.BooleanField(default=False)
     measure_attempts = models.PositiveSmallIntegerField(default=0)
     measured_at = models.DateTimeField(null=True, blank=True)
+    #: When the bytes reached the storage (STORING -> STORED): the measure's
+    #: stale and alarm clocks run from here, not from the row's creation.
+    stored_at = models.DateTimeField(null=True, blank=True)
     purged_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -915,3 +918,27 @@ class UploadQuoteFile(models.Model):
 
     def __str__(self):
         return f"UploadQuoteFile {self.pk}"
+
+
+class UploadQuoteStagedFile(models.Model):
+    """The bytes of a STORING quote file, held in the database between the
+    request (which replies at once) and the store task, which sends them to
+    the file storage and deletes this row once the file settles (STORED or
+    NOT_KEPT). Cancel, the purge and the file row's delete (erasure, a
+    cascade) remove it too. `sha256` and `size_bytes` are what the request
+    measured: the task recomputes both from `content` and stores nothing on
+    a mismatch."""
+
+    file = models.OneToOneField(
+        UploadQuoteFile,
+        on_delete=models.CASCADE,
+        primary_key=True,
+        related_name="staged",
+    )
+    content = models.BinaryField()
+    sha256 = models.CharField(max_length=64)
+    size_bytes = models.PositiveBigIntegerField()
+    created_at = models.DateTimeField(default=timezone.now)
+
+    def __str__(self):
+        return f"UploadQuoteStagedFile {self.pk}"
