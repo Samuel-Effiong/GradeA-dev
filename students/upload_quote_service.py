@@ -36,7 +36,7 @@ from audit.enums import AuditAction, AuditOutcome
 from AutoGrader import uploads
 from AutoGrader.reason_codes import CodedError
 from billing import estimates
-from students import kept_files
+from students import kept_files, quote_store_pool
 from students.models import UploadQuote, UploadQuoteFile
 from students.upload_quotes import (
     _delete_after_commit,
@@ -127,12 +127,26 @@ def _refusal_of(uploaded_file):
     return None
 
 
+def _digest(uploaded_file):
+    """(sha256 hex, size) of an uploaded file, read in chunks so no file's
+    bytes are held whole here; the file is left at its start."""
+    sha = hashlib.sha256()
+    size = 0
+    for chunk in uploaded_file.chunks():
+        sha.update(chunk)
+        size += len(chunk)
+    uploaded_file.seek(0)
+    return sha.hexdigest(), size
+
+
 def _prepare(quote, files, positions):
     """Make the rows: a REFUSED row for a file the check refuses, a STORING row
     (random key, committed before any byte is stored) for a file to keep. A
     file whose bytes are already in the quote (a NOT_KEPT row does not count:
     it holds nothing) is a (position, row) pair naming the row it repeats.
-    Returns [(entry, content or None)] in order."""
+    Returns [(entry, source or None)] in order, where a source is the uploaded
+    file itself (hashed in chunks here; its bytes are read only when it is
+    stored)."""
     seen: dict = {
         row.sha256: row
         for row in quote.files.exclude(sha256="")
@@ -160,9 +174,7 @@ def _prepare(quote, files, positions):
                 )
             )
             continue
-        content = uploaded_file.read()
-        uploaded_file.seek(0)
-        digest = hashlib.sha256(content).hexdigest()
+        digest, size = _digest(uploaded_file)
         if digest in seen:
             plans.append(((position, seen[digest]), None))
             continue
@@ -173,33 +185,77 @@ def _prepare(quote, files, positions):
             storage_key=kept_files.new_key(),
             original_name=name,
             content_type=(uploaded_file.content_type or "")[:255],
-            size_bytes=len(content),
+            size_bytes=size,
             sha256=digest,
         )
         seen[digest] = row
-        plans.append((row, content))
+        plans.append((row, uploaded_file))
     return plans
 
 
+class BytesChanged(kept_files.KeptFileError):
+    """The bytes about to be stored are not the bytes the row was made from
+    (their sha256 or size differ): nothing is stored."""
+
+
+def _bytes_of(source):
+    """The bytes of a source: bytes as they are, or a file read from its
+    start (one file at a time, in the pool thread that stores it)."""
+    if isinstance(source, (bytes, bytearray, memoryview)):
+        return bytes(source)
+    source.seek(0)
+    try:
+        return source.read()
+    finally:
+        source.seek(0)
+
+
+def _store_one(source, key, sha256, size):
+    """Runs in a pool thread: no database. Reads the file, checks it is the
+    file the row was made from, and stores it under the row's key."""
+    content = _bytes_of(source)
+    if len(content) != size or hashlib.sha256(content).hexdigest() != sha256:
+        raise BytesChanged("sha256 or size differ from the row")
+    return kept_files.store(content, key=key)
+
+
 def _store(plans):
-    """Store each STORING row's bytes; a file the storage refuses ends
-    NOT_KEPT (never kept, no key)."""
-    for entry, content in plans:
-        if content is None:
+    """Store each STORING row's bytes, UPLOAD_QUOTE_STORE_CONCURRENCY at a time
+    (only the storage call runs in the pool; the row writes happen here, in
+    order). A file the storage refuses, or whose bytes changed, ends NOT_KEPT
+    (never kept, no key). Any other error is raised once every result is in:
+    the rows already stored keep their keys, so the purge clears them."""
+    pending = [(entry, source) for entry, source in plans if source is not None]
+    outcomes = quote_store_pool.run_all(
+        [
+            partial(_store_one, source, e.storage_key, e.sha256, e.size_bytes)
+            for e, source in pending
+        ]
+    )
+    unexpected = None
+    for (entry, _), outcome in zip(pending, outcomes, strict=True):
+        exc = outcome.error
+        if exc is None:
             continue
-        try:
-            kept_files.store(content, key=entry.storage_key)
-        except kept_files.KeptFileError as exc:
+        if not isinstance(exc, kept_files.KeptFileError):
+            unexpected = unexpected or exc
+            continue
+        if isinstance(exc, BytesChanged):
+            audit_metrics.count("upload_quote_bytes_changed")
+            logger.error("Upload quote: a file's bytes changed before it was stored.")
+        else:
             logger.warning(
                 "Upload quote: a file could not be kept (%s).",
                 type(exc.__cause__ or exc).__name__,
             )
-            audit_metrics.count("upload_quote_not_kept")
-            UploadQuoteFile.objects.filter(pk=entry.pk).update(
-                state=State.NOT_KEPT,
-                storage_key=None,
-                reason_code="QUOTE_FILE_NOT_KEPT",
-            )
+        audit_metrics.count("upload_quote_not_kept")
+        UploadQuoteFile.objects.filter(pk=entry.pk).update(
+            state=State.NOT_KEPT,
+            storage_key=None,
+            reason_code="QUOTE_FILE_NOT_KEPT",
+        )
+    if unexpected is not None:
+        raise unexpected
 
 
 def _settle(quote_pk, plans, guard):
@@ -270,7 +326,8 @@ def past_expiry(quote, rows=None):
     and the purge use; a quote still measuring is not expired by its clock."""
     if quote.state != UploadQuote.State.OPEN or quote.expires_at > timezone.now():
         return False
-    return is_ready(list(quote.files.all()) if rows is None else rows)
+    # A quote with no file expires by its clock too, as the purge does.
+    return nothing_pending(list(quote.files.all()) if rows is None else rows)
 
 
 def refuse_if_not_open(quote):
@@ -389,8 +446,15 @@ def figures_of(quote, rows):
     return [figure_of(quote, row) for row in rows]
 
 
-def is_ready(rows):
+def nothing_pending(rows):
+    """No file is still being stored or measured (true of no files)."""
     return all(row.state in SETTLED for row in rows)
+
+
+def is_ready(rows):
+    """Every file settled, and there is at least one: a quote with no file has
+    nothing to quote or confirm (QUOTE_NOT_READY)."""
+    return bool(rows) and nothing_pending(rows)
 
 
 def payload(quote):

@@ -234,7 +234,8 @@ class Create(Base):
 
         def flaky(content, key=None):
             calls.append(key)
-            if len(calls) == 1:
+            # By content, not call order: the stores run in parallel.
+            if content.startswith(b"%PDF"):
                 raise kept_files.KeptFileUnavailable("x")
             return real(content, key=key)
 

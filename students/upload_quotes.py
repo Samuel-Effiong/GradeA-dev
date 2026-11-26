@@ -47,10 +47,18 @@ def _file_model():
     return UploadQuoteFile
 
 
+#: File states that hold bytes or will: a REFUSED or NOT_KEPT row holds none,
+#: so its size never counts toward the open-bytes limits.
+HOLDING = ("STORING", "STORED", "MEASURING", "MEASURED")
+
+
 def open_bytes(teacher=None):
-    """The bytes held by open quotes: the teacher's, or everyone's."""
+    """The bytes held by open quotes: the teacher's, or everyone's. Only rows
+    that hold (or are storing) bytes count."""
     files = _file_model().objects.filter(
-        quote__state=_quote_model().State.OPEN, purged_at__isnull=True
+        quote__state=_quote_model().State.OPEN,
+        purged_at__isnull=True,
+        state__in=HOLDING,
     )
     if teacher is not None:
         files = files.filter(quote__teacher=teacher)

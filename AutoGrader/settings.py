@@ -1832,6 +1832,10 @@ UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS = env.int(
 UPLOAD_QUOTE_MEASURE_CONCURRENCY = env.int(
     "UPLOAD_QUOTE_MEASURE_CONCURRENCY", default=2
 )
+#: Files one quote request (or store job) sends to the file storage at once.
+#: Only the storage call runs in these threads; every DB write stays on the
+#: caller's thread (students.quote_store_pool).
+UPLOAD_QUOTE_STORE_CONCURRENCY = env.int("UPLOAD_QUOTE_STORE_CONCURRENCY", default=3)
 
 # Email domain for users the live-QA suite creates. Defaults to a
 # .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA
