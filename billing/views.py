@@ -2,6 +2,7 @@ import logging
 import time
 from datetime import timedelta
 
+from django.conf import settings
 from django.core.cache import cache
 from django.db import DatabaseError, transaction
 from django.db.models import Case, F, Q, Sum, Value, When
@@ -40,6 +41,7 @@ from dashboard.serializers import (
 from dashboard.throttling import CustomAIPromptThrottle
 from users.models import UserTypes
 
+from . import conversion_numbers
 from . import intent_signals as signal_rules
 from . import lead_filters
 from .credit_units import AVERAGE_PLACES, display_credits
@@ -69,6 +71,7 @@ from .serializers import (
     BetaSummarySerializer,
     BetaUserDetailResponseSerializer,
     CarryOverHistorySerializer,
+    ChurnMonthlyResponseSerializer,
     ConversionLeadListSerializer,
     ConversionLeadSerializer,
     CreditBucketSerializer,
@@ -2083,6 +2086,30 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
 
     @extend_schema(
         tags=["Beta Analytics Charts"],
+        summary="Monthly churn",
+        description="Churn for each of the last 12 calendar months (UTC), oldest "
+        "first, for all individual teachers (not only the beta cohort): of the "
+        "teachers paying (active, Stripe-billed individual plan) at the start of "
+        "the month, the share not paying at its end because their paid "
+        "subscription ended. A switch to another paid plan is not lost. The "
+        "current month is partial (to now). Months that begin before subscription "
+        "start and end times were recorded exactly have no_data true and null "
+        "figures.",
+        responses={200: ChurnMonthlyResponseSerializer},
+    )
+    @action(
+        detail=False,
+        methods=["GET"],
+        url_path="churn-monthly",
+        url_name="churn-monthly",
+    )
+    def churn_monthly(self, request, *args, **kwargs):
+        months = conversion_numbers.monthly_churn(signal_rules.request_now(request))
+        serializer = ChurnMonthlyResponseSerializer({"months": months})
+        return Response(serializer.data)
+
+    @extend_schema(
+        tags=["Beta Analytics Charts"],
         summary="Credit usage distribution",
         description="Histogram showing how many users fall into each 10% bracket of their credit allocation.",
         responses={200: CreditUsageDistributionResponseSerializer},
@@ -2249,7 +2276,10 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
         description="Retrieve high-level summary metrics for the entire beta cohort, including "
         "total users, recent activity rates, average credit consumption (in AI "
         "credits), capacity "
-        "utilization, and onboarding speed. Cached for 15 minutes to optimize performance.",
+        "utilization, and onboarding speed. Cached for 15 minutes to optimize performance. "
+        "The conversion page numbers (paying users, new trial sign-ups, the trial "
+        "conversion rate and 30-day churn) cover all individual teachers, not only "
+        "the beta cohort.",
         responses={
             200: OpenApiResponse(
                 response=BetaSummarySerializer,
@@ -2271,11 +2301,6 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             hit_cap=Count("id", filter=Q(has_hit_cap=True)),
             avg_days_to_action=Avg("days_to_first_action"),
             high_consumption=Count("id", filter=signal["at_60_percent"]),
-            # Kept until Step 4 replaces these cards; no longer signals.
-            habit_formation=Count("id", filter=Q(distinct_login_days__gte=8)),
-            primary_graders=Count(
-                "id", filter=Q(credits_used_grading__gt=F("credits_used_creation"))
-            ),
         )
 
         total = stats["total"] or 1
@@ -2296,19 +2321,28 @@ class BetaAnalyticViewSet(viewsets.ReadOnlyModelViewSet):
             "credit_used_greater_than_60_percent": round(
                 (stats["high_consumption"] / total) * 100, 2
             ),
-            "login_greater_than_8_days": round(
-                (stats["habit_formation"] / total) * 100, 2
-            ),
-            "grading_percent_greater_than_creation_percent": round(
-                (stats["primary_graders"] / total) * 100, 2
-            ),
             "percent_unused_credits": round(unused_credits_percent, 2),
             # Absolute counts
             "credit_used_greater_than_60_count": stats["high_consumption"],
-            "login_greater_than_8_days_count": stats["habit_formation"],
-            "grading_percent_greater_than_creation_count": stats["primary_graders"],
             "active_last_7_days_count": stats["active_recent"],
         }
+        # Step 4 (owner, 2026-11-25): all individual teachers, not the cohort.
+        now = signal_rules.request_now(request)
+        signups, trials, converted, rate = conversion_numbers.trial_numbers(now)
+        churn = conversion_numbers.rolling_churn(now)
+        data.update(
+            {
+                "paying_users_count": conversion_numbers.paying_users_count(),
+                "conversion_start_date": settings.CONVERSION_START_DATE,
+                "new_trial_signups_count": signups,
+                "trial_conversion_trials_count": trials,
+                "trial_conversion_converted_count": converted,
+                "trial_conversion_percent": rate,
+                "churn_30d_base_count": churn.base_count,
+                "churn_30d_lost_count": churn.lost_count,
+                "churn_30d_percent": churn.churn_percent,
+            }
+        )
 
         serializer = BetaSummarySerializer(data)
         return Response(serializer.data)

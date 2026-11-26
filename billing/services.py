@@ -200,10 +200,13 @@ class SubscriptionService:
         )
 
         # 1. Deactivate any existing active subscriptions. Epic A S4: one
-        # SUBSCRIPTION_CHANGE per subscription switched off.
+        # SUBSCRIPTION_CHANGE per subscription switched off. A queryset
+        # write skips UserSubscription.save, so the end time is set here
+        # (Step 4).
         history.record_bulk(
             UserSubscription.objects.filter(user=user, is_active=True),
             is_active=False,
+            ended_at=timezone.now(),
         )
 
         # 2. Create new UserSubscription

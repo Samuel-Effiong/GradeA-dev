@@ -14,7 +14,7 @@ love God
 
 import os
 import sys
-from datetime import timedelta
+from datetime import date, timedelta
 from pathlib import Path
 
 import dj_database_url
@@ -978,6 +978,14 @@ TEACHER_INACTIVITY_THRESHOLD_DAYS = env.int(
 )
 
 USE_BETA_PLAN_ON_SIGNUP = env.bool("USE_BETA_PLAN_ON_SIGNUP", default=False)
+
+# Analytics Step 4 (owner, 2026-11-25): new trial sign-ups and the trial
+# conversion rate count only trials started on or after this date (00:00
+# UTC). "Fresh, today"; the owner moves it with the env var (YYYY-MM-DD).
+# Churn does not use it (owner, Q2 option A).
+CONVERSION_START_DATE = date.fromisoformat(
+    env.str("CONVERSION_START_DATE", default="2026-11-25")
+)
 
 # Celery Beat Schedule
 CELERY_BEAT_SCHEDULE = {

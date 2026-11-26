@@ -259,9 +259,9 @@ class SurfaceTests(APITestCase):
         # Removed (owner, 2026-11-25): the 60% fields replace them.
         self.assertNotIn("credit_used_greater_than_80_count", body)
         self.assertNotIn("credit_used_greater_than_80_percent", body)
-        # Kept until Step 4: no longer signals, the same rules.
-        self.assertEqual(body["login_greater_than_8_days_count"], 1)
-        self.assertEqual(body["grading_percent_greater_than_creation_count"], 1)
+        # Step 4 (owner, 2026-11-25): the 8-day and grading cards are gone.
+        self.assertNotIn("login_greater_than_8_days_count", body)
+        self.assertNotIn("grading_percent_greater_than_creation_count", body)
         self.assertEqual(body["active_last_7_days_count"], 1)
 
     def test_user_list_fields_and_filter(self):
