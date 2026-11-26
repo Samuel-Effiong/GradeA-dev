@@ -210,13 +210,36 @@ def _bytes_of(source):
         source.seek(0)
 
 
+#: A store the storage did not answer (KeptFileUnavailable: an error or a
+#: timeout) is tried this many times in all before the file is NOT_KEPT
+#: (owner, 2026-11-26: one retry).
+STORE_ATTEMPTS = 2
+
+
+def _is_refusal(exc):
+    """Cloudinary's 400 (for example a file over its plan's size limit): the
+    same bytes would be refused again, so it is not retried."""
+    import cloudinary.exceptions
+
+    return isinstance(exc.__cause__, cloudinary.exceptions.BadRequest)
+
+
 def _store_one(source, key, sha256, size):
-    """Runs in a pool thread: no database. Reads the file, checks it is the
-    file the row was made from, and stores it under the row's key."""
+    """Runs in a pool thread: no database. Reads the file and stores it under
+    the row's key, checking before each attempt that it is the file the row
+    was made from (changed bytes are never retried or stored). A store the
+    storage did not answer is tried once more."""
     content = _bytes_of(source)
-    if len(content) != size or hashlib.sha256(content).hexdigest() != sha256:
-        raise BytesChanged("sha256 or size differ from the row")
-    return kept_files.store(content, key=key)
+    for attempt in range(1, STORE_ATTEMPTS + 1):
+        if len(content) != size or hashlib.sha256(content).hexdigest() != sha256:
+            raise BytesChanged("sha256 or size differ from the row")
+        try:
+            return kept_files.store(content, key=key)
+        except kept_files.KeptFileUnavailable as exc:
+            if attempt == STORE_ATTEMPTS or _is_refusal(exc):
+                raise
+            audit_metrics.count("upload_quote_store_retried")
+    raise AssertionError("unreachable")  # pragma: no cover
 
 
 def _store(plans):

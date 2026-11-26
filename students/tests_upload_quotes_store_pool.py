@@ -81,26 +81,26 @@ def on_disk(name, data):
 
 
 class ParallelStore(Base):
-    def test_files_are_stored_three_at_a_time_in_order(self):
+    def test_files_are_stored_five_at_a_time_in_order(self):
         real = kept_files.store
         lock = threading.Lock()
         active = {"now": 0, "most": 0}
-        # Each store waits until three are in flight: fewer than three at once
+        # Each store waits until five are in flight: fewer than five at once
         # breaks the barrier (BrokenBarrierError, a 500), more never pass it.
-        three = threading.Barrier(3, timeout=5)
+        five = threading.Barrier(5, timeout=5)
 
         def slow(content, key=None):
             with lock:
                 active["now"] += 1
                 active["most"] = max(active["most"], active["now"])
             try:
-                three.wait()
+                five.wait()
                 return real(content, key=key)
             finally:
                 with lock:
                     active["now"] -= 1
 
-        files = [png(f"{n}.png", color=(n * 30, 0, 0)) for n in range(6)]
+        files = [png(f"{n}.png", color=(n * 20, 0, 0)) for n in range(10)]
         digests = [sha(f.read()) for f in files]
         for f in files:
             f.seek(0)
@@ -108,10 +108,10 @@ class ParallelStore(Base):
             response = self.create(files)
 
         self.assertEqual(response.status_code, 201, response.content)
-        self.assertLessEqual(active["most"], 3)
-        self.assertFalse(three.broken)
+        self.assertLessEqual(active["most"], 5)
+        self.assertFalse(five.broken)
         entries = data_of(response)["files"]
-        self.assertEqual([e["position"] for e in entries], list(range(6)))
+        self.assertEqual([e["position"] for e in entries], list(range(10)))
         self.assertEqual({e["state"] for e in entries}, {"STORED"})
         rows = list(UploadQuoteFile.objects.order_by("position"))
         self.assertEqual([r.sha256 for r in rows], digests)
@@ -155,10 +155,10 @@ class ParallelStore(Base):
             self.create([png("a.png"), png("b.png", color="black")])
         self.assertEqual(threads, [threading.main_thread()] * 2)
 
-    def test_the_setting_defaults_to_three(self):
+    def test_the_setting_defaults_to_five(self):
         from django.conf import settings
 
-        self.assertEqual(settings.UPLOAD_QUOTE_STORE_CONCURRENCY, 3)
+        self.assertEqual(settings.UPLOAD_QUOTE_STORE_CONCURRENCY, 5)
 
     def test_bytes_that_changed_before_the_store_are_not_kept(self):
         quote, _ = service.create_quote(
@@ -398,3 +398,72 @@ class NoSqlOnAStoreThread(Base):
         self.assertEqual(len(seen_pool), 3)
         self.assertTrue(all(n.startswith("quote-store") for n in seen_pool))
         self.assertEqual(on_pool, [])
+
+
+class OneRetry(Base):
+    """Owner, 2026-11-26: a store the storage did not answer is tried once
+    more before the file is NOT_KEPT; changed bytes and a Cloudinary 400 are
+    never retried."""
+
+    def store_with(self, failures, exc=None):
+        real = kept_files.store
+        calls = []
+
+        def flaky(content, key=None):
+            calls.append(key)
+            if len(calls) <= failures:
+                raise exc or kept_files.KeptFileUnavailable("timeout")
+            return real(content, key=key)
+
+        with patch.object(kept_files, "store", side_effect=flaky), patch(
+            "students.upload_quote_service.audit_metrics.count"
+        ) as count:
+            response = self.create([pdf("a.pdf")])
+        (entry,) = data_of(response)["files"]
+        metrics = [c.args[0] for c in count.call_args_list]
+        return entry, calls, metrics
+
+    def test_one_failure_then_success_is_stored_with_two_calls(self):
+        entry, calls, metrics = self.store_with(1)
+        self.assertEqual(entry["state"], "STORED")
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(set(calls)), 1)  # the same key both times
+        self.assertEqual(metrics.count("upload_quote_store_retried"), 1)
+        self.assertEqual(len(kept_files.MEMORY), 1)
+
+    def test_two_failures_are_not_kept_after_two_calls(self):
+        entry, calls, metrics = self.store_with(2)
+        self.assertEqual(
+            (entry["state"], entry["reason_code"]), ("NOT_KEPT", "QUOTE_FILE_NOT_KEPT")
+        )
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(metrics.count("upload_quote_store_retried"), 1)
+        self.assertEqual(kept_files.MEMORY, {})
+
+    def test_a_cloudinary_400_is_not_retried(self):
+        import cloudinary.exceptions
+
+        try:
+            raise cloudinary.exceptions.BadRequest("File size too large.")
+        except cloudinary.exceptions.BadRequest as cause:
+            refusal = kept_files.KeptFileUnavailable("BadRequest")
+            refusal.__cause__ = cause
+        entry, calls, metrics = self.store_with(2, exc=refusal)
+        self.assertEqual(entry["state"], "NOT_KEPT")
+        self.assertEqual(len(calls), 1)
+        self.assertNotIn("upload_quote_store_retried", metrics)
+
+    def test_changed_bytes_are_checked_once_and_never_stored(self):
+        quote, _ = service.create_quote(
+            self.teacher, kind="answer_papers", assignment=self.assignment
+        )
+        (plan,) = service._prepare(quote, [as_upload("a.pdf", b"%PDF original")], [0])
+        row, _ = plan
+        with patch.object(kept_files, "store") as store, patch.object(
+            service.hashlib, "sha256", wraps=hashlib.sha256
+        ) as hashed:
+            service._store([(row, as_upload("a.pdf", b"%PDF tampereD"))])
+        store.assert_not_called()
+        self.assertEqual(hashed.call_count, 1)
+        row.refresh_from_db()
+        self.assertEqual(row.state, State.NOT_KEPT)
