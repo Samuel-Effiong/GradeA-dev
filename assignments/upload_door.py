@@ -41,8 +41,6 @@ from functools import partial
 
 from django.core.files.uploadedfile import UploadedFile
 from django.db import connection, transaction
-from rest_framework import status
-from rest_framework.response import Response
 
 from ai_processor.call_estimates import (
     EXTRACT_ANSWER,
@@ -50,13 +48,13 @@ from ai_processor.call_estimates import (
     upload_item_estimate,
 )
 from assignments.services import AssignmentProcessingService
-from AutoGrader.reason_codes import credit_refusal_message, reason_of
+from AutoGrader.reason_codes import reason_of
 from AutoGrader.safe_logging import describe_error_for_log
 from AutoGrader.uploads import validate_upload_size
 from billing import holds as credit_holds
 from billing.errors import InsufficientCreditsError, is_individual_teacher
 from billing.models import HoldState
-from billing.refusals import log_refusal
+from billing.refusals import log_refusal, refusal_response
 from students.exceptions import STUDENT_UPLOAD_NOT_PROCESSED
 from students.models import BackgroundProcessingTask, BackgroundTaskStatus
 from students.task_tracking import attach_celery_task, mark_processing_task_failure
@@ -88,14 +86,15 @@ _balance = door_balance  # the door's own name for it, kept for its callers
 
 
 def _refusal_response(request_user, refusal):
+    """The door's 402: the coded envelope every credit refusal sends
+    (FR-A-06). A student (the wallet is their teacher's) reads the one fixed
+    student sentence with no remediation, as students.views._failure_response
+    does (H-216); a teacher reads the credit sentence and its remediation."""
+    response = refusal_response(refusal)
     if request_user.user_type == UserTypes.STUDENT:
-        message = STUDENT_UPLOAD_NOT_PROCESSED
-    else:
-        message = credit_refusal_message(refusal)
-    return Response(
-        {"error": message, "code": "insufficient_credits"},
-        status=status.HTTP_402_PAYMENT_REQUIRED,
-    )
+        response.data["error"] = STUDENT_UPLOAD_NOT_PROCESSED
+        response.data["remediation"] = None
+    return response
 
 
 def _estimate_for(uploaded_file, prompt, assignment=None):
@@ -212,10 +211,7 @@ def batch_refusal_response(billed_user):
     usual credit message, or the individual-teacher one when `billed_user`
     (whose wallet the batch would be billed to) is one (H-281)."""
     refusal = InsufficientCreditsError(individual=is_individual_teacher(billed_user))
-    return Response(
-        {"error": credit_refusal_message(refusal), "code": "insufficient_credits"},
-        status=status.HTTP_402_PAYMENT_REQUIRED,
-    )
+    return refusal_response(refusal)
 
 
 def launch_at_door(launch, task_callable, processing_task, *args, **kwargs):

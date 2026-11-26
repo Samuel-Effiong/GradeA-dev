@@ -95,10 +95,12 @@ class StudentDoorTests(APITestCase):
             with self.captureOnCommitCallbacks(execute=False) as callbacks:
                 response = self.upload(student, assignment)
         self.assertEqual(response.status_code, 402)
-        self.assertEqual(
-            response.data,
-            {"error": STUDENT_UPLOAD_NOT_PROCESSED, "code": "insufficient_credits"},
-        )
+        # The coded envelope (2026-11-26): the student sentence, the legacy
+        # code, no remediation.
+        self.assertEqual(response.data["error"], STUDENT_UPLOAD_NOT_PROCESSED)
+        self.assertEqual(response.data["code"], "insufficient_credits")
+        self.assertEqual(response.data["reason_code"], "INSUFFICIENT_CREDITS")
+        self.assertIsNone(response.data["remediation"])
         self.assertFalse(BackgroundProcessingTask.objects.exists())
         self.assertFalse(AIJob.objects.filter(job_type="UPLOAD").exists())
         self.assertEqual(callbacks, [])
