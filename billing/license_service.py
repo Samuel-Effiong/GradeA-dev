@@ -30,11 +30,7 @@ from django.utils import timezone
 
 from audit.enums import ReasonCode
 from AutoGrader.dispatch import safe_delay
-from AutoGrader.error_messages import (
-    describe_stripe_error,
-    describe_user_error,
-    stripe_error_label,
-)
+from AutoGrader.error_messages import describe_user_error, stripe_error_label
 from AutoGrader.reason_codes import CodedError, coded_entry
 from AutoGrader.tasks import send_email_task
 from billing.errors import BillingRequestError
@@ -3408,12 +3404,11 @@ class LicenseSubscriptionService:
                 f"Checkout session creation failed: {stripe_error_label(exc)}"
             )
             intent.save(update_fields=["status", "failure_reason", "updated_at"])
-            raise BillingRequestError(
-                "Could not start overage checkout: "
-                + describe_stripe_error(
-                    exc, fallback_message="Please try again in a moment."
-                )
-            ) from exc
+            # Owner 2026-11-26 (2A): the sentence the teacher overage
+            # checkout shows; Stripe's error stays in failure_reason.
+            from billing.stripe_service import CHECKOUT_FAILED_MESSAGE
+
+            raise BillingRequestError(CHECKOUT_FAILED_MESSAGE) from exc
 
         # The intent_id is already embedded in the Stripe session's
         # metadata regardless of whether this second save succeeds — so

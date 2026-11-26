@@ -5631,7 +5631,21 @@ Now, respond to the following teacher's instruction using the rules above
                         "Refill your wallet to continue",
                         individual=is_individual_teacher(user),
                     )
-                raise AIFeatureNotAvailableError(f"AI access denied: {reason}")
+                # Owner 2026-11-26 (1A): `reason` is our own wording
+                # ("Internal Error: Could not verify subscription status",
+                # "No active subscription"); it stays in the log. The user
+                # reads the standard plan sentence.
+                from AutoGrader.reason_codes import REASON_CODES, ReasonCode
+
+                logger.warning(
+                    "AI access denied for user %s (feature=%s): %s",
+                    getattr(user, "id", None),
+                    feature,
+                    reason,
+                )
+                raise AIFeatureNotAvailableError(
+                    REASON_CODES[ReasonCode.AI_FEATURE_NOT_AVAILABLE].message
+                )
 
             wallet = user.credit_wallet
 
