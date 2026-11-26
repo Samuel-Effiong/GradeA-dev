@@ -1814,6 +1814,14 @@ UPLOAD_QUOTE_MAX_FILES = env.int("UPLOAD_QUOTE_MAX_FILES", default=100)
 # Still a bound: the request byte cap (UPLOAD_REQUEST_MAX_MB) is refused before
 # the body is read, and every file is checked for size.
 DATA_UPLOAD_MAX_NUMBER_FILES = max(100, UPLOAD_QUOTE_MAX_FILES)
+# Uploads up to this size are held in RAM for the whole request; larger ones
+# are written to a temporary file as they arrive. Django's default is 2.5 MB,
+# so a quote of 100 files of 2.4 MB each held about 240 MB per request. At
+# 256 KB nearly every upload goes to a temporary file, and a request holds a
+# few files' bytes at a time (Fixer review of upload quote step 1,
+# 2026-11-26). The temporary files go to the system temp directory and are
+# deleted when the request ends.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 262144
 #: A teacher's open quotes hold at most this many bytes and this many quotes.
 UPLOAD_QUOTE_OPEN_BYTES = env.int("UPLOAD_QUOTE_OPEN_BYTES", default=1_000 * 1024**2)
 UPLOAD_QUOTE_MAX_OPEN = env.int("UPLOAD_QUOTE_MAX_OPEN", default=3)

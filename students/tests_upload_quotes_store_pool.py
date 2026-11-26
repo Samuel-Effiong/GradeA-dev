@@ -17,7 +17,6 @@ import hashlib
 import io
 import os
 import threading
-import time
 import tracemalloc
 import zipfile
 from typing import Any
@@ -29,6 +28,8 @@ from django.urls import reverse
 from PIL import Image
 
 from AutoGrader import uploads
+from AutoGrader.reason_codes import CodedError
+from students import quote_store_pool
 from students import upload_quote_service as service
 from students.models import UploadQuote, UploadQuoteFile
 from students.tests_upload_quotes_routes import Base, data_of, kept_files, pdf, png
@@ -84,19 +85,22 @@ class ParallelStore(Base):
         real = kept_files.store
         lock = threading.Lock()
         active = {"now": 0, "most": 0}
+        # Each store waits until three are in flight: fewer than three at once
+        # breaks the barrier (BrokenBarrierError, a 500), more never pass it.
+        three = threading.Barrier(3, timeout=5)
 
         def slow(content, key=None):
             with lock:
                 active["now"] += 1
                 active["most"] = max(active["most"], active["now"])
-            time.sleep(0.05)
             try:
+                three.wait()
                 return real(content, key=key)
             finally:
                 with lock:
                     active["now"] -= 1
 
-        files = [png(f"{n}.png", color=(n * 30, 0, 0)) for n in range(7)]
+        files = [png(f"{n}.png", color=(n * 30, 0, 0)) for n in range(6)]
         digests = [sha(f.read()) for f in files]
         for f in files:
             f.seek(0)
@@ -104,9 +108,10 @@ class ParallelStore(Base):
             response = self.create(files)
 
         self.assertEqual(response.status_code, 201, response.content)
-        self.assertEqual(active["most"], 3)
+        self.assertLessEqual(active["most"], 3)
+        self.assertFalse(three.broken)
         entries = data_of(response)["files"]
-        self.assertEqual([e["position"] for e in entries], list(range(7)))
+        self.assertEqual([e["position"] for e in entries], list(range(6)))
         self.assertEqual({e["state"] for e in entries}, {"STORED"})
         rows = list(UploadQuoteFile.objects.order_by("position"))
         self.assertEqual([r.sha256 for r in rows], digests)
@@ -159,9 +164,21 @@ class ParallelStore(Base):
         quote, _ = service.create_quote(
             self.teacher, kind="answer_papers", assignment=self.assignment
         )
-        plans = service._prepare(quote, [as_upload("a.pdf", b"%PDF original")], [0])
+        original, tampered = b"%PDF original", b"%PDF tampereD"
+        # The same length: only the sha256 tells them apart.
+        self.assertEqual(len(original), len(tampered))
+        self.assert_not_kept(quote, original, tampered)
+
+    def test_bytes_of_another_length_are_not_kept(self):
+        quote, _ = service.create_quote(
+            self.teacher, kind="answer_papers", assignment=self.assignment
+        )
+        self.assert_not_kept(quote, b"%PDF original", b"%PDF original plus")
+
+    def assert_not_kept(self, quote, original, tampered):
+        plans = service._prepare(quote, [as_upload("a.pdf", original)], [0])
         row, _ = plans[0]
-        changed = [(row, as_upload("a.pdf", b"%PDF tampered"))]
+        changed = [(row, as_upload("a.pdf", tampered))]
         with patch("students.upload_quote_service.audit_metrics.count") as count:
             service._store(changed)
         row.refresh_from_db()
@@ -294,3 +311,90 @@ class OpenBytesCountsHeldFilesOnly(Base):
             self.assertEqual(data_of(first)["files"][0]["state"], "REFUSED")
             second = self.create([pdf("small.pdf")])
         self.assertEqual(second.status_code, 201, second.content)
+
+
+class ACancelDuringAMultiFileStore(Base):
+    """Fixer #2: four files are being stored (one store fails) when the
+    teacher cancels on the request thread. The add answers QUOTE_CLOSED and
+    leaves no stored file and no row of its own."""
+
+    def test_nothing_of_the_add_is_left(self):
+        first = self.create([pdf("first.pdf")])
+        quote = UploadQuote.objects.get(pk=data_of(first)["id"])
+        rows_before = set(quote.files.values_list("pk", flat=True))
+        stored_before = dict(kept_files.MEMORY)
+        files = [png(f"{n}.png", color=(0, 0, n * 40)) for n in range(4)]
+        bad = sha(files[1].read())
+        files[1].seek(0)
+        real_store = kept_files.store
+        real_run_all = quote_store_pool.run_all
+
+        def flaky(content, key=None):
+            if sha(content) == bad:
+                raise kept_files.KeptFileUnavailable("x")
+            return real_store(content, key=key)
+
+        def run_then_cancel(calls):
+            outcomes = real_run_all(calls)
+            with self.captureOnCommitCallbacks(execute=True):
+                service.cancel(UploadQuote.objects.get(pk=quote.pk))
+            return outcomes
+
+        with patch.object(kept_files, "store", side_effect=flaky), patch.object(
+            quote_store_pool, "run_all", side_effect=run_then_cancel
+        ), self.captureOnCommitCallbacks(execute=True):
+            with self.assertRaises(CodedError) as caught:
+                service.add_to_quote(quote, files)
+
+        self.assertEqual(caught.exception.reason_code, "QUOTE_CLOSED")
+        self.assertEqual(set(quote.files.values_list("pk", flat=True)), rows_before)
+        # The first file went with the cancel; nothing of the add was kept.
+        self.assertEqual(
+            set(kept_files.MEMORY) - set(stored_before), set(), kept_files.MEMORY
+        )
+        self.assertEqual(set(kept_files.MEMORY) & set(stored_before), set())
+
+
+class NoSqlOnAStoreThread(Base):
+    """Fixer #6: only the storage call runs in the pool. No query, and no
+    database connection, is made on a quote-store thread during a create."""
+
+    def test_a_three_file_create_runs_no_sql_in_the_pool(self):
+        from django.db.backends.signals import connection_created
+        from django.db.backends.utils import CursorWrapper
+
+        on_pool: list = []
+        seen_pool = []
+        real_execute = CursorWrapper.execute
+        real_executemany = CursorWrapper.executemany
+        real_store = kept_files.store
+
+        def note(*_args, **_kwargs):
+            if threading.current_thread().name.startswith("quote-store"):
+                on_pool.append(threading.current_thread().name)
+
+        def execute(cursor, *args, **kwargs):
+            note()
+            return real_execute(cursor, *args, **kwargs)
+
+        def executemany(cursor, *args, **kwargs):
+            note()
+            return real_executemany(cursor, *args, **kwargs)
+
+        def store(content, key=None):
+            seen_pool.append(threading.current_thread().name)
+            return real_store(content, key=key)
+
+        connection_created.connect(note)
+        self.addCleanup(connection_created.disconnect, note)
+        files = [png(f"{n}.png", color=(n * 60, 9, 9)) for n in range(3)]
+        with patch.object(CursorWrapper, "execute", execute), patch.object(
+            CursorWrapper, "executemany", executemany
+        ), patch.object(kept_files, "store", side_effect=store):
+            response = self.create(files)
+
+        self.assertEqual(response.status_code, 201, response.content)
+        # The guard looks where the stores ran: on pool threads.
+        self.assertEqual(len(seen_pool), 3)
+        self.assertTrue(all(n.startswith("quote-store") for n in seen_pool))
+        self.assertEqual(on_pool, [])
