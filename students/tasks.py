@@ -48,21 +48,43 @@ def measure_quote_file(self, file_id):
 #: minute apart, before the file ends NOT_KEPT.
 STORE_MAX_RETRIES = 5
 STORE_RETRY_COUNTDOWN = 60
+#: A task that finds every store slot taken is sent again after this, up to
+#: STORE_MAX_SLOT_WAITS times (then the sweeper asks again). Waiting for a
+#: slot is not a storage fault.
+STORE_SLOT_COUNTDOWN = 15
+STORE_MAX_SLOT_WAITS = 240
 
 
-@shared_task(bind=True, max_retries=STORE_MAX_RETRIES)
-def store_quote_files(self, quote_id, file_ids):
+@shared_task(bind=True, max_retries=None)
+def store_quote_files(self, quote_id, file_ids, faults=0, waits=0):
     """Store the staged bytes of an upload quote's STORING files (the create
     and add-files reply first), on the `quote_measure` queue, several files
-    at a time (students.upload_quote_service.store_staged). Files the storage
-    did not answer for are tried again, their bytes still staged; on the
-    last try they end NOT_KEPT."""
+    at a time (students.upload_quote_service.store_staged), at most
+    UPLOAD_QUOTE_STORE_SLOTS tasks at once. Files the storage did not answer
+    for are tried again (`faults`), their bytes still staged; on the last try
+    they end NOT_KEPT."""
     from students import upload_quote_service as service
 
-    final = self.request.retries >= self.max_retries
-    pending = service.store_staged(quote_id, file_ids, final=final)
+    if not service.acquire_store_slot():
+        if waits >= STORE_MAX_SLOT_WAITS:
+            return None  # the sweeper asks again; the bytes are staged
+        raise self.retry(
+            args=(quote_id, file_ids),
+            kwargs={"faults": faults, "waits": waits + 1},
+            countdown=STORE_SLOT_COUNTDOWN,
+        )
+    try:
+        pending = service.store_staged(
+            quote_id, file_ids, final=faults >= STORE_MAX_RETRIES
+        )
+    finally:
+        service.release_store_slot()
     if pending:
-        raise self.retry(args=(quote_id, pending), countdown=STORE_RETRY_COUNTDOWN)
+        raise self.retry(
+            args=(quote_id, pending),
+            kwargs={"faults": faults + 1, "waits": waits},
+            countdown=STORE_RETRY_COUNTDOWN,
+        )
     return None
 
 

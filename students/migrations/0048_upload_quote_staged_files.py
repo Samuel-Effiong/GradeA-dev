@@ -36,4 +36,15 @@ class Migration(migrations.Migration):
             name="stored_at",
             field=models.DateTimeField(blank=True, null=True),
         ),
+        # Staged bytes are written once, read once and deleted, and a file is
+        # usually already compressed (PDF, JPEG, PNG): keep them out of line
+        # and uncompressed, so Postgres does not spend time compressing them.
+        migrations.RunSQL(
+            "ALTER TABLE students_uploadquotestagedfile "
+            "ALTER COLUMN content SET STORAGE EXTERNAL;",
+            reverse_sql=(
+                "ALTER TABLE students_uploadquotestagedfile "
+                "ALTER COLUMN content SET STORAGE EXTENDED;"
+            ),
+        ),
     ]

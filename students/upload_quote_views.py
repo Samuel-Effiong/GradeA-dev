@@ -317,8 +317,13 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         if refused is not None:
             return refused
         service.check_room(request.user, service.kept_size(files))
-        quote, created = service.create_quote(
+        # The quote, its rows and the staged bytes commit together (a failed
+        # staging leaves no quote); the store task stores the bytes after
+        # this reply, then asks for the measure and restarts the clock (an
+        # all-refused quote is ready now: the clock restarts here).
+        quote, created, entries = service.create_with_files(
             request.user,
+            files,
             kind=data["kind"],
             assignment=assignment,
             course=course,
@@ -327,10 +332,6 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         )
         if not created:
             return Response(service.payload(quote), status=status.HTTP_200_OK)
-        # Rows and staged bytes commit together; the store task stores the
-        # bytes after this reply, then asks for the measure and restarts the
-        # clock (an all-refused quote is ready now: the clock restarts here).
-        entries = service.add_files(quote, files)
         service.restart_clock(quote.pk)
         service.note_global_alert()
         return Response(

@@ -19,6 +19,7 @@ task: a quote is its own pair of tables. No file name is logged or returned.
 
 import hashlib
 import logging
+from datetime import timedelta
 from functools import partial
 from typing import Any
 
@@ -86,6 +87,17 @@ def check_room(user, size):
     if open_bytes() + size > settings.UPLOAD_QUOTE_GLOBAL_OPEN_BYTES_MAX:
         audit_metrics.count("upload_quote_global_full")
         raise CodedError("QUOTE_STORAGE_FULL")
+    if staged_bytes() + size > settings.UPLOAD_QUOTE_STAGED_BYTES_MAX:
+        audit_metrics.count("upload_quote_staged_full")
+        raise CodedError("QUOTE_STORAGE_FULL")
+
+
+def staged_bytes():
+    """The bytes every quote holds in the database, waiting for the store."""
+    from django.db.models import Sum
+
+    total = UploadQuoteStagedFile.objects.aggregate(total=Sum("size_bytes"))
+    return total["total"] or 0
 
 
 def create_quote(user, *, kind, assignment=None, course=None, relaunch=None, key=None):
@@ -212,18 +224,40 @@ def _staging_ids(entries):
 
 
 def enqueue_store(quote_id, file_ids):
-    """Ask the store task for these STORING files (students.tasks)."""
+    """Ask the store task for these STORING files (students.tasks). A broker
+    that does not answer never fails the request: it is logged and counted,
+    the reply stays 201, and the sweeper asks again (the bytes are staged)."""
     from students.tasks import store_quote_files
 
-    store_quote_files.apply_async(
-        args=(str(quote_id), [str(i) for i in file_ids]), queue=STORE_QUEUE
-    )
+    try:
+        store_quote_files.apply_async(
+            args=(str(quote_id), [str(i) for i in file_ids]), queue=STORE_QUEUE
+        )
+    except Exception as exc:  # noqa: BLE001 - the sweeper is the net
+        logger.error(
+            "Upload quote: the store task could not be asked for (%s).",
+            type(exc).__name__,
+        )
+        audit_metrics.count("upload_quote_store_enqueue_failed")
 
 
 def _store_after_commit(quote_id, entries):
     ids = _staging_ids(entries)
     if ids:
         transaction.on_commit(partial(enqueue_store, quote_id, ids))
+
+
+def create_with_files(user, files, **kwargs):
+    """(quote, created, entries): the quote and its files' rows and staged
+    bytes in ONE transaction, so a staging that fails leaves no empty quote,
+    and a replay of the same Idempotency-Key after a failure is a fresh
+    attempt. A repeat of a key whose quote exists returns it (created False,
+    entries None)."""
+    with transaction.atomic():
+        quote, created = create_quote(user, **kwargs)
+        if not created:
+            return quote, False, None
+        return quote, True, add_files(quote, files)
 
 
 def add_files(quote, files, positions=None):
@@ -258,7 +292,7 @@ class BytesChanged(kept_files.KeptFileError):
 
 class ReplyMismatch(kept_files.KeptFileError):
     """The storage's reply names a different size or etag than the bytes
-    sent: the asset is deleted and the file is not kept."""
+    sent: the file is not kept, and the settle deletes the asset."""
 
 
 #: A store the storage did not answer (KeptFileUnavailable: an error or a
@@ -290,11 +324,8 @@ def _check_reply(stored, content, key, size):
     )
     if not (wrong_size or wrong_etag):
         return
-    try:
-        kept_files.delete(key)
-    except kept_files.KeptFileError:
-        logger.error("Upload quote: a file with a wrong storage reply wasn't deleted.")
-        audit_metrics.count("upload_quote_delete_failed")
+    # No delete here (a pool thread): the settle deletes the asset only if
+    # the row is ours to end, never one a duplicate run already settled.
     audit_metrics.count("upload_quote_reply_mismatch")
     raise ReplyMismatch("size" if wrong_size else "etag")
 
@@ -355,11 +386,15 @@ def _load(file_ids):
 
 def _settle_batch(quote_id, stored, failed):
     """One transaction under the quote's lock. `stored`: [(pk, key)] whose
-    bytes reached the storage; `failed`: [(pk, key)] that end NOT_KEPT. While
-    the quote is OPEN a stored row moves STORING -> STORED only if it still
-    holds this key; otherwise (the quote ended, was erased, or the row moved
-    on) the bytes this call stored are deleted. Staged bytes of every row
-    handled go. Returns the pks moved to STORED."""
+    bytes reached the storage; `failed`: [(pk, key, keep_key)] that end
+    NOT_KEPT. While the quote is OPEN a stored row moves STORING -> STORED
+    only if it still holds this key; otherwise (the quote ended, was erased,
+    or the row moved on) the bytes this call stored are deleted. A failed row
+    is deleted from the storage only when this call ended it or it no longer
+    holds the key, never when a duplicate run settled it. `keep_key` (the
+    last try timed out: the upload may still land) leaves the key on the
+    NOT_KEPT row, so the purge deletes a late asset when the quote ends.
+    Staged bytes of every row handled go. Returns the pks moved to STORED."""
     done: list = []
     orphans: list = []
     with transaction.atomic():
@@ -380,14 +415,20 @@ def _settle_batch(quote_id, stored, failed):
                     orphans.append(key)
                 # Else a second run of the task (a duplicate delivery)
                 # settled the row first: the asset is the row's, keep it.
-            for pk, key in failed:
-                ended = UploadQuoteFile.objects.filter(
+            for pk, key, keep_key in failed:
+                ours = UploadQuoteFile.objects.filter(
                     pk=pk, state=State.STORING, storage_key=key
-                ).update(
-                    state=State.NOT_KEPT,
-                    storage_key=None,
-                    reason_code="QUOTE_FILE_NOT_KEPT",
                 )
+                if keep_key:
+                    ended = ours.update(
+                        state=State.NOT_KEPT, reason_code="QUOTE_FILE_NOT_KEPT"
+                    )
+                else:
+                    ended = ours.update(
+                        state=State.NOT_KEPT,
+                        storage_key=None,
+                        reason_code="QUOTE_FILE_NOT_KEPT",
+                    )
                 if (
                     ended
                     or not UploadQuoteFile.objects.filter(
@@ -401,9 +442,10 @@ def _settle_batch(quote_id, stored, failed):
         else:
             # Ended (cancel, expiry) or erased: nothing this call stored may
             # stay. Cancel and the purge delete the keys too.
-            orphans.extend(key for _, key in stored + failed)
+            orphans.extend(key for _, key in stored)
+            orphans.extend(key for _, key, _ in failed)
         UploadQuoteStagedFile.objects.filter(
-            file_id__in=[pk for pk, _ in stored] + [pk for pk, _ in failed]
+            file_id__in=[pk for pk, _ in stored] + [pk for pk, _, _ in failed]
         ).delete()
     for key in orphans:
         _delete_after_commit(key)
@@ -421,7 +463,6 @@ def store_staged(quote_id, file_ids, final=False):
     size = max(1, int(settings.UPLOAD_QUOTE_STORE_CONCURRENCY))
     ids = [str(i) for i in file_ids]
     pending: list = []
-    stored_ids: list = []
     for start in range(0, len(ids), size):
         batch = _load(ids[start : start + size])
         if not batch:
@@ -443,7 +484,7 @@ def store_staged(quote_id, file_ids, final=False):
                 logger.error(
                     "Upload quote: staged bytes changed; the file is not kept."
                 )
-                failed.append((row["pk"], row["storage_key"]))
+                failed.append((row["pk"], row["storage_key"], False))
                 continue
             checked.append(row)
             calls.append(
@@ -468,29 +509,52 @@ def store_staged(quote_id, file_ids, final=False):
                 "Upload quote: a file could not be stored (%s).",
                 type(exc.__cause__ or exc).__name__,
             )
-            if _is_transient(exc) and not final:
+            transient = _is_transient(exc)
+            if transient and not final:
                 pending.append(str(row["pk"]))
                 continue
             audit_metrics.count("upload_quote_not_kept")
-            failed.append((row["pk"], row["storage_key"]))
-        stored_ids += _settle_batch(quote_id, stored, failed)
-    if stored_ids:
-        transaction.on_commit(partial(enqueue_measures, stored_ids))
+            failed.append((row["pk"], row["storage_key"], transient))
+        done = _settle_batch(quote_id, stored, failed)
+        if done:
+            # Each batch's files go to the measure at once, not at the end.
+            transaction.on_commit(partial(enqueue_measures, done))
     restart_clock(quote_id)
     note_global_alert()
     return pending
 
 
+#: A sweeper re-ask of a file is not sent again within this (a cache key per
+#: file), so a slow store is not met with a burst of tasks.
+REASK_KEY = "upload_quote_store_asked:{}"
+
+
+def _asked_lately(pk):
+    """True when the sweeper asked for this file in the last STORE_STALE_AFTER;
+    else marks it asked now."""
+    from django.core.cache import cache
+
+    return not cache.add(
+        REASK_KEY.format(pk), 1, timeout=int(STORE_STALE_AFTER.total_seconds())
+    )
+
+
 def sweep_storing(now=None):
-    """The store's net (beat, with requeue_stuck_quote_measures). A STORING
-    file of an open quote not settled after STORE_STALE_AFTER is asked for
-    again while its bytes are staged; one with none staged, or older than
-    STORE_DEADLINE, ends NOT_KEPT and its key is deleted (a store still
-    running then finds the row moved on and deletes what it stored). Returns
+    """The store's net (beat, with requeue_stuck_quote_measures), for STORING
+    files of open quotes not settled after STORE_STALE_AFTER:
+
+    * bytes still staged: asked for again (at most once per
+      STORE_STALE_AFTER), until the quote's unready ceiling
+      (UPLOAD_QUOTE_UNREADY_CEILING_MINUTES); then NOT_KEPT;
+    * nothing staged: NOT_KEPT after STORE_DEADLINE.
+
+    A file it ends loses its key, which is deleted (a store still running
+    then finds the row moved on and deletes what it stored). Returns
     {"store_requeued", "store_gave_up"}."""
     from django.db.models import Exists, OuterRef
 
     now = now or timezone.now()
+    ceiling = now - timedelta(minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES)
     rows = (
         UploadQuoteFile.objects.filter(
             quote__state=UploadQuote.State.OPEN,
@@ -508,8 +572,11 @@ def sweep_storing(now=None):
     gave_up = 0
     ended_quotes = set()
     for pk, quote_id, key, has_staged, created_at in rows:
-        if has_staged and created_at >= now - STORE_DEADLINE:
-            again.setdefault(quote_id, []).append(pk)
+        if has_staged and created_at >= ceiling:
+            if not _asked_lately(pk):
+                again.setdefault(quote_id, []).append(pk)
+            continue
+        if not has_staged and created_at >= now - STORE_DEADLINE:
             continue
         with transaction.atomic():
             moved = UploadQuoteFile.objects.filter(pk=pk, state=State.STORING).update(
@@ -532,6 +599,34 @@ def sweep_storing(now=None):
         logger.error("Upload quotes: %s files were never stored.", gave_up)
     requeued = sum(len(ids) for ids in again.values())
     return {"store_requeued": requeued, "store_gave_up": gave_up}
+
+
+# ------------------------------------------------------------ store slots
+
+STORE_SLOTS_KEY = "upload_quote_store_slots"
+STORE_SLOTS_TTL = 2 * 60 * 60
+
+
+def acquire_store_slot():
+    """Take one of UPLOAD_QUOTE_STORE_SLOTS; False when all are taken (the
+    measure's cache-counter pattern, students.upload_quote_measure)."""
+    from django.core.cache import cache
+
+    cache.add(STORE_SLOTS_KEY, 0, timeout=STORE_SLOTS_TTL)
+    if cache.incr(STORE_SLOTS_KEY) > settings.UPLOAD_QUOTE_STORE_SLOTS:
+        cache.decr(STORE_SLOTS_KEY)
+        return False
+    return True
+
+
+def release_store_slot():
+    from django.core.cache import cache
+
+    try:
+        if cache.decr(STORE_SLOTS_KEY) < 0:
+            cache.set(STORE_SLOTS_KEY, 0, timeout=STORE_SLOTS_TTL)
+    except ValueError:
+        cache.set(STORE_SLOTS_KEY, 0, timeout=STORE_SLOTS_TTL)
 
 
 class TooManyFiles(Exception):

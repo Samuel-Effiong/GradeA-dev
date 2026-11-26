@@ -99,14 +99,30 @@ balance down for display.
   `upload_quote_reply_mismatch`). It settles each batch under the quote's
   lock: STORING -> STORED (with `stored_at`) only while the quote is open and
   the row still holds the key; otherwise it deletes what it stored, unless a
-  duplicate run already settled the row. Staged bytes go once a row settles;
-  then the task asks for the measure and restarts the clock. A storage fault
+  duplicate run already settled the row (no delete ever runs in a pool
+  thread). Staged bytes go once a row settles; each batch's files go to the
+  measure as it settles, and the clock restarts at the end. A storage fault
   keeps the bytes staged and retries the task (5 times, a minute apart); the
-  last try ends `NOT_KEPT`.
+  last try ends `NOT_KEPT` but keeps the key on the row, so the purge deletes
+  an upload that lands late. The quote and its staged files are created in
+  one transaction (a failed staging leaves no quote). If the broker does not
+  answer, the reply is still 201 (metric `upload_quote_store_enqueue_failed`)
+  and the sweeper asks again.
+* Limits: every quote's staged bytes together stay under
+  `UPLOAD_QUOTE_STAGED_BYTES_MAX` (2 GB; past it new files get
+  `QUOTE_STORAGE_FULL`, metric `upload_quote_staged_full`); at most
+  `UPLOAD_QUOTE_STORE_SLOTS` (3) store tasks run at once (a cache counter, as
+  the measure's; a task finding none free is sent again in 15 s, which is
+  not counted as a fault). The staged column is `STORAGE EXTERNAL` (no
+  compression of already-compressed files). The Cloudinary SDK's urllib3
+  pool is sized to concurrency x slots, so parallel stores do not log
+  "Connection pool is full".
 * The store's net (with `requeue_stuck_quote_measures`, every 5 minutes): a
   STORING file not settled after 10 minutes is asked for again while its
-  bytes are staged; with none staged, or after 30 minutes, it ends
-  `NOT_KEPT` and its key is deleted (metric `upload_quote_store_gave_up`).
+  bytes are staged (at most once per 10 minutes), until the unready ceiling
+  (`UPLOAD_QUOTE_UNREADY_CEILING_MINUTES`, 60); then, or after 30 minutes
+  with nothing staged, it ends `NOT_KEPT` and its key is deleted (metric
+  `upload_quote_store_gave_up`).
   Cancel, the purge and a row's delete (erasure, a cascade) remove staged
   bytes. Cancel and the purge delete a STORING file's key but leave it on the
   row until 30 minutes have passed, so bytes that land late are deleted on

@@ -21,6 +21,7 @@ says the asset is gone.
 import hashlib
 import io
 import re
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -91,6 +92,36 @@ def new_key():
     return f"{KEY_PREFIX}{deployment_folder()}/{uuid.uuid4().hex}"
 
 
+_POOL_LOCK = threading.Lock()
+_pool_sized = False
+
+
+def size_cloudinary_pool():
+    """Give the Cloudinary SDK's urllib3 pool room for every store running at
+    once in this process (UPLOAD_QUOTE_STORE_CONCURRENCY files per task, up to
+    UPLOAD_QUOTE_STORE_SLOTS tasks). The SDK builds its pool once at import
+    with urllib3's default of one connection per host and has no setting for
+    it, so each extra parallel store logged "Connection pool is full,
+    discarding connection" (live load test, 2026-11-26). The pool is rebuilt
+    once with the SDK's own builder and its own options, plus `maxsize`."""
+    global _pool_sized
+    with _POOL_LOCK:
+        if _pool_sized:
+            return
+        import cloudinary
+        import cloudinary.utils
+
+        current = getattr(cloudinary.uploader, "_http", None)
+        if current is not None and hasattr(current, "connection_pool_kw"):
+            size = max(1, int(settings.UPLOAD_QUOTE_STORE_CONCURRENCY)) * max(
+                1, int(settings.UPLOAD_QUOTE_STORE_SLOTS)
+            )
+            cloudinary.uploader._http = cloudinary.utils.get_http_connector(
+                cloudinary.config(), {**cloudinary.CERT_KWARGS, "maxsize": size}
+            )
+        _pool_sized = True
+
+
 def store(content, key=None):
     """Keep `content` (bytes) under `key`, else under a new random key."""
     key = key or new_key()
@@ -98,6 +129,7 @@ def store(content, key=None):
     if _memory():
         MEMORY[key] = bytes(content)
     else:
+        size_cloudinary_pool()
         try:
             reply = cloudinary.uploader.upload(
                 io.BytesIO(content),

@@ -55,12 +55,22 @@ class FakeCloud:
         self.reply = reply
 
     def upload(self, stream, public_id=None, overwrite=None, **_kwargs):
+        """As Cloudinary answers (Sonnet worker's live check, 2026-11-26): an
+        existing key with overwrite=False raises nothing and replies with the
+        STORED asset's bytes and etag, existing=True."""
         data = stream.getvalue()
-        if public_id not in self.assets or overwrite:
+        existing = public_id in self.assets
+        if not existing or overwrite:
             self.assets[public_id] = data
         if self.reply is not None:
             return self.reply(data)
-        return {"bytes": len(data), "etag": md5(data), "public_id": public_id}
+        kept = self.assets[public_id]
+        return {
+            "bytes": len(kept),
+            "etag": md5(kept),
+            "public_id": public_id,
+            "existing": existing and not overwrite,
+        }
 
     def destroy(self, public_id, **_kwargs):
         self.destroyed.append(public_id)
@@ -416,8 +426,19 @@ class Retries(Staged):
                 store_quote_files.apply(args=(quote_id, [str(row.pk)]))
         # Five task retries after the first run, two attempts each.
         self.assertEqual(len(calls), (1 + 5) * service.STORE_ATTEMPTS)
-        self.assertEqual(self.rows(quote_id)[0].state, State.NOT_KEPT)
+        after = self.rows(quote_id)[0]
+        self.assertEqual(after.state, State.NOT_KEPT)
         self.assertFalse(UploadQuoteStagedFile.objects.exists())
+        # The last try timed out: the upload may still land, so the key stays
+        # on the row and the purge deletes a late asset when the quote ends.
+        self.assertEqual(after.storage_key, row.storage_key)
+        kept_files.MEMORY[row.storage_key] = b"landed late"
+        with self.captureOnCommitCallbacks(execute=True):
+            service.cancel(UploadQuote.objects.get(pk=quote_id))
+            upload_quotes.purge_due()
+        self.assertNotIn(row.storage_key, kept_files.MEMORY)
+        after.refresh_from_db()
+        self.assertIsNotNone(after.purged_at)
 
     def test_the_task_runs_on_the_light_queue(self):
         self.assertEqual(
@@ -464,8 +485,22 @@ class Sweeper(Staged):
         self.assertEqual(result, {"store_requeued": 0, "store_gave_up": 0})
         asked.assert_not_called()
 
-    def test_an_old_file_is_not_kept_and_its_key_deleted(self):
+    def test_a_file_with_staged_bytes_is_asked_again_until_the_ceiling(self):
         row = self.staged_row(31)
+        result, asked, _ = self.sweep()
+        self.assertEqual(result, {"store_requeued": 1, "store_gave_up": 0})
+        asked.assert_called_once_with(row.quote_id, [row.pk])
+
+    def test_a_re_ask_is_not_sent_again_within_ten_minutes(self):
+        self.staged_row(11)
+        first, _, _ = self.sweep()
+        second, asked, _ = self.sweep()
+        self.assertEqual(first["store_requeued"], 1)
+        self.assertEqual(second["store_requeued"], 0)
+        asked.assert_not_called()
+
+    def test_an_old_file_is_not_kept_and_its_key_deleted(self):
+        row = self.staged_row(settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES + 1)
         result, asked, metrics = self.sweep()
         self.assertEqual(result, {"store_requeued": 0, "store_gave_up": 1})
         asked.assert_not_called()
@@ -480,11 +515,15 @@ class Sweeper(Staged):
         quote = UploadQuote.objects.get(pk=row.quote_id)
         self.assertGreater(quote.expires_at, timezone.now())
 
-    def test_a_stale_file_with_no_staged_bytes_is_not_kept(self):
-        row = self.staged_row(11, staged=False)
+    def test_a_file_with_no_staged_bytes_is_not_kept_after_thirty_minutes(self):
+        young = self.staged_row(11, staged=False)
+        result, _, _ = self.sweep()
+        self.assertEqual(result, {"store_requeued": 0, "store_gave_up": 0})
+        self.assertEqual(self.rows(young.quote_id)[0].state, State.STORING)
+        old = self.staged_row(31, staged=False)
         result, _, _ = self.sweep()
         self.assertEqual(result["store_gave_up"], 1)
-        self.assertEqual(self.rows(row.quote_id)[0].state, State.NOT_KEPT)
+        self.assertEqual(self.rows(old.quote_id)[0].state, State.NOT_KEPT)
 
     def test_the_beat_task_runs_both_nets(self):
         from students.tasks import requeue_stuck_quote_measures
@@ -569,3 +608,184 @@ class DuplicateDelivery(TransactionTestCase):
         self.assertEqual(row.state, State.STORED)
         self.assertIn(row.storage_key, kept_files.MEMORY)
         self.assertFalse(UploadQuoteStagedFile.objects.exists())
+
+
+class StepTwoReview(Staged):
+    """Fixer's review of step 2 (2026-11-26)."""
+
+    def test_1_the_staged_bytes_cap_is_storage_full(self):
+        self.create_staged([pdf("a.pdf")])
+        staged = service.staged_bytes()
+        self.assertGreater(staged, 0)
+        with override_settings(UPLOAD_QUOTE_STAGED_BYTES_MAX=staged + 10), patch(
+            "students.upload_quote_service.audit_metrics.count"
+        ) as count:
+            response = self.create_staged([pdf("b.pdf", pages=4)])
+        self.assertEqual(response.status_code, 413, response.content)
+        self.assertEqual(
+            response.json()["error"]["field_errors"]["reason_code"],
+            "QUOTE_STORAGE_FULL",
+        )
+        self.assertIn(
+            "upload_quote_staged_full", [c.args[0] for c in count.call_args_list]
+        )
+        self.assertEqual(UploadQuote.objects.count(), 1)
+
+    def test_2_a_full_set_of_slots_waits_and_is_not_a_fault(self):
+        with patch.object(
+            service, "acquire_store_slot", side_effect=[False, False, True]
+        ) as acquire, patch.object(
+            service, "release_store_slot"
+        ) as release, patch.object(
+            service, "store_staged", return_value=[]
+        ) as stored:
+            store_quote_files.apply(args=("q", ["f"]), kwargs={"faults": 4})
+        self.assertEqual(acquire.call_count, 3)
+        release.assert_called_once()
+        # Two waits did not move the fault count: still not the last try.
+        stored.assert_called_once_with("q", ["f"], final=False)
+
+    @override_settings(UPLOAD_QUOTE_STORE_SLOTS=2)
+    def test_2_the_slots_count_to_the_setting(self):
+        from django.core.cache import cache
+
+        cache.delete(service.STORE_SLOTS_KEY)
+        self.addCleanup(cache.delete, service.STORE_SLOTS_KEY)
+        self.assertTrue(service.acquire_store_slot())
+        self.assertTrue(service.acquire_store_slot())
+        self.assertFalse(service.acquire_store_slot())
+        service.release_store_slot()
+        self.assertTrue(service.acquire_store_slot())
+
+    def test_3_a_failed_staging_leaves_no_quote_and_a_replay_starts_fresh(self):
+        self.client.raise_request_exception = False
+        with patch.object(
+            UploadQuoteStagedFile.objects, "create", side_effect=RuntimeError("db")
+        ):
+            failed = self.create_staged([pdf("a.pdf")], key="fresh-1")
+        self.assertEqual(failed.status_code, 500)
+        self.assertFalse(UploadQuote.objects.exists())
+        self.assertFalse(UploadQuoteFile.objects.exists())
+        again = self.create_staged([pdf("a.pdf")], key="fresh-1")
+        self.assertEqual(again.status_code, 201, again.content)
+        self.assertEqual(UploadQuote.objects.count(), 1)
+
+    def test_4_a_duplicate_runs_wrong_reply_leaves_the_settled_asset(self):
+        """B loads the file, A stores and settles it STORED, then B's own
+        store gets a wrong reply: B must not delete the row's asset."""
+        quote_id = data_of(self.create_staged([pdf("a.pdf")]))["id"]
+        row = self.rows(quote_id)[0]
+        cloud = FakeCloud()
+        real_run_all = quote_store_pool.run_all
+        state = {"nested": False}
+
+        def a_first_then_b(calls):
+            if not state["nested"]:
+                state["nested"] = True
+                service.store_staged(quote_id, [row.pk])  # run A, in full
+                cloud.reply = lambda d: {"bytes": len(d) + 1, "etag": md5(d)}
+            return real_run_all(calls)
+
+        first, second, third = cloud.patches()
+        with first, second, third, patch.object(
+            quote_store_pool, "run_all", side_effect=a_first_then_b
+        ), patch("students.upload_quote_service.enqueue_measures"):
+            service.store_staged(quote_id, [row.pk])  # run B
+        row.refresh_from_db()
+        self.assertEqual(row.state, State.STORED)
+        self.assertIn(row.storage_key, cloud.assets)
+        self.assertNotIn(row.storage_key, cloud.destroyed)
+
+    def test_4_a_wrong_reply_is_not_deleted_in_the_pool_thread(self):
+        cloud = FakeCloud(reply=lambda d: {"bytes": len(d) + 1})
+        with patch.object(kept_files, "delete") as deleted:
+            first, second, third = cloud.patches()
+            with first, second, third, self.assertRaises(service.ReplyMismatch):
+                service._store_one(b"abc", "kept_uploads/x/k", sha(b"abc"), 3)
+        deleted.assert_not_called()
+
+    def test_5_the_sweeper_ends_a_row_while_its_store_is_uploading(self):
+        quote_id = data_of(self.create_staged([pdf("a.pdf")]))["id"]
+        row = self.rows(quote_id)[0]
+        UploadQuoteFile.objects.filter(pk=row.pk).update(
+            created_at=timezone.now()
+            - timedelta(minutes=settings.UPLOAD_QUOTE_UNREADY_CEILING_MINUTES + 1)
+        )
+        real_run_all = quote_store_pool.run_all
+
+        def sweep_then_store(calls):
+            with self.captureOnCommitCallbacks(execute=True):
+                self.assertEqual(service.sweep_storing()["store_gave_up"], 1)
+            return real_run_all(calls)
+
+        with patch.object(quote_store_pool, "run_all", side_effect=sweep_then_store):
+            service.store_staged(quote_id, [row.pk])
+        after = self.rows(quote_id)[0]
+        self.assertEqual((after.state, after.storage_key), (State.NOT_KEPT, None))
+        self.assertEqual(kept_files.MEMORY, {})
+
+    def test_8_a_broker_that_does_not_answer_still_replies_201(self):
+        self.client.force_authenticate(user=self.teacher)
+        with patch.object(
+            store_quote_files, "apply_async", side_effect=OSError("broker down")
+        ), patch(
+            "students.upload_quote_service.audit_metrics.count"
+        ) as count, self.captureOnCommitCallbacks(
+            execute=True
+        ):
+            response = self.client.post(
+                reverse(LIST_URL),
+                {
+                    "kind": "answer_papers",
+                    "assignment_id": str(self.assignment.pk),
+                    "files": [pdf("a.pdf")],
+                },
+                format="multipart",
+            )
+        self.assertEqual(response.status_code, 201, response.content)
+        self.assertIn(
+            "upload_quote_store_enqueue_failed",
+            [c.args[0] for c in count.call_args_list],
+        )
+        self.assertEqual(UploadQuoteStagedFile.objects.count(), 1)
+
+    def test_10_staged_bytes_are_stored_out_of_line_uncompressed(self):
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT attstorage FROM pg_attribute "
+                "WHERE attrelid = 'students_uploadquotestagedfile'::regclass "
+                "AND attname = 'content'"
+            )
+            (storage,) = cursor.fetchone()
+        self.assertEqual(storage, "e")
+
+    @override_settings(UPLOAD_QUOTE_STORE_CONCURRENCY=2)
+    def test_11_each_batch_goes_to_the_measure_when_it_settles(self):
+        files = [png(f"{n}.png", color=(n * 50, 3, 3)) for n in range(3)]
+        quote_id = data_of(self.create_staged(files))["id"]
+        self.run_store(quote_id)
+        sizes = [len(c.args[0]) for c in self.measure_asked.call_args_list]
+        self.assertEqual(sizes, [2, 1])
+
+
+class TheCloudinaryPoolFitsTheStores(Staged):
+    """The live load test logged urllib3 "Connection pool is full" from 3
+    parallel stores up: the SDK's pool held one connection per host."""
+
+    @override_settings(UPLOAD_QUOTE_STORE_CONCURRENCY=5, UPLOAD_QUOTE_STORE_SLOTS=3)
+    def test_the_pool_holds_every_store_running_at_once(self):
+        import cloudinary.uploader
+
+        before = cloudinary.uploader._http
+        self.addCleanup(setattr, cloudinary.uploader, "_http", before)
+        self.addCleanup(setattr, kept_files, "_pool_sized", kept_files._pool_sized)
+        kept_files._pool_sized = False
+        kept_files.size_cloudinary_pool()
+        pool = cloudinary.uploader._http
+        self.assertIsNot(pool, before)
+        self.assertEqual(pool.connection_pool_kw["maxsize"], 15)
+        # The SDK's own options are kept (certificates).
+        self.assertEqual(pool.connection_pool_kw.get("cert_reqs"), "CERT_REQUIRED")
+        # Once only.
+        kept_files.size_cloudinary_pool()
+        self.assertIs(cloudinary.uploader._http, pool)

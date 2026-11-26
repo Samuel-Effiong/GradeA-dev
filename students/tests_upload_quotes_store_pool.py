@@ -145,7 +145,11 @@ class ParallelStore(Base):
         self.assertEqual(
             UploadQuoteFile.objects.get(position=2).reason_code, "QUOTE_FILE_NOT_KEPT"
         )
-        self.assertIsNone(UploadQuoteFile.objects.get(position=2).storage_key)
+        # The last try timed out: the key stays so the purge deletes a late
+        # asset when the quote ends; nothing is stored under it now.
+        failed = UploadQuoteFile.objects.get(position=2)
+        self.assertIsNotNone(failed.storage_key)
+        self.assertNotIn(failed.storage_key, kept_files.MEMORY)
         self.assertEqual(len(kept_files.MEMORY), 4)
 
     @override_settings(UPLOAD_QUOTE_STORE_CONCURRENCY=1)

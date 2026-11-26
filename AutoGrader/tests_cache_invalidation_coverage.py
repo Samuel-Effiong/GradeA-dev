@@ -181,6 +181,12 @@ MIXIN_PREFIXES = {
 #: Cache writes that are NOT response caches, so are deliberately not
 #: generation-versioned. (path, count of write calls, why).
 NON_RESPONSE_CACHE_WRITES = {
+    "students/upload_quote_service.py": (
+        4,
+        "the upload quote store task's slot counter (UPLOAD_QUOTE_STORE_SLOTS, "
+        "key upload_quote_store_slots) and the sweeper's per-file re-ask mark "
+        "(upload_quote_store_asked:<id>, 10 minutes); not responses",
+    ),
     "students/upload_quote_measure.py": (
         3,
         "the measure's 2-at-once slot counter (upload quote); key "
