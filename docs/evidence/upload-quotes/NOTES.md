@@ -68,8 +68,11 @@ balance down for display.
   or ledger row exists before confirm (BE-B-04).
 * Row-first storage: a file's row commits with its random key before the
   bytes are stored, so a dead request leaves a row the purge clears by key.
-* Stores run `UPLOAD_QUOTE_STORE_CONCURRENCY` (default 3) at a time
-  (`students.quote_store_pool`). Only the storage call runs in the pool; every
+* Stores run `UPLOAD_QUOTE_STORE_CONCURRENCY` (default 5, owner 2026-11-26)
+  at a time (`students.quote_store_pool`). A store the storage did not answer
+  (an error or a timeout) is tried once more (metric
+  `upload_quote_store_retried`) before the file is `NOT_KEPT`; a Cloudinary
+  400 and changed bytes are never retried. Only the storage call runs in the pool; every
   row write stays on the caller's thread, in position order. A file is hashed
   in chunks at intake and read whole only by the thread that stores it, which
   checks its sha256 and size against the row first (a mismatch stores nothing
