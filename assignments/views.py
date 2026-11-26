@@ -67,6 +67,7 @@ from AutoGrader.uploads import (
 from billing.access_control import AIFeatureNotAvailableError
 from billing.errors import InsufficientCreditsError
 from billing.job_ref import ai_job_schema, settled_job_id, tracking, with_ai_job_id
+from billing.refusals import log_refusal, refusal_response
 from classrooms.models import (
     COURSE_ACCESS_ENROLLMENT_STATUSES,
     Topic,
@@ -1642,38 +1643,11 @@ class AssignmentViewSet(UploadRequestCapMixin, UserCacheMixin, viewsets.ModelVie
             }
 
             return Response(data, status=status.HTTP_201_CREATED)
-        except InsufficientCreditsError as e:
-            logger.warning(
-                "Assignment generation blocked by insufficient credits for user %s: %s",
-                request.user.id,
-                e,
-            )
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message="Refill your wallet to continue generating assignments.",
-                    )
-                },
-                status=status.HTTP_402_PAYMENT_REQUIRED,
-            )
-        except AIFeatureNotAvailableError as e:
-            logger.warning(
-                "Assignment generation denied by plan/tier for user %s: %s",
-                request.user.id,
-                e,
-            )
-            return Response(
-                {
-                    "error": describe_user_error(
-                        e,
-                        fallback_message=(
-                            "AI assignment generation isn't available on your current plan."
-                        ),
-                    )
-                },
-                status=status.HTTP_403_FORBIDDEN,
-            )
+        except (InsufficientCreditsError, AIFeatureNotAvailableError) as e:
+            # The coded envelope every other refusal sends (FR-A-06): 402 for
+            # credits, 403 for the plan, the same sentence as before.
+            log_refusal(logger, "Assignment generation", e, user_id=request.user.id)
+            return refusal_response(e)
         except Http404:
             return Response(
                 {

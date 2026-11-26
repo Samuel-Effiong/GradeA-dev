@@ -206,7 +206,15 @@ class StudentUploadDoorTest(APITestCase):
         self.assertTrue(message)
         for word in ("credit", "wallet", "balance", "refill", "top up", "5000"):
             self.assertNotIn(word, message.lower())
-        self.assertEqual(sorted(response.data), ["code", "error"])
+        # The coded envelope (2026-11-26): nothing else a student reads
+        # names money either; no remediation, no params.
+        self.assertEqual(response.data["code"], "insufficient_credits")
+        self.assertIsNone(response.data["remediation"])
+        self.assertEqual(response.data["params"], {})
+        for key, value in response.data.items():
+            if isinstance(value, str) and key not in ("code", "reason_code"):
+                for word in ("credit", "wallet", "balance", "refill", "top up"):
+                    self.assertNotIn(word, value.lower(), key)
 
     # B1b-2 (NOTES §2.3 B2, SM Q2): flag-off only. It asserts the mocked
     # launch's own id; with the flag on the response carries the door's

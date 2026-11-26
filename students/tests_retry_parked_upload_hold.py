@@ -268,7 +268,11 @@ class RetryWithNoSpendableCreditHoldsOn(_RetryWithNoSpendableCredit, TestCase):
         door = DoorHold(self.teacher, self.assignment, 1).refusal_response(1).data
         body = self.refusal.json()
         self.assertEqual(body["message"], door["error"])
-        self.assertEqual(body["error"]["field_errors"], door)
+        # `reference` is each request's own id (the coded envelope,
+        # 2026-11-26); every other key is the door's.
+        shown = dict(body["error"]["field_errors"])
+        self.assertTrue(shown.pop("reference"))
+        self.assertEqual(shown, {k: v for k, v in door.items() if k != "reference"})
 
     def test_retry_failed_skips_it_and_stamps_nothing(self):
         response = self.retry_failed(self.f2.batch_session_id)
