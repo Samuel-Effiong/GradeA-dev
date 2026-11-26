@@ -68,6 +68,18 @@ balance down for display.
   or ledger row exists before confirm (BE-B-04).
 * Row-first storage: a file's row commits with its random key before the
   bytes are stored, so a dead request leaves a row the purge clears by key.
+* Stores run `UPLOAD_QUOTE_STORE_CONCURRENCY` (default 3) at a time
+  (`students.quote_store_pool`). Only the storage call runs in the pool; every
+  row write stays on the caller's thread, in position order. A file is hashed
+  in chunks at intake and read whole only by the thread that stores it, which
+  checks its sha256 and size against the row first (a mismatch stores nothing
+  and ends `NOT_KEPT`, metric `upload_quote_bytes_changed`). Django writes
+  every upload over `FILE_UPLOAD_MAX_MEMORY_SIZE` (256 KB, set for this) to a
+  temporary file as it arrives, so the request holds in RAM only the files
+  under 256 KB and the few files being stored, not the whole request.
+* A quote with no file is not ready (confirm answers `QUOTE_NOT_READY`).
+  `open_bytes` counts only rows that hold or will hold bytes (STORING, STORED,
+  MEASURING, MEASURED): a refused or not-kept file fills no room.
 * The measure runs on its own queue `quote_measure` of the existing worker
   (`-Q celery,quote_measure`), two at a time (`UPLOAD_QUOTE_MEASURE_CONCURRENCY`),
   never charged. A stuck file is re-asked after 10 minutes, 3 attempts, then
