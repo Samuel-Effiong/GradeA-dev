@@ -3,11 +3,11 @@ QA bug (owner chose option 3, 2026-11-25): the student's assignment page
 read feedback.score_calculation_verification.individual_scores and crashed,
 because the student projection (H-127) never copied that block.
 
-The projection copies individual_scores, manual_sum and (owner,
-2026-11-25, after the page crashed formatting it) verification_status.
-calculation_notes (which can describe a correction meant for the teacher),
-snapped_to_rubric_level_count and anything else in the block are never
-shown, whether the note says PASS or not. A missing block, or one that is
+The projection copies individual_scores, manual_sum, (owner,
+2026-11-25, after the page crashed formatting it) verification_status and
+(owner, 2026-11-27, option B, after the page crashed again)
+calculation_notes. snapped_to_rubric_level_count and anything else in the
+block are never shown, whether the note says PASS or not. A missing block, or one that is
 not a dictionary, is left out.
 
     python manage.py test students.tests_student_score_verification
@@ -22,7 +22,7 @@ from students.feedback_projection import student_safe_feedback
 from students.tests_student_feedback_routes import StudentFeedbackRoutesBase
 
 NOTE = "score_calculation_verification"
-HIDDEN = ("calculation_notes", "snapped_to_rubric_level_count")
+HIDDEN = ("snapped_to_rubric_level_count",)
 
 
 def note(status_text="PASS", **extra):
@@ -41,7 +41,12 @@ class ProjectionTests(SimpleTestCase):
     def test_the_named_fields(self):
         self.assertEqual(
             getattr(feedback_projection, "STUDENT_VERIFICATION_FIELDS", None),
-            ("individual_scores", "manual_sum", "verification_status"),
+            (
+                "individual_scores",
+                "manual_sum",
+                "verification_status",
+                "calculation_notes",
+            ),
         )
 
     def test_a_pass_note_shows_the_arithmetic_and_the_status(self):
@@ -52,6 +57,7 @@ class ProjectionTests(SimpleTestCase):
                 "individual_scores": [4, 3.5, 0],
                 "manual_sum": 7.5,
                 "verification_status": "PASS",
+                "calculation_notes": "Left out a repeated evaluation of question 2.",
             },
         )
 
@@ -63,6 +69,7 @@ class ProjectionTests(SimpleTestCase):
                 "individual_scores": [4, 3.5, 0],
                 "manual_sum": 7.5,
                 "verification_status": "CORRECTED",
+                "calculation_notes": "Left out a repeated evaluation of question 2.",
             },
         )
 
@@ -88,14 +95,20 @@ class ProjectionTests(SimpleTestCase):
             {NOTE: note(individual_scores=[{"question": 1, "secret": "x"}])}
         )
         self.assertEqual(
-            shown[NOTE], {"manual_sum": 7.5, "verification_status": "PASS"}
+            shown[NOTE],
+            {
+                "manual_sum": 7.5,
+                "verification_status": "PASS",
+                "calculation_notes": "Left out a repeated evaluation of question 2.",
+            },
         )
 
     def test_a_note_with_no_shown_field_is_an_empty_block(self):
         """The block was there, so the key is there; nothing is invented
         inside it."""
         self.assertEqual(
-            student_safe_feedback({NOTE: {"calculation_notes": "x"}})[NOTE], {}
+            student_safe_feedback({NOTE: {"snapped_to_rubric_level_count": 2}})[NOTE],
+            {},
         )
 
 
@@ -113,6 +126,10 @@ class AssignmentDetailRouteTests(StudentFeedbackRoutesBase):
         self.assertEqual(shown[NOTE]["individual_scores"], [4, 3.5, 0])
         self.assertEqual(shown[NOTE]["manual_sum"], 7.5)
         self.assertEqual(shown[NOTE]["verification_status"], "PASS")
+        self.assertEqual(
+            shown[NOTE]["calculation_notes"],
+            "Left out a repeated evaluation of question 2.",
+        )
         for name in HIDDEN:
             self.assertNotIn(name, shown[NOTE])
 

@@ -44,19 +44,17 @@ TEACHER_ONLY_MARKERS = (
     "second-grader-model",
     "first-grader-model",
     "SECOND GRADER RATIONALE",
-    "INTERNAL NOTE ON LEVEL",
+    "INTERNAL NOTE ON LEVEL (summary)",
     "evidence_quotes",
     "flag_for_review",
     "graded_by",
     "snapped_from",
-    "evaluation_rationale",
     "for_teacher",
     "ADVICE TO THE TEACHER",
     "follow_up_actions",
     "RAW SECOND OPINION ERROR",
     "grading_model",
     "A KEY NOBODY HAS CLASSIFIED",
-    "CALCULATION NOTE FOR THE TEACHER",
     "snapped_to_rubric_level_count",
 )
 
@@ -143,6 +141,8 @@ STUDENT_FEEDBACK = {
             "weaknesses": ["Missing a detail."],
             "improvement_suggestions": ["Add the missing detail."],
             "feedback_for_student": "Solid answer overall.",
+            # Owner, 2026-11-27 (student page crash, option B).
+            "evaluation_rationale": "INTERNAL NOTE ON LEVEL selection.",
         }
     ],
     "overall_performance_analysis": {
@@ -154,7 +154,11 @@ STUDENT_FEEDBACK = {
         "individual_scores": [8],
         "manual_sum": 8,
         "verification_status": "PASS",
+        # Owner, 2026-11-27 (student page crash, option B).
+        "calculation_notes": "CALCULATION NOTE FOR THE TEACHER",
     },
+    # Owner, 2026-11-27 (student page crash, option B).
+    "grading_confidence": 92,
 }
 
 
