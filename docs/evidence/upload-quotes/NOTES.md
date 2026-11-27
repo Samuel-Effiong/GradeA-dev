@@ -7,19 +7,19 @@ BE-A-01 (audit), BE-A-06 (reason codes).
 
 ## What the teacher's screen does
 
-1. `POST /api/v1/upload-quotes/` (multipart): `kind`, `assignment_id`
+1. `POST /api/v1/submissions-credit-estimate/` (multipart): `kind`, `assignment_id`
    (answers) or `course_id` + optional `topic_id` (assignment files), and
    `files` (list order is the position). One request carries every file; the
    frontend does no check of its own. 201 at once with the quote and one
    entry per file: `STORING` (kept; the bytes are stored after the reply), or
    `REFUSED` with its own reason code. One bad file never fails the others.
-2. Poll `GET /upload-quotes/{id}` until `ready`. Add more with
-   `POST /upload-quotes/{id}/files` (positions continue; sha256 de-dup; 100
+2. Poll `GET /submissions-credit-estimate/{id}` until `ready`. Add more with
+   `POST /submissions-credit-estimate/{id}/files` (positions continue; sha256 de-dup; 100
    files per quote; 500 MB per request; open quotes only).
-3. `POST /upload-quotes/{id}/confirm` starts the batch: what fits runs, the
+3. `POST /submissions-credit-estimate/{id}/confirm` starts the batch: what fits runs, the
    rest is parked (kept, retryable). 202 the first time, 200 with the same
    body when repeated. `would_park` in the body is accepted and ignored.
-4. `DELETE /upload-quotes/{id}` cancels. `GET /upload-quotes/?open=true`
+4. `DELETE /submissions-credit-estimate/{id}` cancels. `GET /submissions-credit-estimate/?open=true`
    finds a reloaded page's quote.
 
 ## For the frontend (all of it is in the replies)

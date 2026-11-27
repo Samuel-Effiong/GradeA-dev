@@ -6,7 +6,7 @@ not expired; an unready quote older than the ceiling is purged; the purge runs
 every 5 minutes; every reply and the 410 carry `expires_at` and
 `lifetime_minutes`. Tests read the setting, never a hard-coded 10.
 
-Q10: POST /upload-quotes/{id}/files adds files to an open quote.
+Q10: POST /submissions-credit-estimate/{id}/files adds files to an open quote.
 
 Q3 = C: a teacher with nothing spendable gets the existing 402 before any
 byte is stored, any row made or any measure asked for.

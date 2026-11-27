@@ -1,6 +1,6 @@
 """Upload quote, slice 5 (plan rev 3 section 5; owner Q2 = A): confirm.
 
-POST /upload-quotes/{id}/confirm runs what fits and parks the rest (kept,
+POST /submissions-credit-estimate/{id}/confirm runs what fits and parks the rest (kept,
 retryable); it never asks the teacher to agree to a changed balance and never
 takes the door's discard-all 402. A second confirm returns the stored body
 with 200.
