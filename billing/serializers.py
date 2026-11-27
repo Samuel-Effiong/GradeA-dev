@@ -1516,14 +1516,10 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
     """
 
     display_total = serializers.SerializerMethodField(
-        help_text=f"total_credits ÷ {CONVERSION_FACTOR} (user-facing amount)"
+        help_text="Total AI credits granted"
     )
-    display_remaining = serializers.SerializerMethodField(
-        help_text=f"remaining_credits ÷ {CONVERSION_FACTOR} (user-facing amount)"
-    )
-    display_used = serializers.SerializerMethodField(
-        help_text=f"used_credits ÷ {CONVERSION_FACTOR} (user-facing amount)"
-    )
+    display_remaining = serializers.SerializerMethodField(help_text="AI credits left")
+    display_used = serializers.SerializerMethodField(help_text="AI credits used")
     status = serializers.SerializerMethodField()
     days_until_expiry = serializers.SerializerMethodField()
     granted_by_email = serializers.SerializerMethodField(

@@ -114,3 +114,25 @@ class GrantDocsInAiCreditsTests(_AdminCreditBase):
         self.assertEqual(
             example["display_total"], example["blocks_granted"] * example["block_size"]
         )
+
+    def test_the_display_amounts_have_the_owner_approved_descriptions(self):
+        """Owner, 2026-11-27, exact wording: the display_* descriptions no
+        longer name the raw fields the replies stopped sending."""
+        from billing.tests.test_credit_request_email_hide_approve import (
+            generated_schema,
+        )
+
+        props = generated_schema()["components"]["schemas"]["ManualGrantBucket"][
+            "properties"
+        ]
+        self.assertEqual(
+            {
+                name: props[name].get("description")
+                for name in ("display_total", "display_remaining", "display_used")
+            },
+            {
+                "display_total": "Total AI credits granted",
+                "display_remaining": "AI credits left",
+                "display_used": "AI credits used",
+            },
+        )
