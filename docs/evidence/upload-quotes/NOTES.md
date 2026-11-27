@@ -121,7 +121,12 @@ balance down for display.
   a random token, so a run that outlives its key never frees a slot another
   task has taken since. Each Cloudinary upload has one overall deadline,
   `KEPT_FILES_UPLOAD_TIMEOUT_SECONDS` (120 s; a timeout is a retried storage
-  fault). A task finding no
+  fault). A run holds its slot at most `UPLOAD_QUOTE_STORE_RUN_SECONDS` + 2 x
+  that timeout (840 s), under the 900 s TTL (a test pins it).
+* **When the per-file limit goes above 10 MB** (`MAX_UPLOAD_FILE_SIZE_MB`,
+  after a Cloudinary plan upgrade): raise `KEPT_FILES_UPLOAD_TIMEOUT_SECONDS`
+  with it, and raise `UPLOAD_QUOTE_STORE_SLOT_TTL` so the bound above still
+  holds. A task finding no
   free slot is sent again in 15 s; neither the wait nor the hand-on counts as
   a fault. The staged column is `STORAGE EXTERNAL` (no
   compression of already-compressed files). The Cloudinary SDK's urllib3

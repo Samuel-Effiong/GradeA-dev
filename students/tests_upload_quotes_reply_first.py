@@ -727,11 +727,15 @@ class StepTwoReview(Staged):
         self.assertIsInstance(timeout, urllib3.Timeout)
         self.assertEqual(timeout.total, 42)
 
-    def test_the_upload_timeout_is_under_the_run_budget(self):
-        self.assertLess(
-            settings.KEPT_FILES_UPLOAD_TIMEOUT_SECONDS,
-            settings.UPLOAD_QUOTE_STORE_RUN_SECONDS,
+    def test_a_runs_longest_hold_is_under_the_slot_ttl(self):
+        """A run starts its last batch just before its budget ends, and each
+        file in it may take every attempt to its full timeout: that is the
+        longest it can hold its slot (600 + 2 x 120 = 840 < 900 s)."""
+        longest = (
+            settings.UPLOAD_QUOTE_STORE_RUN_SECONDS
+            + service.STORE_ATTEMPTS * settings.KEPT_FILES_UPLOAD_TIMEOUT_SECONDS
         )
+        self.assertLess(longest, settings.UPLOAD_QUOTE_STORE_SLOT_TTL)
 
     def test_a_timed_out_upload_is_a_storage_fault_worth_retrying(self):
         import urllib3
