@@ -316,7 +316,7 @@ class Create(Base):
         # The store task dies before it settles anything (its worker is
         # killed): the reply was already sent, the row stays STORING.
         with patch(
-            "students.upload_quote_service.store_staged",
+            "students.upload_quote_service.store_staged_within",
             side_effect=RuntimeError("killed"),
         ):
             self.assertEqual(self.create([pdf()]).status_code, 201)

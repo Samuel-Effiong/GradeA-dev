@@ -1862,6 +1862,14 @@ UPLOAD_QUOTE_STAGED_BYTES_MAX = env.int(
 #: measure's): a task that finds them all taken waits and is sent again, and
 #: that wait is not a storage fault.
 UPLOAD_QUOTE_STORE_SLOTS = env.int("UPLOAD_QUOTE_STORE_SLOTS", default=3)
+#: Each slot is a cache key that expires after this, so a store task killed
+#: without releasing it (a deploy's SIGKILL) frees its slot by itself.
+UPLOAD_QUOTE_STORE_SLOT_TTL = env.int("UPLOAD_QUOTE_STORE_SLOT_TTL", default=15 * 60)
+#: A store task stops starting new files after this and sends the rest to a
+#: new task, so it never holds its slot past the TTL above.
+UPLOAD_QUOTE_STORE_RUN_SECONDS = env.int(
+    "UPLOAD_QUOTE_STORE_RUN_SECONDS", default=10 * 60
+)
 
 # Email domain for users the live-QA suite creates. Defaults to a
 # .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA

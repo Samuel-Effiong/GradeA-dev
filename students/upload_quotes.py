@@ -171,13 +171,23 @@ def purge_due(now=None):
             )
             .exclude(pk__in=tried)
             .order_by("created_at", "pk")
-            .values_list("pk", "storage_key", "state", "created_at")[:PURGE_BATCH]
+            .values_list("pk", "storage_key", "state", "created_at", "measured_at")[
+                :PURGE_BATCH
+            ]
         )
         if not batch:
             break
-        for row_id, storage_key, file_state, created_at in batch:
+        for row_id, storage_key, file_state, created_at, settled_at in batch:
             tried.add(row_id)
-            if file_state == "STORING" and created_at > recent:
+            # A STORING file, or a NOT_KEPT one whose last try timed out (it
+            # kept its key; measured_at is when it settled), may still have
+            # an upload on its way.
+            uploading = (file_state == "STORING" and created_at > recent) or (
+                file_state == "NOT_KEPT"
+                and settled_at is not None
+                and settled_at > recent
+            )
+            if uploading:
                 # A store may still be running: delete the key's bytes so far
                 # but keep the key, so the next run deletes what lands later.
                 _delete_key(storage_key)

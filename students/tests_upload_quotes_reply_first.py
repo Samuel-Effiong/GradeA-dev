@@ -437,6 +437,20 @@ class Retries(Staged):
             service.cancel(UploadQuote.objects.get(pk=quote_id))
             upload_quotes.purge_due()
         self.assertNotIn(row.storage_key, kept_files.MEMORY)
+        # Within 30 minutes of the timeout the key stays for the next purge
+        # (B: an upload may land later still); after them the row is purged.
+        after.refresh_from_db()
+        self.assertEqual(after.storage_key, row.storage_key)
+        self.assertIsNone(after.purged_at)
+        kept_files.MEMORY[row.storage_key] = b"landed later still"
+        with self.captureOnCommitCallbacks(execute=True):
+            upload_quotes.purge_due()
+        self.assertNotIn(row.storage_key, kept_files.MEMORY)
+        UploadQuoteFile.objects.filter(pk=row.pk).update(
+            measured_at=timezone.now() - timedelta(minutes=31)
+        )
+        with self.captureOnCommitCallbacks(execute=True):
+            upload_quotes.purge_due()
         after.refresh_from_db()
         self.assertIsNotNone(after.purged_at)
 
@@ -633,29 +647,97 @@ class StepTwoReview(Staged):
 
     def test_2_a_full_set_of_slots_waits_and_is_not_a_fault(self):
         with patch.object(
-            service, "acquire_store_slot", side_effect=[False, False, True]
+            service, "acquire_store_slot", side_effect=[None, None, 0]
         ) as acquire, patch.object(
             service, "release_store_slot"
         ) as release, patch.object(
-            service, "store_staged", return_value=[]
+            service, "store_staged_within", return_value=([], [])
         ) as stored:
             store_quote_files.apply(args=("q", ["f"]), kwargs={"faults": 4})
         self.assertEqual(acquire.call_count, 3)
-        release.assert_called_once()
+        release.assert_called_once_with(0)
         # Two waits did not move the fault count: still not the last try.
-        stored.assert_called_once_with("q", ["f"], final=False)
+        stored.assert_called_once_with(
+            "q", ["f"], final=False, seconds=settings.UPLOAD_QUOTE_STORE_RUN_SECONDS
+        )
+
+    def clear_slots(self):
+        from django.core.cache import cache
+
+        for number in range(10):
+            cache.delete(service.STORE_SLOT_KEY.format(number))
 
     @override_settings(UPLOAD_QUOTE_STORE_SLOTS=2)
     def test_2_the_slots_count_to_the_setting(self):
-        from django.core.cache import cache
+        self.clear_slots()
+        self.addCleanup(self.clear_slots)
+        self.assertEqual(service.acquire_store_slot(), 0)
+        self.assertEqual(service.acquire_store_slot(), 1)
+        self.assertIsNone(service.acquire_store_slot())
+        service.release_store_slot(0)
+        self.assertEqual(service.acquire_store_slot(), 0)
 
-        cache.delete(service.STORE_SLOTS_KEY)
-        self.addCleanup(cache.delete, service.STORE_SLOTS_KEY)
-        self.assertTrue(service.acquire_store_slot())
-        self.assertTrue(service.acquire_store_slot())
-        self.assertFalse(service.acquire_store_slot())
-        service.release_store_slot()
-        self.assertTrue(service.acquire_store_slot())
+    @override_settings(UPLOAD_QUOTE_STORE_SLOTS=1, UPLOAD_QUOTE_STORE_SLOT_TTL=1)
+    def test_a_a_killed_holders_slot_frees_after_its_ttl(self):
+        """A deploy SIGKILLs a store task: its finally never runs and it
+        never releases. The slot key expires by itself."""
+        import time as clock
+
+        self.clear_slots()
+        self.addCleanup(self.clear_slots)
+        self.assertEqual(service.acquire_store_slot(), 0)  # then killed
+        self.assertIsNone(service.acquire_store_slot())
+        clock.sleep(1.5)
+        self.assertEqual(service.acquire_store_slot(), 0)
+
+    def test_a_the_budget_is_under_the_slot_ttl(self):
+        self.assertLess(
+            settings.UPLOAD_QUOTE_STORE_RUN_SECONDS,
+            settings.UPLOAD_QUOTE_STORE_SLOT_TTL,
+        )
+
+    @override_settings(UPLOAD_QUOTE_STORE_CONCURRENCY=2)
+    def test_a_a_run_past_its_budget_stops_after_the_batch(self):
+        files = [png(f"{n}.png", color=(n * 60, 4, 4)) for n in range(5)]
+        quote_id = data_of(self.create_staged(files))["id"]
+        ids = [str(r.pk) for r in self.rows(quote_id)]
+        with patch("students.upload_quote_service.enqueue_measures"):
+            pending, rest = service.store_staged_within(quote_id, ids, seconds=0)
+        self.assertEqual((pending, rest), ([], ids[2:]))
+        self.assertEqual(
+            [r.state for r in self.rows(quote_id)],
+            [State.STORED, State.STORED, State.STORING, State.STORING, State.STORING],
+        )
+        self.assertEqual(UploadQuoteStagedFile.objects.count(), 3)
+
+    def test_a_the_task_sends_the_rest_on_and_releases_its_slot(self):
+        with patch.object(
+            service, "acquire_store_slot", side_effect=[0, 1]
+        ), patch.object(service, "release_store_slot") as release, patch.object(
+            service,
+            "store_staged_within",
+            side_effect=[([], ["b", "c"]), ([], [])],
+        ) as stored:
+            store_quote_files.apply(args=("q", ["a", "b", "c"]), kwargs={"faults": 2})
+        self.assertEqual([c.args[0] for c in release.call_args_list], [0, 1])
+        second = stored.call_args_list[1]
+        self.assertEqual(second.args[:2], ("q", ["b", "c"]))
+        self.assertFalse(second.kwargs["final"])  # faults still 2: not a fault
+
+    def test_a_with_faults_too_the_rest_goes_to_a_new_task(self):
+        from students import tasks
+
+        with patch.object(service, "acquire_store_slot", return_value=0), patch.object(
+            service, "release_store_slot"
+        ), patch.object(
+            service,
+            "store_staged_within",
+            side_effect=[(["a"], ["c"]), ([], [])],
+        ), patch.object(
+            tasks, "resend_store"
+        ) as resend:
+            store_quote_files.apply(args=("q", ["a", "b", "c"]))
+        resend.assert_called_once_with("q", ["c"], faults=0, waits=0)
 
     def test_3_a_failed_staging_leaves_no_quote_and_a_replay_starts_fresh(self):
         self.client.raise_request_exception = False

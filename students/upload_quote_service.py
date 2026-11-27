@@ -19,6 +19,7 @@ task: a quote is its own pair of tables. No file name is logged or returned.
 
 import hashlib
 import logging
+import time
 from datetime import timedelta
 from functools import partial
 from typing import Any
@@ -420,8 +421,12 @@ def _settle_batch(quote_id, stored, failed):
                     pk=pk, state=State.STORING, storage_key=key
                 )
                 if keep_key:
+                    # measured_at notes when it settled: the purge keeps
+                    # deleting the key for 30 minutes after, for a late upload.
                     ended = ours.update(
-                        state=State.NOT_KEPT, reason_code="QUOTE_FILE_NOT_KEPT"
+                        state=State.NOT_KEPT,
+                        reason_code="QUOTE_FILE_NOT_KEPT",
+                        measured_at=timezone.now(),
                     )
                 else:
                     ended = ours.update(
@@ -460,10 +465,25 @@ def store_staged(quote_id, file_ids, final=False):
     measure is asked for the files STORED and the quote's clock restarts if
     nothing is left pending. Returns the ids to try again (a transient fault;
     their bytes stay staged); with `final` those end NOT_KEPT instead."""
+    pending, _ = store_staged_within(quote_id, file_ids, final=final)
+    return pending
+
+
+def store_staged_within(quote_id, file_ids, final=False, seconds=None):
+    """store_staged, stopping after the batch that uses up `seconds` (the
+    task's time budget, kept under its slot's TTL). Returns (pending, rest):
+    `rest` are the ids it did not start, for a new task (not a fault)."""
     size = max(1, int(settings.UPLOAD_QUOTE_STORE_CONCURRENCY))
     ids = [str(i) for i in file_ids]
     pending: list = []
+    rest: list = []
+    started = time.monotonic()
     for start in range(0, len(ids), size):
+        # Checked after each batch (never before the first: a run always
+        # makes progress).
+        if start and seconds is not None and time.monotonic() - started >= seconds:
+            rest = ids[start:]
+            break
         batch = _load(ids[start : start + size])
         if not batch:
             continue
@@ -521,7 +541,7 @@ def store_staged(quote_id, file_ids, final=False):
             transaction.on_commit(partial(enqueue_measures, done))
     restart_clock(quote_id)
     note_global_alert()
-    return pending
+    return pending, rest
 
 
 #: A sweeper re-ask of a file is not sent again within this (a cache key per
@@ -603,30 +623,30 @@ def sweep_storing(now=None):
 
 # ------------------------------------------------------------ store slots
 
-STORE_SLOTS_KEY = "upload_quote_store_slots"
-STORE_SLOTS_TTL = 2 * 60 * 60
+STORE_SLOT_KEY = "upload_quote_store_slot:{}"
 
 
 def acquire_store_slot():
-    """Take one of UPLOAD_QUOTE_STORE_SLOTS; False when all are taken (the
-    measure's cache-counter pattern, students.upload_quote_measure)."""
+    """Take one of UPLOAD_QUOTE_STORE_SLOTS: the number of a free slot, or
+    None when all are taken. Each slot is its own cache key that expires
+    after UPLOAD_QUOTE_STORE_SLOT_TTL, so a holder killed without its
+    `finally` (a deploy's SIGKILL) frees its slot by itself; a run never holds
+    one longer than its time budget (UPLOAD_QUOTE_STORE_RUN_SECONDS, under the
+    TTL)."""
     from django.core.cache import cache
 
-    cache.add(STORE_SLOTS_KEY, 0, timeout=STORE_SLOTS_TTL)
-    if cache.incr(STORE_SLOTS_KEY) > settings.UPLOAD_QUOTE_STORE_SLOTS:
-        cache.decr(STORE_SLOTS_KEY)
-        return False
-    return True
+    ttl = int(settings.UPLOAD_QUOTE_STORE_SLOT_TTL)
+    for number in range(max(1, int(settings.UPLOAD_QUOTE_STORE_SLOTS))):
+        if cache.add(STORE_SLOT_KEY.format(number), 1, timeout=ttl):
+            return number
+    return None
 
 
-def release_store_slot():
+def release_store_slot(number):
     from django.core.cache import cache
 
-    try:
-        if cache.decr(STORE_SLOTS_KEY) < 0:
-            cache.set(STORE_SLOTS_KEY, 0, timeout=STORE_SLOTS_TTL)
-    except ValueError:
-        cache.set(STORE_SLOTS_KEY, 0, timeout=STORE_SLOTS_TTL)
+    if number is not None:
+        cache.delete(STORE_SLOT_KEY.format(number))
 
 
 class TooManyFiles(Exception):
@@ -875,8 +895,16 @@ def cancel(quote):
         rows = list(
             locked.files.filter(storage_key__isnull=False, purged_at__isnull=True)
         )
+        recent = timezone.now() - STORE_DEADLINE
         for row in rows:
-            if row.state == State.STORING:
+            # A NOT_KEPT file whose last try timed out kept its key (settled
+            # at measured_at): an upload may still land, as for STORING.
+            uploading = row.state == State.STORING or (
+                row.state == State.NOT_KEPT
+                and row.measured_at is not None
+                and row.measured_at > recent
+            )
+            if uploading:
                 # Its store may still be running: the key's bytes may land
                 # after this delete. The key stays on the row, so the purge
                 # deletes it again until STORE_DEADLINE, and the store task

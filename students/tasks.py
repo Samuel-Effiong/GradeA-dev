@@ -55,6 +55,17 @@ STORE_SLOT_COUNTDOWN = 15
 STORE_MAX_SLOT_WAITS = 240
 
 
+def resend_store(quote_id, file_ids, *, faults, waits):
+    """A new store task for files a run did not start (its time budget)."""
+    from students.upload_quote_service import STORE_QUEUE
+
+    store_quote_files.apply_async(
+        args=(quote_id, file_ids),
+        kwargs={"faults": faults, "waits": waits},
+        queue=STORE_QUEUE,
+    )
+
+
 @shared_task(bind=True, max_retries=None)
 def store_quote_files(self, quote_id, file_ids, faults=0, waits=0):
     """Store the staged bytes of an upload quote's STORING files (the create
@@ -63,9 +74,12 @@ def store_quote_files(self, quote_id, file_ids, faults=0, waits=0):
     UPLOAD_QUOTE_STORE_SLOTS tasks at once. Files the storage did not answer
     for are tried again (`faults`), their bytes still staged; on the last try
     they end NOT_KEPT."""
+    from django.conf import settings
+
     from students import upload_quote_service as service
 
-    if not service.acquire_store_slot():
+    slot = service.acquire_store_slot()
+    if slot is None:
         if waits >= STORE_MAX_SLOT_WAITS:
             return None  # the sweeper asks again; the bytes are staged
         raise self.retry(
@@ -74,11 +88,25 @@ def store_quote_files(self, quote_id, file_ids, faults=0, waits=0):
             countdown=STORE_SLOT_COUNTDOWN,
         )
     try:
-        pending = service.store_staged(
-            quote_id, file_ids, final=faults >= STORE_MAX_RETRIES
+        pending, rest = service.store_staged_within(
+            quote_id,
+            file_ids,
+            final=faults >= STORE_MAX_RETRIES,
+            seconds=settings.UPLOAD_QUOTE_STORE_RUN_SECONDS,
         )
     finally:
-        service.release_store_slot()
+        service.release_store_slot(slot)
+    if rest:
+        # The time budget ran out: the files not started go to a new task
+        # now (not a fault, not a wait), so no run holds its slot past the
+        # slot's TTL.
+        if not pending:
+            raise self.retry(
+                args=(quote_id, rest),
+                kwargs={"faults": faults, "waits": waits},
+                countdown=0,
+            )
+        resend_store(quote_id, rest, faults=faults, waits=waits)
     if pending:
         raise self.retry(
             args=(quote_id, pending),
