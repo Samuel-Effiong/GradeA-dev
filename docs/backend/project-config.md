@@ -128,7 +128,7 @@ Failures are swallowed and logged, never raised ([AutoGrader/cache_utils.py:39-4
 
 `validate_upload_size` ([AutoGrader/uploads.py:28-37](../../AutoGrader/uploads.py#L28-L37)) raises `PayloadTooLarge` (HTTP 413) above `max_upload_size_bytes()`. It exists because `DATA_UPLOAD_MAX_MEMORY_SIZE` only caps in-memory buffering — a larger multipart part spills to temp disk and is still accepted ([AutoGrader/uploads.py:3-6](../../AutoGrader/uploads.py#L3-L6)).
 
-The per-file limit is the env setting `MAX_UPLOAD_FILE_SIZE_MB` (default **10 MB**, at least 1; `MAX_UPLOAD_FILE_SIZE_BYTES` is derived). 10 MB is the Cloudinary Free plan's raw-file limit (R1 spike, 2026-11-20); raise the setting after a plan upgrade. `max_upload_size_bytes()` reads it on every call.
+The per-file limit is the env setting `MAX_UPLOAD_FILE_SIZE_MB` (default **10 MB**, at least 1; `MAX_UPLOAD_FILE_SIZE_BYTES` is derived). 10 MB is the Cloudinary Free plan's raw-file limit (R1 spike, 2026-11-20); raise the setting after a plan upgrade. When it goes above 10 MB, also raise `KEPT_FILES_UPLOAD_TIMEOUT_SECONDS` with it (120 s covers 10 MB at about 1 Mbit/s), and keep `UPLOAD_QUOTE_STORE_RUN_SECONDS` + 2 x `KEPT_FILES_UPLOAD_TIMEOUT_SECONDS` under `UPLOAD_QUOTE_STORE_SLOT_TTL` (600 + 240 = 840 < 900 s by default) by raising the TTL too (a test pins that bound). `max_upload_size_bytes()` reads it on every call.
 
 ---
 
