@@ -1,6 +1,7 @@
 import logging
 import time
-from datetime import timedelta
+from datetime import datetime, timedelta
+from datetime import timezone as dt_timezone
 
 from django.conf import settings
 from django.core.cache import cache
@@ -1821,7 +1822,8 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         tags=["Beta Analytics Charts"],
         summary="Weekly credit trends",
         description="Get weekly credit trends for the beta program: the last 12 "
-        "weeks up to the current week, oldest first, in AI credits.",
+        "weeks up to the current week, oldest first, in AI credits. A week with "
+        "no usage shows 0.",
         responses={
             200: OpenApiResponse(response=WeeklyGrowthSerializer),
         },
@@ -1833,24 +1835,33 @@ class BetaAnaylicChartViewSet(viewsets.ReadOnlyModelViewSet):
         url_name="weekly-credit-trends",
     )
     def weekly_credit_trends(self, request, *args, **kwargs):
-        # Only usage up to now: rows dated in the future are left out, so they
-        # cannot show as future weeks or push real weeks out of the last 12.
-        weekly_usage = (
-            self.get_cohort_usage_logs()
-            .filter(created_at__lte=timezone.now())
-            .annotate(week=TruncWeek("created_at"))
-            .values("week")
-            .annotate(total=Sum("amount"))
-            .order_by("-week")[:12]
+        # Always 12 calendar weeks in a row (owner, 2026-11-27): the current
+        # week (from Monday 00:00 UTC, as TruncWeek) and the 11 before it,
+        # oldest first; a week with no usage is 0. Only usage up to now:
+        # future-dated rows are left out.
+        now = timezone.now()
+        today = now.astimezone(dt_timezone.utc).date()
+        current_week = today - timedelta(days=today.weekday())
+        weeks = [current_week - timedelta(weeks=n) for n in range(11, -1, -1)]
+        first_week_start = datetime.combine(
+            weeks[0], datetime.min.time(), tzinfo=dt_timezone.utc
         )
 
-        # Newest 12 weeks, returned oldest to newest for a left-to-right chart.
+        weekly_usage = (
+            self.get_cohort_usage_logs()
+            .filter(created_at__gte=first_week_start, created_at__lte=now)
+            .annotate(week=TruncWeek("created_at", tzinfo=dt_timezone.utc))
+            .values("week")
+            .annotate(total=Sum("amount"))
+        )
+        usage_by_week = {w["week"].date(): w["total"] for w in weekly_usage}
+
         weekly_growth = [
             {
-                "week_start": w["week"].date(),
-                "total_credits": display_credits(w["total"]),
+                "week_start": week,
+                "total_credits": display_credits(usage_by_week.get(week, 0)),
             }
-            for w in reversed(list(weekly_usage))
+            for week in weeks
         ]
 
         serializer = WeeklyGrowthSerializer(weekly_growth, many=True)
