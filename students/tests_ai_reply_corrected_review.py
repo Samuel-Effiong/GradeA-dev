@@ -13,8 +13,10 @@ the question numbers and counts and nothing of the answers.
 
 Owner, 2026-11-25 (beta 82bbbf8f9): a student is sent verification_status
 as saved, "CORRECTED" included; every other detail of the correction
-(calculation_notes, the correction note, the dropped-evaluation fields,
+(the correction note, the dropped-evaluation fields,
 snapped_to_rubric_level_count, the review reason) still never reaches them.
+Owner, 2026-11-27 (student page crash, option B): calculation_notes, the
+grader's own arithmetic note, is sent to a student too.
 """
 
 import json
@@ -251,18 +253,16 @@ class TheFormatterIsNotToldOfTheCorrection(TestCase):
 
 
 #: What a corrected reply leaves in the saved row that a student must not
-#: read: the note's field names and sentence, the arithmetic note's text,
-#: the snapped count, and the review reason's type. Not the status: the
-#: owner ruled (2026-11-25) that a student is sent verification_status,
-#: "CORRECTED" included.
+#: read: the note's field names and sentence, the snapped count, and the
+#: review reason's type. Not the status: the owner ruled (2026-11-25) that a
+#: student is sent verification_status, "CORRECTED" included; nor, since
+#: 2026-11-27 (option B), the arithmetic note's text (calculation_notes).
 OF_THE_CORRECTION = (
     "correction_note",
     "left out of the sum",
     "repeated_evaluations_dropped",
     "unmatched_evaluations_dropped",
     "ai_reply_corrected",
-    "calculation_notes",
-    "8 + 8 + 8 = 24.",
     "snapped_to_rubric_level_count",
 )
 
@@ -271,6 +271,8 @@ STUDENT_NOTE = {
     "individual_scores": [8, 8, 8],
     "manual_sum": 24,
     "verification_status": "CORRECTED",
+    # Owner, 2026-11-27 (option B).
+    "calculation_notes": "8 + 8 + 8 = 24.",
 }
 
 

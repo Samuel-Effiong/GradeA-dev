@@ -11,9 +11,10 @@ to dispute a grade the teacher never saw disputed.
 
 The fix (students/serializers.py::_student_safe_feedback) builds an
 explicit whitelist projection of the feedback blob instead of returning it
-raw — second_opinion, flag_for_review, graded_by provenance, and
-evaluation_rationale (a teacher-directed note) are all stripped by
-construction, since the whitelist only copies known-safe keys.
+raw — second_opinion, flag_for_review and graded_by provenance are all
+stripped by construction, since the whitelist only copies known-safe keys.
+evaluation_rationale and grading_confidence were stripped too until the
+owner chose to send them (2026-11-27, student page crash, option B).
 
 Run with:
     python manage.py test students.tests_student_feedback_scoping
@@ -140,8 +141,12 @@ class StudentFeedbackScopingTest(APITestCase):
         self.assertNotIn("flag_for_review", evaluation)
         self.assertNotIn("graded_by", evaluation)
         self.assertNotIn("snapped_from", evaluation)
-        self.assertNotIn("evaluation_rationale", evaluation)
-        self.assertNotIn("grading_confidence", feedback)
+        # Owner, 2026-11-27 (student page crash, option B): a student is
+        # sent evaluation_rationale and grading_confidence.
+        self.assertEqual(
+            evaluation["evaluation_rationale"], "Internal note on level selection."
+        )
+        self.assertEqual(feedback["grading_confidence"], 92)
         self.assertNotIn("for_teacher", feedback.get("recommendations", {}))
         self.assertNotIn("follow_up_actions", feedback.get("recommendations", {}))
 

@@ -12,7 +12,14 @@ advice to the teacher too.
 `needs_review`, `review_reasons`, `review_severity`, `review_tier` and
 `grading_confidence` are the teacher's review queue; `review_reasons` holds
 both AI graders' marks for each disputed question. Three student routes
-returned one or the other as stored. The routes are fixed and tested in
+returned one or the other as stored.
+
+Owner, 2026-11-27 (student page crash, option B): the projection now sends a
+student three more keys of the saved result: calculation_notes,
+evaluation_rationale and grading_confidence (students/feedback_projection.py,
+STUDENT_TOP_LEVEL_FIELDS and the two field lists). That is the feedback
+key; the `grading_confidence` COLUMN on the submissions list is still the
+review queue's and a student is still sent None for it (rule 2 below). The routes are fixed and tested in
 students/tests_student_feedback_routes.py; this guard is for the next one.
 
 Three rules, each over every production .py file (not test modules, not
