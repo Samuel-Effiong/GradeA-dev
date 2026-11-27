@@ -11,6 +11,7 @@ from django.utils import timezone
 
 from AutoGrader.reason_codes import CodedError
 from students import kept_files as kept_files_module
+from students import models
 from students import upload_quote_service as service
 from students.models import UploadQuote, UploadQuoteFile
 from students.tests_upload_quotes_confirm import Base, make_quote
@@ -25,11 +26,24 @@ def upload(name="a.pdf", data=b"%PDF-1.4 same bytes" * 10):
     return SimpleUploadedFile(name, data, content_type="application/pdf")
 
 
+def store(quote, entries, final=False):
+    """Run the store task's body for the STORING files an add made (a Celery
+    task after the reply in production)."""
+    ids = [
+        e.pk
+        for e in entries
+        if isinstance(e, UploadQuoteFile) and e.state == State.STORING
+    ]
+    return service.store_staged(quote.pk, ids, final=final)
+
+
 class F1AddRacesTheEnd(Base):
     """Finding 1: an add that loses a race with cancel, expiry or confirm never
-    answers 201 and never leaves a stored file nobody will delete."""
+    leaves a stored file nobody will delete. The add replies before the store
+    (reply first, 2026-11-26): a quote that ends while its files are being
+    stored has the bytes the task stored deleted by the task itself."""
 
-    def test_a_cancel_during_the_store_closes_the_add_and_deletes_the_bytes(self):
+    def test_a_cancel_during_the_store_deletes_the_bytes(self):
         quote = make_quote(self.teacher, self.assignment, pages=(2,))
         real = kept_files.store
 
@@ -41,13 +55,13 @@ class F1AddRacesTheEnd(Base):
             return put
 
         before = set(kept_files.MEMORY)
-        with patch.object(
-            service.kept_files, "store", side_effect=store_then_cancel
-        ), self.captureOnCommitCallbacks(execute=True):
-            with self.assertRaises(CodedError) as caught:
-                service.add_to_quote(quote, [upload()])
-        self.assertEqual(caught.exception.reason_code, "QUOTE_CLOSED")
+        entries = service.add_to_quote(quote, [upload()])
+        with patch.object(service.kept_files, "store", side_effect=store_then_cancel):
+            self.assertEqual(store(quote, entries), [])
         self.assertEqual(set(kept_files.MEMORY), before)
+        self.assertFalse(
+            models.UploadQuoteStagedFile.objects.filter(file__quote=quote).exists()
+        )
 
     def test_an_add_to_a_confirmed_quote_writes_no_row(self):
         quote = make_quote(self.teacher, self.assignment, pages=(2,))
@@ -77,17 +91,24 @@ class F2ReaddAfterNotKept(Base):
 
     def test_adding_a_not_kept_file_again_stores_and_measures_it(self):
         quote = make_quote(self.teacher, self.assignment, pages=(2,))
+        first = service.add_to_quote(quote, [upload()])
         with patch.object(
             service.kept_files,
             "store",
             side_effect=kept_files.KeptFileUnavailable("down"),
         ):
-            first = service.add_to_quote(quote, [upload()])
+            store(quote, first, final=True)
+        first[0].refresh_from_db()
         self.assertEqual(first[0].state, State.NOT_KEPT)
         with self.captureOnCommitCallbacks(execute=False) as callbacks:
             second = service.add_to_quote(quote, [upload()])
         entry = second[0]
         self.assertFalse(isinstance(entry, tuple), "treated as a duplicate")
+        self.assertEqual(entry.state, State.STORING)
+        self.assertEqual(len(callbacks), 1)  # the store is asked for
+        with self.captureOnCommitCallbacks(execute=False) as callbacks:
+            store(quote, second)
+        entry.refresh_from_db()
         self.assertEqual(entry.state, State.STORED)
         self.assertEqual(len(callbacks), 1)  # the measure is asked for
 
@@ -174,14 +195,14 @@ class F1CancelDuringTheUpload(Base):
         quote = make_quote(self.teacher, self.assignment, pages=(2,))
         real = kept_files.store
         before = set(kept_files.MEMORY)
+        entries = service.add_to_quote(quote, [upload()])
 
         def end_then_store(content, key=None):
             ends_the_quote(quote)
             return real(content, key=key)
 
         with patch.object(service.kept_files, "store", side_effect=end_then_store):
-            with self.assertRaises(CodedError):
-                service.add_to_quote(quote, [upload()])
+            self.assertEqual(store(quote, entries), [])
         return set(kept_files.MEMORY) - before
 
     def test_a_cancel_during_the_upload_leaves_no_file_behind(self):

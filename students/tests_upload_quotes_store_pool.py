@@ -28,11 +28,17 @@ from django.urls import reverse
 from PIL import Image
 
 from AutoGrader import uploads
-from AutoGrader.reason_codes import CodedError
 from students import quote_store_pool
 from students import upload_quote_service as service
-from students.models import UploadQuote, UploadQuoteFile
-from students.tests_upload_quotes_routes import Base, data_of, kept_files, pdf, png
+from students.models import UploadQuote, UploadQuoteFile, UploadQuoteStagedFile
+from students.tests_upload_quotes_routes import (
+    Base,
+    data_of,
+    kept_files,
+    pdf,
+    png,
+    states,
+)
 from students.upload_quotes import open_bytes
 
 State = UploadQuoteFile.State
@@ -112,7 +118,8 @@ class ParallelStore(Base):
         self.assertFalse(five.broken)
         entries = data_of(response)["files"]
         self.assertEqual([e["position"] for e in entries], list(range(10)))
-        self.assertEqual({e["state"] for e in entries}, {"STORED"})
+        self.assertEqual({e["state"] for e in entries}, {"STORING"})
+        self.assertEqual(set(states()), {"STORED"})
         rows = list(UploadQuoteFile.objects.order_by("position"))
         self.assertEqual([r.sha256 for r in rows], digests)
         for row, digest in zip(rows, digests, strict=True):
@@ -133,13 +140,16 @@ class ParallelStore(Base):
             response = self.create(files)
 
         self.assertEqual(response.status_code, 201, response.content)
-        entries = data_of(response)["files"]
+        # The task retried the failing file to its last try, then gave up.
+        self.assertEqual(states(), ["STORED", "STORED", "NOT_KEPT", "STORED", "STORED"])
         self.assertEqual(
-            [e["state"] for e in entries],
-            ["STORED", "STORED", "NOT_KEPT", "STORED", "STORED"],
+            UploadQuoteFile.objects.get(position=2).reason_code, "QUOTE_FILE_NOT_KEPT"
         )
-        self.assertEqual(entries[2]["reason_code"], "QUOTE_FILE_NOT_KEPT")
-        self.assertIsNone(UploadQuoteFile.objects.get(position=2).storage_key)
+        # The last try timed out: the key stays so the purge deletes a late
+        # asset when the quote ends; nothing is stored under it now.
+        failed = UploadQuoteFile.objects.get(position=2)
+        self.assertIsNotNone(failed.storage_key)
+        self.assertNotIn(failed.storage_key, kept_files.MEMORY)
         self.assertEqual(len(kept_files.MEMORY), 4)
 
     @override_settings(UPLOAD_QUOTE_STORE_CONCURRENCY=1)
@@ -176,11 +186,13 @@ class ParallelStore(Base):
         self.assert_not_kept(quote, b"%PDF original", b"%PDF original plus")
 
     def assert_not_kept(self, quote, original, tampered):
-        plans = service._prepare(quote, [as_upload("a.pdf", original)], [0])
-        row, _ = plans[0]
-        changed = [(row, as_upload("a.pdf", tampered))]
+        """The staged bytes are altered in the database before the task runs:
+        nothing is stored and the file is NOT_KEPT."""
+        (row,) = service.add_files(quote, [as_upload("a.pdf", original)])
+        UploadQuoteStagedFile.objects.filter(file_id=row.pk).update(content=tampered)
         with patch("students.upload_quote_service.audit_metrics.count") as count:
-            service._store(changed)
+            self.assertEqual(service.store_staged(quote.pk, [row.pk]), [])
+        self.assertFalse(UploadQuoteStagedFile.objects.filter(file_id=row.pk).exists())
         row.refresh_from_db()
         self.assertEqual(row.state, State.NOT_KEPT)
         self.assertEqual(row.reason_code, "QUOTE_FILE_NOT_KEPT")
@@ -247,7 +259,7 @@ class PeakMemory(Base):
                 tracemalloc.stop()
         self.assertLess(peak, 10 * mb)
         self.assertEqual(
-            UploadQuoteFile.objects.filter(quote=quote, state=State.STORED).count(), 20
+            UploadQuoteFile.objects.filter(quote=quote, state=State.STORING).count(), 20
         )
 
 
@@ -314,45 +326,55 @@ class OpenBytesCountsHeldFilesOnly(Base):
 
 
 class ACancelDuringAMultiFileStore(Base):
-    """Fixer #2: four files are being stored (one store fails) when the
-    teacher cancels on the request thread. The add answers QUOTE_CLOSED and
-    leaves no stored file and no row of its own."""
+    """Fixer #2 and its note: four files are being stored by the task (one
+    store fails) when the teacher cancels, before or after the stores finish.
+    Cancel's own deletes are left out (its after-commit callbacks are not
+    run), so only the task's guard can delete: nothing it stored is left."""
 
-    def test_nothing_of_the_add_is_left(self):
-        first = self.create([pdf("first.pdf")])
-        quote = UploadQuote.objects.get(pk=data_of(first)["id"])
-        rows_before = set(quote.files.values_list("pk", flat=True))
-        stored_before = dict(kept_files.MEMORY)
-        files = [png(f"{n}.png", color=(0, 0, n * 40)) for n in range(4)]
-        bad = sha(files[1].read())
-        files[1].seek(0)
-        real_store = kept_files.store
-        real_run_all = quote_store_pool.run_all
+    def test_the_task_deletes_what_it_stored(self):
+        for order in ("cancel before the stores finish", "cancel after"):
+            with self.subTest(order=order):
+                kept_files.MEMORY.clear()
+                quote, _ = service.create_quote(
+                    self.teacher, kind="answer_papers", assignment=self.assignment
+                )
+                files = [
+                    png(f"{n}.png", color=(len(order), n * 40, 0)) for n in range(4)
+                ]
+                bad = sha(files[1].read())
+                files[1].seek(0)
+                rows = service.add_files(quote, files)
+                real_store = kept_files.store
+                real_run_all = quote_store_pool.run_all
 
-        def flaky(content, key=None):
-            if sha(content) == bad:
-                raise kept_files.KeptFileUnavailable("x")
-            return real_store(content, key=key)
+                def flaky(content, key=None, bad=bad, real_store=real_store):
+                    if sha(content) == bad:
+                        raise kept_files.KeptFileUnavailable("x")
+                    return real_store(content, key=key)
 
-        def run_then_cancel(calls):
-            outcomes = real_run_all(calls)
-            with self.captureOnCommitCallbacks(execute=True):
-                service.cancel(UploadQuote.objects.get(pk=quote.pk))
-            return outcomes
+                def cancel(quote=quote):
+                    with self.captureOnCommitCallbacks(execute=False):
+                        service.cancel(UploadQuote.objects.get(pk=quote.pk))
 
-        with patch.object(kept_files, "store", side_effect=flaky), patch.object(
-            quote_store_pool, "run_all", side_effect=run_then_cancel
-        ), self.captureOnCommitCallbacks(execute=True):
-            with self.assertRaises(CodedError) as caught:
-                service.add_to_quote(quote, files)
+                def around(calls, order=order, real_run_all=real_run_all):
+                    if order.startswith("cancel before"):
+                        cancel()
+                    outcomes = real_run_all(calls)
+                    if not order.startswith("cancel before"):
+                        cancel()
+                    return outcomes
 
-        self.assertEqual(caught.exception.reason_code, "QUOTE_CLOSED")
-        self.assertEqual(set(quote.files.values_list("pk", flat=True)), rows_before)
-        # The first file went with the cancel; nothing of the add was kept.
-        self.assertEqual(
-            set(kept_files.MEMORY) - set(stored_before), set(), kept_files.MEMORY
-        )
-        self.assertEqual(set(kept_files.MEMORY) & set(stored_before), set())
+                with patch.object(kept_files, "store", side_effect=flaky), patch.object(
+                    quote_store_pool, "run_all", side_effect=around
+                ):
+                    service.store_staged(quote.pk, [r.pk for r in rows], final=True)
+
+                self.assertEqual(kept_files.MEMORY, {})
+                self.assertFalse(
+                    UploadQuoteStagedFile.objects.filter(file__quote=quote).exists()
+                )
+                quote.refresh_from_db()
+                self.assertEqual(quote.state, UploadQuote.State.CANCELLED)
 
 
 class NoSqlOnAStoreThread(Base):
@@ -402,8 +424,9 @@ class NoSqlOnAStoreThread(Base):
 
 class OneRetry(Base):
     """Owner, 2026-11-26: a store the storage did not answer is tried once
-    more before the file is NOT_KEPT; changed bytes and a Cloudinary 400 are
-    never retried."""
+    more before the file counts as failed; changed bytes and a Cloudinary 400
+    are never retried. Run on the task's last try, so its own retries stay
+    out of the count."""
 
     def store_with(self, failures, exc=None):
         real = kept_files.store
@@ -415,26 +438,30 @@ class OneRetry(Base):
                 raise exc or kept_files.KeptFileUnavailable("timeout")
             return real(content, key=key)
 
+        quote, _ = service.create_quote(
+            self.teacher, kind="answer_papers", assignment=self.assignment
+        )
+        (row,) = service.add_files(quote, [pdf("a.pdf")])
         with patch.object(kept_files, "store", side_effect=flaky), patch(
             "students.upload_quote_service.audit_metrics.count"
         ) as count:
-            response = self.create([pdf("a.pdf")])
-        (entry,) = data_of(response)["files"]
+            service.store_staged(quote.pk, [row.pk], final=True)
+        row.refresh_from_db()
         metrics = [c.args[0] for c in count.call_args_list]
-        return entry, calls, metrics
+        return row, calls, metrics
 
     def test_one_failure_then_success_is_stored_with_two_calls(self):
-        entry, calls, metrics = self.store_with(1)
-        self.assertEqual(entry["state"], "STORED")
+        row, calls, metrics = self.store_with(1)
+        self.assertEqual(row.state, State.STORED)
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(set(calls)), 1)  # the same key both times
         self.assertEqual(metrics.count("upload_quote_store_retried"), 1)
         self.assertEqual(len(kept_files.MEMORY), 1)
 
     def test_two_failures_are_not_kept_after_two_calls(self):
-        entry, calls, metrics = self.store_with(2)
+        row, calls, metrics = self.store_with(2)
         self.assertEqual(
-            (entry["state"], entry["reason_code"]), ("NOT_KEPT", "QUOTE_FILE_NOT_KEPT")
+            (row.state, row.reason_code), (State.NOT_KEPT, "QUOTE_FILE_NOT_KEPT")
         )
         self.assertEqual(len(calls), 2)
         self.assertEqual(metrics.count("upload_quote_store_retried"), 1)
@@ -448,22 +475,20 @@ class OneRetry(Base):
         except cloudinary.exceptions.BadRequest as cause:
             refusal = kept_files.KeptFileUnavailable("BadRequest")
             refusal.__cause__ = cause
-        entry, calls, metrics = self.store_with(2, exc=refusal)
-        self.assertEqual(entry["state"], "NOT_KEPT")
+        row, calls, metrics = self.store_with(2, exc=refusal)
+        self.assertEqual(row.state, State.NOT_KEPT)
         self.assertEqual(len(calls), 1)
         self.assertNotIn("upload_quote_store_retried", metrics)
 
     def test_changed_bytes_are_checked_once_and_never_stored(self):
-        quote, _ = service.create_quote(
-            self.teacher, kind="answer_papers", assignment=self.assignment
-        )
-        (plan,) = service._prepare(quote, [as_upload("a.pdf", b"%PDF original")], [0])
-        row, _ = plan
+        original = b"%PDF original"
+        digest = sha(original)
         with patch.object(kept_files, "store") as store, patch.object(
             service.hashlib, "sha256", wraps=hashlib.sha256
         ) as hashed:
-            service._store([(row, as_upload("a.pdf", b"%PDF tampereD"))])
+            with self.assertRaises(service.BytesChanged):
+                service._store_one(
+                    b"%PDF tampereD", "kept_uploads/x/y", digest, len(original)
+                )
         store.assert_not_called()
         self.assertEqual(hashed.call_count, 1)
-        row.refresh_from_db()
-        self.assertEqual(row.state, State.NOT_KEPT)

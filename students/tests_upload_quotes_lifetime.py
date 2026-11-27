@@ -34,6 +34,7 @@ from students.tests_upload_quotes_routes import (
     data_of,
     pdf,
     png,
+    run_the_store,
     text_file,
 )
 
@@ -166,7 +167,9 @@ class AddFiles(Base):
         self.client.force_authenticate(user=user or self.teacher)
         with patch(
             "students.upload_quote_service.enqueue_measures"
-        ) as self.enqueued, self.captureOnCommitCallbacks(execute=True):
+        ) as self.enqueued, run_the_store(), self.captureOnCommitCallbacks(
+            execute=True
+        ):
             return self.client.post(
                 reverse("upload-quote-files", args=[quote_id]),
                 {"files": files},
@@ -198,8 +201,10 @@ class AddFiles(Base):
     def test_one_bad_file_does_not_fail_the_others(self):
         quote_id = data_of(self.create([pdf("a.pdf")]))["id"]
         response = self.add(quote_id, [text_file("x.txt", b""), pdf("c.pdf", pages=3)])
-        states = [f["state"] for f in data_of(response)["files"]]
-        self.assertEqual(states, ["REFUSED", "STORED"])
+        replied = [f["state"] for f in data_of(response)["files"]]
+        self.assertEqual(replied, ["REFUSED", "STORING"])
+        later = UploadQuoteFile.objects.filter(position__gte=1).order_by("position")
+        self.assertEqual([r.state for r in later], ["REFUSED", "STORED"])
 
     @override_settings(UPLOAD_QUOTE_MAX_FILES=3)
     def test_over_the_file_limit_for_the_quote_is_a_400(self):
@@ -261,7 +266,9 @@ class NothingSpendable(Base):
         self.client.force_authenticate(user=self.poor)
         with patch(
             "students.upload_quote_service.enqueue_measures"
-        ) as self.enqueued, self.captureOnCommitCallbacks(execute=True):
+        ) as self.enqueued, run_the_store(), self.captureOnCommitCallbacks(
+            execute=True
+        ):
             return self.client.post(
                 reverse(LIST_URL),
                 {

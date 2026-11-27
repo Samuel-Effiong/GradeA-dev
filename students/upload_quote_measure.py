@@ -46,6 +46,7 @@ from django.core.cache import cache
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import transaction
 from django.db.models import Q
+from django.db.models.functions import Coalesce
 from django.utils import timezone
 
 from ai_processor.call_estimates import page_tokens_of
@@ -291,9 +292,15 @@ def requeue_stuck(now=None):
     """Beat, every 5 minutes. Returns {"requeued", "gave_up"}."""
     now = now or timezone.now()
     cut = now - STALE_AFTER
-    stuck = UploadQuoteFile.objects.filter(quote__state=UploadQuote.State.OPEN).filter(
-        Q(state=State.STORED, created_at__lt=cut)
-        | Q(state=State.MEASURING, measured_at__lt=cut)
+    # A file's clock runs from when its bytes were stored (stored_at), not
+    # from its row, which the request writes before the store task runs.
+    stuck = (
+        UploadQuoteFile.objects.filter(quote__state=UploadQuote.State.OPEN)
+        .annotate(since=Coalesce("stored_at", "created_at"))
+        .filter(
+            Q(state=State.STORED, since__lt=cut)
+            | Q(state=State.MEASURING, measured_at__lt=cut)
+        )
     )
     requeued = gave_up = 0
     ids = []
@@ -317,8 +324,9 @@ def requeue_stuck(now=None):
         UploadQuoteFile.objects.filter(
             quote__state=UploadQuote.State.OPEN,
             state__in=[State.STORED, State.MEASURING],
-            created_at__lt=alarm_cut,
         )
+        .annotate(since=Coalesce("stored_at", "created_at"))
+        .filter(since__lt=alarm_cut)
         .values("quote_id")
         .distinct()
         .count()

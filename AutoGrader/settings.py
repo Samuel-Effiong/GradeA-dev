@@ -950,6 +950,9 @@ CELERY_TASK_QUEUES = (
 # does not depend on the worker's pool type or concurrency.
 CELERY_TASK_ROUTES = {
     "students.tasks.measure_quote_file": {"queue": "quote_measure"},
+    # The upload quote store (bytes staged in the database to the file
+    # storage): the same light queue, so it never waits behind grading.
+    "students.tasks.store_quote_files": {"queue": "quote_measure"},
 }
 CELERY_WORKER_PREFETCH_MULTIPLIER = 1
 CELERY_RESULT_EXPIRES = 3600  # Delete results after 1 hour
@@ -1873,11 +1876,33 @@ UPLOAD_QUOTE_CONFIRMED_KEEP_DAYS = env.int(
 UPLOAD_QUOTE_MEASURE_CONCURRENCY = env.int(
     "UPLOAD_QUOTE_MEASURE_CONCURRENCY", default=2
 )
-#: Files one quote request (or store job) sends to the file storage at once
+#: Files the upload quote store task sends to the file storage at once
 #: (owner, 2026-11-26: 5, each tried once more if the storage did not answer).
 #: Only the storage call runs in these threads; every DB write stays on the
-#: caller's thread (students.quote_store_pool).
+#: task's thread (students.quote_store_pool).
 UPLOAD_QUOTE_STORE_CONCURRENCY = env.int("UPLOAD_QUOTE_STORE_CONCURRENCY", default=5)
+#: The store task checks Cloudinary's upload reply: its `bytes` must equal the
+#: size sent and its `etag` the md5 of the bytes, else the asset is deleted and
+#: the file is not kept. The etag check can be switched off here without a
+#: deploy if Cloudinary's etag ever stops being the plain md5.
+UPLOAD_QUOTE_VERIFY_ETAG = env.bool("UPLOAD_QUOTE_VERIFY_ETAG", default=True)
+#: Every quote's staged bytes together (held in the database until the store
+#: task stores them): new files are refused with QUOTE_STORAGE_FULL past this.
+UPLOAD_QUOTE_STAGED_BYTES_MAX = env.int(
+    "UPLOAD_QUOTE_STAGED_BYTES_MAX", default=2 * 1024**3
+)
+#: Store tasks running at once across the workers (a cache counter, as the
+#: measure's): a task that finds them all taken waits and is sent again, and
+#: that wait is not a storage fault.
+UPLOAD_QUOTE_STORE_SLOTS = env.int("UPLOAD_QUOTE_STORE_SLOTS", default=3)
+#: Each slot is a cache key that expires after this, so a store task killed
+#: without releasing it (a deploy's SIGKILL) frees its slot by itself.
+UPLOAD_QUOTE_STORE_SLOT_TTL = env.int("UPLOAD_QUOTE_STORE_SLOT_TTL", default=15 * 60)
+#: A store task stops starting new files after this and sends the rest to a
+#: new task, so it never holds its slot past the TTL above.
+UPLOAD_QUOTE_STORE_RUN_SECONDS = env.int(
+    "UPLOAD_QUOTE_STORE_RUN_SECONDS", default=10 * 60
+)
 
 # Email domain for users the live-QA suite creates. Defaults to a
 # .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA

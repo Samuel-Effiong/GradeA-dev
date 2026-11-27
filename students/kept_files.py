@@ -21,6 +21,7 @@ says the asset is gone.
 import hashlib
 import io
 import re
+import threading
 import time
 import uuid
 from dataclasses import dataclass
@@ -56,6 +57,12 @@ class StoredFile:
     storage_key: str
     sha256: str
     size_bytes: int
+    #: What the storage said it kept (Cloudinary's upload reply: `bytes` and
+    #: `etag`, the md5 of the bytes), for a caller that checks it; None when
+    #: the reply did not say (or the memory backend, which keeps the bytes
+    #: as given).
+    reply_bytes: int | None = None
+    reply_etag: str | None = None
 
 
 def _memory():
@@ -85,14 +92,46 @@ def new_key():
     return f"{KEY_PREFIX}{deployment_folder()}/{uuid.uuid4().hex}"
 
 
+_POOL_LOCK = threading.Lock()
+_pool_sized = False
+
+
+def size_cloudinary_pool():
+    """Give the Cloudinary SDK's urllib3 pool room for every store running at
+    once in this process (UPLOAD_QUOTE_STORE_CONCURRENCY files per task, up to
+    UPLOAD_QUOTE_STORE_SLOTS tasks). The SDK builds its pool once at import
+    with urllib3's default of one connection per host and has no setting for
+    it, so each extra parallel store logged "Connection pool is full,
+    discarding connection" (live load test, 2026-11-26). The pool is rebuilt
+    once with the SDK's own builder and its own options, plus `maxsize`."""
+    global _pool_sized
+    with _POOL_LOCK:
+        if _pool_sized:
+            return
+        import cloudinary
+        import cloudinary.utils
+
+        current = getattr(cloudinary.uploader, "_http", None)
+        if current is not None and hasattr(current, "connection_pool_kw"):
+            size = max(1, int(settings.UPLOAD_QUOTE_STORE_CONCURRENCY)) * max(
+                1, int(settings.UPLOAD_QUOTE_STORE_SLOTS)
+            )
+            cloudinary.uploader._http = cloudinary.utils.get_http_connector(
+                cloudinary.config(), {**cloudinary.CERT_KWARGS, "maxsize": size}
+            )
+        _pool_sized = True
+
+
 def store(content, key=None):
     """Keep `content` (bytes) under `key`, else under a new random key."""
     key = key or new_key()
+    reply: dict = {}
     if _memory():
         MEMORY[key] = bytes(content)
     else:
+        size_cloudinary_pool()
         try:
-            cloudinary.uploader.upload(
+            reply = cloudinary.uploader.upload(
                 io.BytesIO(content),
                 public_id=key,
                 resource_type="raw",
@@ -101,10 +140,16 @@ def store(content, key=None):
             )
         except Exception as exc:
             raise KeptFileUnavailable(type(exc).__name__) from exc
+    if not isinstance(reply, dict):
+        reply = {}
+    reply_bytes = reply.get("bytes")
+    reply_etag = reply.get("etag")
     return StoredFile(
         storage_key=key,
         sha256=hashlib.sha256(content).hexdigest(),
         size_bytes=len(content),
+        reply_bytes=int(reply_bytes) if reply_bytes is not None else None,
+        reply_etag=str(reply_etag) if reply_etag else None,
     )
 
 
