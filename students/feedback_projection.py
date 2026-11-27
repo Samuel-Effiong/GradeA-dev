@@ -11,6 +11,14 @@ AutoGrader/tests_student_feedback_guard.py holds the repository to that.
 Of the arithmetic note (score_calculation_verification) a student is shown
 the per-question scores and their sum, nothing else (owner, 2026-11-25).
 
+Owner, 2026-11-27 (student page crash, option B): a released grade's page
+read fields the projection never sent and crashed. A student is now also
+sent three fields, and nothing else: calculation_notes (of the arithmetic
+note), evaluation_rationale (of each question evaluation) and
+grading_confidence (at the top level of the result, where the grader
+writes it). Each is copied by name and only when plain, like every other
+field here; a missing one is left out.
+
 `grading_result_for_formatter` is what the feedback formatter (an AI call
 whose wording the student reads) is sent of the same result.
 
@@ -29,8 +37,9 @@ from .review_state import answers_unreadable
 
 #: The fields of one question's evaluation that a student is shown.
 #: Everything else - flag_for_review, graded_by, snapped_from,
-#: evaluation_rationale (a note to the teacher on the level chosen),
 #: evidence_quotes (internal verification detail) - is left out.
+#: evaluation_rationale (why the level was chosen) was left out too, until
+#: the owner chose to send it (2026-11-27, option B).
 STUDENT_EVALUATION_FIELDS = (
     "question_number",
     "question_text",
@@ -43,6 +52,7 @@ STUDENT_EVALUATION_FIELDS = (
     "weaknesses",
     "improvement_suggestions",
     "feedback_for_student",
+    "evaluation_rationale",
 )
 
 #: --- The formatted grade (the formatter's output; see
@@ -76,13 +86,23 @@ MAX_FORMATTED_GRADE_CHARACTERS = 500_000
 
 #: The fields of the grading summary that a student is shown.
 STUDENT_SUMMARY_FIELDS = ("total_score", "max_total_points", "percentage")
+#: The plain fields at the top level of the result that a student is shown
+#: (owner, 2026-11-27, option B). Not grading_model, not second_opinion,
+#: not a key added later.
+STUDENT_TOP_LEVEL_FIELDS = ("grading_confidence",)
 #: The fields of the arithmetic note (score_calculation_verification) that a
 #: student is shown (QA bug, owner option 3, 2026-11-25: the student page
 #: reads individual_scores; owner the same day: and verification_status,
-#: which the page formats). Never calculation_notes (it can describe a
-#: correction meant for the teacher) or snapped_to_rubric_level_count,
-#: whether the note says PASS or not.
-STUDENT_VERIFICATION_FIELDS = ("individual_scores", "manual_sum", "verification_status")
+#: which the page formats; owner 2026-11-27, option B, after the page
+#: crashed again: and calculation_notes, the grader's own note on its sum).
+#: Never snapped_to_rubric_level_count, the correction note or the
+#: dropped-evaluation fields, whether the note says PASS or not.
+STUDENT_VERIFICATION_FIELDS = (
+    "individual_scores",
+    "manual_sum",
+    "verification_status",
+    "calculation_notes",
+)
 
 #: --- What the feedback formatter is sent of the arithmetic note ---
 #: (H-154) A note that says anything but PASS means the AI's reply was
@@ -150,11 +170,12 @@ def student_safe_feedback(feedback):
     the percentage; of each question evaluation STUDENT_EVALUATION_FIELDS;
     overall_performance_analysis whole; of recommendations for_student; of
     score_calculation_verification STUDENT_VERIFICATION_FIELDS (the block
-    is left out when missing or not a dictionary)."""
+    is left out when missing or not a dictionary); and at the top level
+    STUDENT_TOP_LEVEL_FIELDS (owner, 2026-11-27, option B)."""
     if not isinstance(feedback, dict):
         return None
 
-    safe: dict = {}
+    safe: dict = _copy_plain(feedback, STUDENT_TOP_LEVEL_FIELDS)
 
     summary = feedback.get("grading_summary")
     if isinstance(summary, dict):
