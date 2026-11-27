@@ -103,7 +103,8 @@ class GrantDocsInAiCreditsTests(_AdminCreditBase):
             self.assertNotIn(field, props)
         self.assertIn("AI credits", props["block_size"]["description"])
         self.assertNotIn("Raw", props["block_size"]["description"])
-        grant = schema["paths"]["/api/v1/billing/admin/credits/grant"]["post"]
+        url = reverse("admin-credits-grant")
+        grant = schema["paths"].get(url, schema["paths"].get(url.rstrip("/")))["post"]
         example = grant["responses"]["201"]["content"]["application/json"]["examples"][
             "SuccessfulGrant"
         ]["value"]

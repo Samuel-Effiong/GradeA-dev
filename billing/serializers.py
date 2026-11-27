@@ -12,6 +12,7 @@ from rest_framework import serializers
 from AutoGrader.error_messages import describe_user_error
 from users.models import CustomUser, UserTypes
 
+from .credit_units import display_credits
 from .license_service import LicenseRequestError, LicenseSubscriptionService
 from .models import (
     CONVERSION_FACTOR,
@@ -1536,7 +1537,7 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
         help_text="Number of credit blocks granted (from the ledger metadata)."
     )
     block_size = serializers.SerializerMethodField(
-        help_text="Raw credits per block at the time of the grant (from the ledger metadata)."
+        help_text="AI credits per block at the time of the grant (from the ledger metadata)."
     )
     recipient_name = serializers.SerializerMethodField(
         help_text="Full name of the user who received this grant."
@@ -1553,8 +1554,6 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
             "recipient_name",
             "recipient_email",
             "bucket_type",
-            "total_credits",
-            "used_credits",
             "display_total",
             "display_remaining",
             "display_used",
@@ -1619,9 +1618,11 @@ class ManualGrantBucketSerializer(serializers.ModelSerializer):
         return None
 
     def get_block_size(self, obj) -> int | None:
+        # The ledger keeps raw units; the reply sends AI credits (owner,
+        # 2026-11-27, Grant Credits Step 6).
         ledger = self._get_ledger_entry(obj)
-        if ledger and ledger.metadata:
-            return ledger.metadata.get("block_size")
+        if ledger and ledger.metadata and ledger.metadata.get("block_size") is not None:
+            return display_credits(ledger.metadata["block_size"])
         return None
 
     def get_recipient_name(self, obj) -> str | None:
