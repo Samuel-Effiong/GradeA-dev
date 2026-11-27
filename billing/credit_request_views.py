@@ -6,6 +6,7 @@ off.
     GET    /billing/credit-requests              own / license's / all
     GET    /billing/credit-requests/counts       license admin, super admin
     POST   /billing/credit-requests/{id}/approve license admin, super admin
+                                                 (not in the API docs)
     POST   /billing/credit-requests/{id}/decline license admin, super admin
     POST   /billing/credit-requests/{id}/withdraw the requesting teacher
 """
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 class CreditRequestSerializer(serializers.ModelSerializer):
     teacher_name = serializers.SerializerMethodField()
+    teacher_email = serializers.EmailField(source="teacher.email", read_only=True)
     status_label = serializers.CharField(source="get_status_display", read_only=True)
     decided_by_name = serializers.SerializerMethodField()
 
@@ -45,6 +47,7 @@ class CreditRequestSerializer(serializers.ModelSerializer):
             "id",
             "teacher",
             "teacher_name",
+            "teacher_email",
             "license_subscription",
             "requested_blocks",
             "message",
@@ -132,7 +135,11 @@ APPROVE_REPLY = inline_serializer(
         responses={201: CreditRequestSerializer},
     ),
     counts=extend_schema(tags=CREDIT_REQUESTS, responses=COUNTS_REPLY),
+    # Owner, 2026-11-27: hidden from the API docs only (the frontend gives
+    # overage credit another way); the route works exactly as before, and
+    # removing it needs its own yes.
     approve=extend_schema(
+        exclude=True,
         tags=CREDIT_REQUESTS,
         request=ApproveCreditRequestSerializer,
         responses=APPROVE_REPLY,
