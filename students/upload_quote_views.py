@@ -5,7 +5,7 @@ must get a verdict (BE-B-04). While UPLOAD_QUOTES_ENABLED is off every route
 answers as an unknown URL does, before authentication. Foreign, unknown or
 malformed ids all answer the one house 404.
 
-POST /upload-quotes/ is multipart and does create + files in one request: the
+POST /submissions-credit-estimate/ is multipart and does create + files in one request: the
 frontend sends every file at once and does no checks of its own, so the server
 does every check and one bad file never fails the others. A repeat of the same
 `Idempotency-Key` returns the same quote (200) and stores nothing again.
@@ -224,7 +224,7 @@ def own_quote(request, pk):
     return quote
 
 
-@extend_schema(tags=["Upload quotes"])
+@extend_schema(tags=["Submissions credit estimates"])
 class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
@@ -237,7 +237,7 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         return [cls()]
 
     @extend_schema(
-        summary="Create an upload quote with its files",
+        summary="Create a submissions credit estimate with its files",
         description=(
             "Multipart: `kind`, `assignment_id` (answer_papers) or `course_id` "
             "and optional `topic_id` (assignment_files), and `files` (one or "
@@ -339,7 +339,7 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         )
 
     @extend_schema(
-        summary="List my open upload quotes",
+        summary="List my open submissions credit estimates",
         parameters=[OpenApiParameter("open", bool, required=False)],
         responses=SUMMARY_REPLY,
     )
@@ -366,19 +366,19 @@ class UploadQuoteCollection(CappedUpload, DarkUntilEnabled, APIView):
         return Response(rows)
 
 
-@extend_schema(tags=["Upload quotes"])
+@extend_schema(tags=["Submissions credit estimates"])
 class UploadQuoteDetail(DarkUntilEnabled, APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
     def get_throttles(self):
         return [UploadQuoteReadThrottle()]
 
-    @extend_schema(summary="Read an upload quote", responses=QUOTE_REPLY)
+    @extend_schema(summary="Read a submissions credit estimate", responses=QUOTE_REPLY)
     def get(self, request, pk):
         return Response(service.payload(own_quote(request, pk)))
 
     @extend_schema(
-        summary="Cancel an upload quote",
+        summary="Cancel a submissions credit estimate",
         responses=inline_serializer(
             "UploadQuoteCancelled", {"state": serializers.CharField()}
         ),
@@ -388,7 +388,7 @@ class UploadQuoteDetail(DarkUntilEnabled, APIView):
         return Response({"state": quote.state})
 
 
-@extend_schema(tags=["Upload quotes"])
+@extend_schema(tags=["Submissions credit estimates"])
 class UploadQuoteFiles(CappedUpload, DarkUntilEnabled, APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
@@ -396,7 +396,7 @@ class UploadQuoteFiles(CappedUpload, DarkUntilEnabled, APIView):
         return [UploadQuoteCreateThrottle()]
 
     @extend_schema(
-        summary="Add files to an open upload quote",
+        summary="Add files to an open submissions credit estimate",
         description=(
             "Multipart: `files`. Positions continue after the quote's last "
             "file; a file whose bytes the quote already holds is not stored "
@@ -440,7 +440,7 @@ class UploadQuoteFiles(CappedUpload, DarkUntilEnabled, APIView):
         )
 
 
-@extend_schema(tags=["Upload quotes"])
+@extend_schema(tags=["Submissions credit estimates"])
 class UploadQuoteConfirm(DarkUntilEnabled, APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 

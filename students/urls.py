@@ -18,22 +18,22 @@ router.register(r"submissions", StudentSubmissionViewSet, basename="student-subm
 urlpatterns = router.urls + [
     # Upload quote: dark until UPLOAD_QUOTES_ENABLED (students/upload_quote_views.py).
     path(
-        "upload-quotes/",
+        "submissions-credit-estimate/",
         UploadQuoteCollection.as_view(),
         name="upload-quotes-collection",
     ),
     path(
-        "upload-quotes/<str:pk>",
+        "submissions-credit-estimate/<str:pk>",
         UploadQuoteDetail.as_view(),
         name="upload-quote-detail",
     ),
     path(
-        "upload-quotes/<str:pk>/files",
+        "submissions-credit-estimate/<str:pk>/files",
         UploadQuoteFiles.as_view(),
         name="upload-quote-files",
     ),
     path(
-        "upload-quotes/<str:pk>/confirm",
+        "submissions-credit-estimate/<str:pk>/confirm",
         UploadQuoteConfirm.as_view(),
         name="upload-quote-confirm",
     ),

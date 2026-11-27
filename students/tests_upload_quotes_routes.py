@@ -1,7 +1,7 @@
 """Upload quote, slice 3 (plan rev 3 section 3, with the owner's change of
 2026-11-20): the routes.
 
-POST /upload-quotes/ is multipart and does create + files in one request: the
+POST /submissions-credit-estimate/ is multipart and does create + files in one request: the
 frontend sends every file at once and does no checks of its own, so the server
 does them all (type, empty, 50 MB each, 500 MB the request) and one bad file
 never fails the others. GET one, GET the open list, DELETE (cancel). Confirm is
@@ -697,7 +697,7 @@ class Tenancy(Base):
         for path in (
             reverse(DETAIL_URL, args=[quote_id]),
             reverse(DETAIL_URL, args=["00000000-0000-0000-0000-000000000000"]),
-            "/api/v1/upload-quotes/not-a-uuid",
+            "/api/v1/submissions-credit-estimate/not-a-uuid",
         ):
             for method in ("get", "delete"):
                 response = getattr(self.client, method)(path)
@@ -798,3 +798,71 @@ class TheSwitchIsOnByDefault(SimpleTestCase):
         from django.conf import settings as django_settings
 
         self.assertTrue(django_settings.UPLOAD_QUOTES_ENABLED)
+
+
+class ThePath(Base):
+    """Owner ruling 2026-11-27 (B, A): the routes moved straight to
+    /api/v1/submissions-credit-estimate/ for both kinds; the old
+    /api/v1/upload-quotes/ path is gone, with no alias."""
+
+    NEW = "/api/v1/submissions-credit-estimate/"
+    OLD = "/api/v1/upload-quotes/"
+
+    def test_the_url_names_resolve_to_the_new_path(self):
+        quote_id = "00000000-0000-0000-0000-000000000000"
+        self.assertEqual(reverse(LIST_URL), self.NEW)
+        self.assertEqual(reverse(DETAIL_URL, args=[quote_id]), self.NEW + quote_id)
+        self.assertEqual(
+            reverse("upload-quote-files", args=[quote_id]),
+            f"{self.NEW}{quote_id}/files",
+        )
+        self.assertEqual(
+            reverse("upload-quote-confirm", args=[quote_id]),
+            f"{self.NEW}{quote_id}/confirm",
+        )
+
+    def test_the_new_path_works_for_both_kinds(self):
+        for kind in ("answer_papers", "assignment_files"):
+            created = self.create([pdf()], kind=kind)
+            self.assertEqual(created.status_code, 201, (kind, created.content))
+            quote_id = data_of(created)["id"]
+            self.assertEqual(
+                self.client.get(f"{self.NEW}{quote_id}").status_code, 200, kind
+            )
+        listed = self.client.get(self.NEW, {"open": "true"})
+        self.assertEqual(listed.status_code, 200)
+
+    def test_the_old_path_is_404_on_every_route(self):
+        quote_id = data_of(self.create([pdf()]))["id"]
+        self.client.force_authenticate(user=self.teacher)
+        calls = (
+            ("get", self.OLD),
+            ("post", self.OLD),
+            ("get", f"{self.OLD}{quote_id}"),
+            ("delete", f"{self.OLD}{quote_id}"),
+            ("post", f"{self.OLD}{quote_id}/files"),
+            ("post", f"{self.OLD}{quote_id}/confirm"),
+        )
+        for method, path in calls:
+            response = getattr(self.client, method)(path)
+            self.assertEqual(response.status_code, 404, (method, path))
+        self.assertEqual(self.get(quote_id).status_code, 200)
+
+    def test_the_schema_has_only_the_new_path_and_tag(self):
+        from drf_spectacular.generators import SchemaGenerator
+
+        schema = SchemaGenerator().get_schema(request=None, public=True)
+        paths = [p for p in schema["paths"] if "credit-estimate" in p]
+        self.assertEqual(
+            sorted(paths),
+            [
+                "/api/v1/submissions-credit-estimate/",
+                "/api/v1/submissions-credit-estimate/{id}",
+                "/api/v1/submissions-credit-estimate/{id}/confirm",
+                "/api/v1/submissions-credit-estimate/{id}/files",
+            ],
+        )
+        self.assertFalse([p for p in schema["paths"] if "upload-quote" in p])
+        for path in paths:
+            for operation in schema["paths"][path].values():
+                self.assertEqual(operation["tags"], ["Submissions credit estimates"])
