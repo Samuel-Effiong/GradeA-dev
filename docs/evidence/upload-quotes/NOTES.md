@@ -117,7 +117,11 @@ balance down for display.
   cache key expiring after `UPLOAD_QUOTE_STORE_SLOT_TTL` (15 minutes), so a
   task killed by a deploy (SIGKILL, no `finally`) frees its slot by itself,
   and a run stops starting files after `UPLOAD_QUOTE_STORE_RUN_SECONDS` (10
-  minutes, under the TTL) and sends the rest to a new task. A task finding no
+  minutes, under the TTL) and sends the rest to a new task. A slot key holds
+  a random token, so a run that outlives its key never frees a slot another
+  task has taken since. Each Cloudinary upload has one overall deadline,
+  `KEPT_FILES_UPLOAD_TIMEOUT_SECONDS` (120 s; a timeout is a retried storage
+  fault). A task finding no
   free slot is sent again in 15 s; neither the wait nor the hand-on counts as
   a fault. The staged column is `STORAGE EXTERNAL` (no
   compression of already-compressed files). The Cloudinary SDK's urllib3

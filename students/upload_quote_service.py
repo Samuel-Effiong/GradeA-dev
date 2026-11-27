@@ -627,26 +627,38 @@ STORE_SLOT_KEY = "upload_quote_store_slot:{}"
 
 
 def acquire_store_slot():
-    """Take one of UPLOAD_QUOTE_STORE_SLOTS: the number of a free slot, or
-    None when all are taken. Each slot is its own cache key that expires
+    """Take one of UPLOAD_QUOTE_STORE_SLOTS: (number, token) for a free slot,
+    or None when all are taken. Each slot is its own cache key that expires
     after UPLOAD_QUOTE_STORE_SLOT_TTL, so a holder killed without its
     `finally` (a deploy's SIGKILL) frees its slot by itself; a run never holds
     one longer than its time budget (UPLOAD_QUOTE_STORE_RUN_SECONDS, under the
-    TTL)."""
+    TTL). The key holds a random token, so a run that outlives its key never
+    releases a slot another task has taken since."""
+    import uuid
+
     from django.core.cache import cache
 
     ttl = int(settings.UPLOAD_QUOTE_STORE_SLOT_TTL)
+    token = uuid.uuid4().hex
     for number in range(max(1, int(settings.UPLOAD_QUOTE_STORE_SLOTS))):
-        if cache.add(STORE_SLOT_KEY.format(number), 1, timeout=ttl):
-            return number
+        if cache.add(STORE_SLOT_KEY.format(number), token, timeout=ttl):
+            return number, token
     return None
 
 
-def release_store_slot(number):
+def release_store_slot(slot):
+    """Free a slot taken by acquire_store_slot, only while its key still holds
+    this run's token (else the key expired and another task holds it now).
+    The read and the delete are two calls: a key expiring and being taken in
+    between is a window of microseconds after a run already past its TTL."""
     from django.core.cache import cache
 
-    if number is not None:
-        cache.delete(STORE_SLOT_KEY.format(number))
+    if slot is None:
+        return
+    number, token = slot
+    key = STORE_SLOT_KEY.format(number)
+    if cache.get(key) == token:
+        cache.delete(key)
 
 
 class TooManyFiles(Exception):

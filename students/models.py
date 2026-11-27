@@ -924,6 +924,9 @@ class UploadQuoteFile(models.Model):
     reason_code = models.CharField(max_length=64, blank=True, default="")
     already_uploaded = models.BooleanField(default=False)
     measure_attempts = models.PositiveSmallIntegerField(default=0)
+    #: Also the settle time of a NOT_KEPT row whose last store timed out (it
+    #: keeps its key): cancel and the purge keep deleting that key for 30
+    #: minutes after, for a late upload.
     measured_at = models.DateTimeField(null=True, blank=True)
     #: When the bytes reached the storage (STORING -> STORED): the measure's
     #: stale and alarm clocks run from here, not from the row's creation.
