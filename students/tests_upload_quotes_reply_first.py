@@ -671,11 +671,12 @@ class StepTwoReview(Staged):
     def test_2_the_slots_count_to_the_setting(self):
         self.clear_slots()
         self.addCleanup(self.clear_slots)
-        self.assertEqual(service.acquire_store_slot(), 0)
-        self.assertEqual(service.acquire_store_slot(), 1)
+        first = service.acquire_store_slot()
+        self.assertEqual(first[0], 0)
+        self.assertEqual(service.acquire_store_slot()[0], 1)
         self.assertIsNone(service.acquire_store_slot())
-        service.release_store_slot(0)
-        self.assertEqual(service.acquire_store_slot(), 0)
+        service.release_store_slot(first)
+        self.assertEqual(service.acquire_store_slot()[0], 0)
 
     @override_settings(UPLOAD_QUOTE_STORE_SLOTS=1, UPLOAD_QUOTE_STORE_SLOT_TTL=1)
     def test_a_a_killed_holders_slot_frees_after_its_ttl(self):
@@ -685,10 +686,67 @@ class StepTwoReview(Staged):
 
         self.clear_slots()
         self.addCleanup(self.clear_slots)
-        self.assertEqual(service.acquire_store_slot(), 0)  # then killed
+        self.assertEqual(service.acquire_store_slot()[0], 0)  # then killed
         self.assertIsNone(service.acquire_store_slot())
         clock.sleep(1.5)
-        self.assertEqual(service.acquire_store_slot(), 0)
+        self.assertEqual(service.acquire_store_slot()[0], 0)
+
+    @override_settings(UPLOAD_QUOTE_STORE_SLOTS=1, UPLOAD_QUOTE_STORE_SLOT_TTL=1)
+    def test_a_late_release_never_frees_another_tasks_slot(self):
+        """A run outlives its slot's TTL; another task takes the slot; the
+        late run's release must leave the other task's slot alone."""
+        import time as clock
+
+        self.clear_slots()
+        self.addCleanup(self.clear_slots)
+        late = service.acquire_store_slot()
+        clock.sleep(1.5)
+        other = service.acquire_store_slot()
+        self.assertEqual(other[0], 0)
+        self.assertNotEqual(other[1], late[1])
+        service.release_store_slot(late)
+        self.assertIsNone(service.acquire_store_slot())  # still the other's
+        service.release_store_slot(other)
+        self.assertIsNotNone(service.acquire_store_slot())
+
+    def test_a_cloudinary_upload_has_one_overall_timeout(self):
+        import urllib3
+
+        seen = {}
+
+        def upload(stream, **kwargs):
+            seen.update(kwargs)
+            data = stream.getvalue()
+            return {"bytes": len(data), "etag": md5(data)}
+
+        with patch.object(kept_files, "_memory", return_value=False), patch(
+            "students.kept_files.cloudinary.uploader.upload", side_effect=upload
+        ), override_settings(KEPT_FILES_UPLOAD_TIMEOUT_SECONDS=42):
+            kept_files.store(b"bytes", key="kept_uploads/x/t")
+        timeout = seen["timeout"]
+        self.assertIsInstance(timeout, urllib3.Timeout)
+        self.assertEqual(timeout.total, 42)
+
+    def test_the_upload_timeout_is_under_the_run_budget(self):
+        self.assertLess(
+            settings.KEPT_FILES_UPLOAD_TIMEOUT_SECONDS,
+            settings.UPLOAD_QUOTE_STORE_RUN_SECONDS,
+        )
+
+    def test_a_timed_out_upload_is_a_storage_fault_worth_retrying(self):
+        import urllib3
+
+        def hang(stream, **kwargs):
+            raise urllib3.exceptions.ReadTimeoutError(
+                None, "/upload", "timed out"  # type: ignore[arg-type]
+            )
+
+        with patch.object(kept_files, "_memory", return_value=False), patch(
+            "students.kept_files.cloudinary.uploader.upload", side_effect=hang
+        ):
+            with self.assertRaises(kept_files.KeptFileUnavailable) as caught:
+                kept_files.store(b"bytes", key="kept_uploads/x/t")
+        self.assertTrue(service._is_transient(caught.exception))
 
     def test_a_the_budget_is_under_the_slot_ttl(self):
         self.assertLess(

@@ -29,6 +29,7 @@ from dataclasses import dataclass
 import cloudinary.uploader
 import cloudinary.utils
 import requests
+import urllib3
 from django.conf import settings
 
 KEY_PREFIX = "kept_uploads/"
@@ -137,6 +138,12 @@ def store(content, key=None):
                 resource_type="raw",
                 type="private",
                 overwrite=False,
+                # One deadline for the whole call (connect and every read),
+                # passed through the SDK to urllib3: a hung upload fails as
+                # KeptFileUnavailable instead of holding its worker.
+                timeout=urllib3.Timeout(
+                    total=settings.KEPT_FILES_UPLOAD_TIMEOUT_SECONDS
+                ),
             )
         except Exception as exc:
             raise KeptFileUnavailable(type(exc).__name__) from exc

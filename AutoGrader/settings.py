@@ -1870,6 +1870,12 @@ UPLOAD_QUOTE_STORE_SLOT_TTL = env.int("UPLOAD_QUOTE_STORE_SLOT_TTL", default=15 
 UPLOAD_QUOTE_STORE_RUN_SECONDS = env.int(
     "UPLOAD_QUOTE_STORE_RUN_SECONDS", default=10 * 60
 )
+#: One upload to Cloudinary (students.kept_files.store, quote files and kept
+#: uploads) fails after this many seconds in all: a 10 MB file needs about 80
+#: s at 1 Mbit/s. Well under the store run budget and the slot TTL above.
+KEPT_FILES_UPLOAD_TIMEOUT_SECONDS = env.int(
+    "KEPT_FILES_UPLOAD_TIMEOUT_SECONDS", default=120
+)
 
 # Email domain for users the live-QA suite creates. Defaults to a
 # .invalid domain (RFC 2606 reserves it as never-resolvable), so a QA
