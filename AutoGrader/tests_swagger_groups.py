@@ -1,7 +1,8 @@
 """
 Swagger groups (S12, owner go 13 Nov, beta, docs only): twenty endpoints had
 no tag and showed under the catch-all "api" group. Each now has the approved
-group name.
+group name. (2026-11-27, owner: POST credit-requests/{id}/approve is hidden
+from the docs, so it is no longer listed here; the route still works.)
 """
 
 from drf_spectacular import extensions
@@ -12,7 +13,6 @@ APPROVED = {
     ("get", "/api/v1/billing/credit-requests"): "Credit Requests",
     ("post", "/api/v1/billing/credit-requests"): "Credit Requests",
     ("get", "/api/v1/billing/credit-requests/counts"): "Credit Requests",
-    ("post", "/api/v1/billing/credit-requests/{id}/approve"): "Credit Requests",
     ("post", "/api/v1/billing/credit-requests/{id}/decline"): "Credit Requests",
     ("post", "/api/v1/billing/credit-requests/{id}/withdraw"): "Credit Requests",
     ("get", "/api/v1/tags"): "Tags",
@@ -88,10 +88,6 @@ class SwaggerGroupsTests(APITestCase):
             "CreateCreditRequest",
             ("requested_blocks", "message"),
         ),
-        ("post", "/api/v1/billing/credit-requests/{id}/approve"): (
-            "ApproveCreditRequest",
-            ("blocks", "payment_method"),
-        ),
         ("post", "/api/v1/billing/credit-requests/{id}/decline"): (
             "DeclineCreditRequest",
             ("reason",),
@@ -118,10 +114,6 @@ class SwaggerGroupsTests(APITestCase):
         ),
         ("get", "/api/v1/tags/{id}/impact"): ("affected_count",),
         ("put", "/api/v1/assignments/{id}/tags"): ("tags",),
-        ("post", "/api/v1/billing/credit-requests/{id}/approve"): (
-            "request",
-            "purchase",
-        ),
         ("post", "/api/v1/billing/credit-requests"): ("id", "status"),
         ("post", "/api/v1/billing/credit-requests/{id}/decline"): ("id", "status"),
         ("post", "/api/v1/billing/credit-requests/{id}/withdraw"): ("id", "status"),
