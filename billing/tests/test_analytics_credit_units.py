@@ -10,7 +10,8 @@ flags) stay raw over raw. Field names and URLs are unchanged.
 """
 
 import importlib
-from datetime import timedelta
+from datetime import date, datetime, timedelta
+from datetime import timezone as dt_timezone
 
 from django.core.cache import cache
 from django.test import SimpleTestCase
@@ -104,8 +105,8 @@ class AnalyticsInCreditsTests(AdminFixture):
         self.assertEqual(self.today(rows), 22)
 
     def test_weekly_credit_trends(self):
-        (row,) = self.get("beta-chart-weekly-credit-trends")
-        self.assertEqual(row["total_credits"], 22)
+        rows = self.get("beta-chart-weekly-credit-trends")
+        self.assertEqual(rows[-1]["total_credits"], 22)
 
     def test_peak_usage_hours(self):
         (row,) = self.get("beta-chart-peak-usage-hours")
@@ -181,9 +182,10 @@ class HalfUpOnTheEndpointsTests(AdminFixture):
 
 
 class WeeklyCreditTrendsWindowTests(AdminFixture):
-    """Step 3 (owner go, 2026-11-25): the Week-over-Week chart counts usage up
-    to now only, returns at most the last 12 weeks that have data, oldest
-    first, in AI credits. Rows dated in the future are left out."""
+    """Owner, 2026-11-27 (was step 3, 2026-11-25): the Week-over-Week chart is
+    always 12 calendar weeks in a row, the current week (from Monday 00:00 UTC)
+    and the 11 before it, oldest first, in AI credits. A week with no usage is
+    0. Only usage up to now: future-dated rows are left out."""
 
     URL = "beta-chart-weekly-credit-trends"
 
@@ -205,53 +207,88 @@ class WeeklyCreditTrendsWindowTests(AdminFixture):
         day = when.date()
         return day - timedelta(days=day.weekday())
 
+    def expected_weeks(self):
+        current = self.week_start(timezone.now())
+        return [(current - timedelta(weeks=n)).isoformat() for n in range(11, -1, -1)]
+
+    def by_week(self, rows):
+        return {r["week_start"]: r["total_credits"] for r in rows}
+
+    def test_always_twelve_consecutive_mondays_ending_this_week(self):
+        self.charge_at(1_000, timezone.now() - timedelta(weeks=3))
+        rows = self.get(self.URL)
+        self.assertEqual(len(rows), 12)
+        starts = [r["week_start"] for r in rows]
+        self.assertEqual(starts, self.expected_weeks())
+        for start in starts:
+            self.assertEqual(date.fromisoformat(start).weekday(), 0, start)
+
+    def test_a_cohort_with_no_usage_gets_twelve_zeros(self):
+        rows = self.get(self.URL)
+        self.assertEqual([r["week_start"] for r in rows], self.expected_weeks())
+        self.assertEqual([r["total_credits"] for r in rows], [0] * 12)
+
+    def test_a_gap_week_shows_zero(self):
+        now = timezone.now()
+        for n in (0, 2):
+            self.charge_at(1_000, now - timedelta(weeks=n))
+        weeks = self.by_week(self.get(self.URL))
+        self.assertEqual(weeks[self.week_start(now).isoformat()], 1)
+        gap = self.week_start(now - timedelta(weeks=1)).isoformat()
+        self.assertEqual(weeks[gap], 0)
+        self.assertEqual(
+            weeks[self.week_start(now - timedelta(weeks=2)).isoformat()], 1
+        )
+
+    def test_usage_older_than_twelve_weeks_is_left_out(self):
+        now = timezone.now()
+        self.charge_at(1_000, now - timedelta(weeks=11))
+        self.charge_at(50_000, now - timedelta(weeks=12))
+        self.charge_at(70_000, now - timedelta(weeks=30))
+        rows = self.get(self.URL)
+        self.assertEqual(len(rows), 12)
+        self.assertEqual(
+            rows[0]["week_start"],
+            self.week_start(now - timedelta(weeks=11)).isoformat(),
+        )
+        self.assertEqual(rows[0]["total_credits"], 1)
+        self.assertEqual(sum(r["total_credits"] for r in rows), 1)
+
+    def test_the_week_starts_monday_midnight_utc(self):
+        monday = self.week_start(timezone.now())
+        start = datetime.combine(monday, datetime.min.time(), tzinfo=dt_timezone.utc)
+        self.charge_at(2_000, start)  # counts in this week
+        self.charge_at(4_000, start - timedelta(seconds=1))  # last week
+        rows = self.get(self.URL)
+        self.assertEqual(rows[-1]["total_credits"], 2)
+        self.assertEqual(rows[-2]["total_credits"], 4)
+
     def test_a_future_dated_row_is_left_out(self):
         now = timezone.now()
         self.charge_at(5_000, now)
         self.charge_at(7_000, now + timedelta(days=400))
-        rows = self.get(self.URL)
-        self.assertEqual(len(rows), 1)
-        self.assertEqual(rows[0]["total_credits"], 5)
-        self.assertLessEqual(rows[0]["week_start"], timezone.now().date().isoformat())
-
-    def test_the_current_partial_week_is_included(self):
-        now = timezone.now()
-        self.charge_at(3_000, now)
-        rows = self.get(self.URL)
-        self.assertEqual(rows[-1]["week_start"], self.week_start(now).isoformat())
-        self.assertEqual(rows[-1]["total_credits"], 3)
-
-    def test_at_most_twelve_weeks_and_they_are_the_latest(self):
-        now = timezone.now()
-        for n in range(15):
-            self.charge_at(1_000, now - timedelta(weeks=n))
+        self.charge_at(9_000, now + timedelta(hours=1))
         rows = self.get(self.URL)
         self.assertEqual(len(rows), 12)
-        oldest_kept = self.week_start(now - timedelta(weeks=11)).isoformat()
-        self.assertEqual(rows[0]["week_start"], oldest_kept)
-
-    def test_oldest_first(self):
-        now = timezone.now()
-        for n in (0, 2, 5):
-            self.charge_at(1_000, now - timedelta(weeks=n))
-        starts = [r["week_start"] for r in self.get(self.URL)]
-        self.assertEqual(starts, sorted(starts))
-        self.assertEqual(len(starts), 3)
+        self.assertEqual(rows[-1]["week_start"], self.week_start(now).isoformat())
+        self.assertEqual(rows[-1]["total_credits"], 5)
+        self.assertEqual(sum(r["total_credits"] for r in rows), 5)
 
     def test_values_are_in_ai_credits(self):
         now = timezone.now()
         self.charge_at(9_150, now)
         self.charge_at(10_850, now)
-        (row,) = self.get(self.URL)
-        self.assertEqual(row["total_credits"], 20)
+        rows = self.get(self.URL)
+        self.assertEqual(rows[-1]["total_credits"], 20)
 
-    def test_the_swagger_text_says_the_window(self):
+    def test_the_swagger_text_says_the_window_and_the_zero_weeks(self):
         from drf_spectacular.generators import SchemaGenerator
 
         paths = SchemaGenerator().get_schema(request=None, public=True)["paths"]
         (path,) = [p for p in paths if p.rstrip("/").endswith("weekly-credit-trends")]
         self.assertIn(
-            "the last 12 weeks up to the current week, oldest first, in AI credits",
+            "the last 12 weeks up to the current week, oldest first, in AI "
+            "credits. A week with no usage shows 0.",
             paths[path]["get"]["description"],
         )
 
