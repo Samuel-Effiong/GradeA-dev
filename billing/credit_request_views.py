@@ -50,6 +50,7 @@ class CreditRequestSerializer(serializers.ModelSerializer):
             "teacher_email",
             "license_subscription",
             "requested_blocks",
+            "approved_blocks",
             "message",
             "status",
             "status_label",

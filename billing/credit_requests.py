@@ -397,6 +397,7 @@ def approve_request(
         row.pk,
         [PENDING],
         status=APPROVED,
+        approved_blocks=blocks,
         decided_by=actor,
         decided_at=timezone.now(),
         note="",
@@ -416,7 +417,13 @@ def approve_request(
             credit_request_id=row.pk,
         )
     except Exception as exc:
-        _move(row.pk, [APPROVED], status=PENDING, note=str(exc)[:500])
+        _move(
+            row.pk,
+            [APPROVED],
+            status=PENDING,
+            approved_blocks=None,
+            note=str(exc)[:500],
+        )
         raise
     linked = CreditRequest.objects.filter(pk=row.pk)
     if result.get("action") == "checkout" and result.get("intent_id"):
@@ -651,6 +658,7 @@ def _back_to_waiting(request_pk, *, intent=None, offline_request=None, note=None
         )
     return rows.update(
         status=PENDING,
+        approved_blocks=None,
         note=note or text("note_checkout_closed"),
         purchase_intent=None,
         offline_request=None,
