@@ -14,7 +14,12 @@ must get the verdict INSUFFICIENT (FR-B-04's 0 boundary).
 """
 
 from django.shortcuts import get_object_or_404
-from drf_spectacular.utils import extend_schema, inline_serializer
+from drf_spectacular.utils import (
+    OpenApiExample,
+    extend_schema,
+    extend_schema_field,
+    inline_serializer,
+)
 from rest_framework import serializers
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -37,6 +42,20 @@ OVER_LIMIT_MESSAGE = (
 )
 
 
+# Docs only (owner, 2026-11-28): what the field takes, instead of
+# drf-spectacular's fallback "string" for a custom Field.
+@extend_schema_field(
+    {
+        "oneOf": [
+            {
+                "type": "array",
+                "items": {"type": "string", "format": "uuid"},
+                "maxItems": LIST_LIMIT,
+            },
+            {"type": "string", "enum": [ALL_UNGRADED]},
+        ]
+    }
+)
 class _SubmissionIds(serializers.Field):
     def to_internal_value(self, data):
         if data == ALL_UNGRADED:
@@ -68,7 +87,12 @@ def _shown_errors(errors):
 
 class EstimateRequestSerializer(serializers.Serializer):
     assignment_id = serializers.UUIDField()
-    submission_ids = _SubmissionIds()
+    submission_ids = _SubmissionIds(
+        help_text=(
+            'Either a list of up to 500 submission ids, or "all_ungraded" for '
+            "every paper not yet graded."
+        )
+    )
 
 
 ESTIMATE_REPLY = inline_serializer(
@@ -101,7 +125,31 @@ ESTIMATE_REPLY = inline_serializer(
 class BillingEstimateView(APIView):
     permission_classes = [IsAuthenticated, IsTeacher]
 
-    @extend_schema(request=EstimateRequestSerializer, responses=ESTIMATE_REPLY)
+    @extend_schema(
+        request=EstimateRequestSerializer,
+        responses=ESTIMATE_REPLY,
+        examples=[
+            OpenApiExample(
+                "Chosen papers",
+                value={
+                    "assignment_id": "3f2b8c1e-6a4d-4e7b-9c0a-1d2e3f4a5b6c",
+                    "submission_ids": [
+                        "8a1c2d3e-4f5a-4b6c-8d7e-9f0a1b2c3d4e",
+                        "b2c3d4e5-f6a7-4b8c-9d0e-1f2a3b4c5d6e",
+                    ],
+                },
+                request_only=True,
+            ),
+            OpenApiExample(
+                "All ungraded papers",
+                value={
+                    "assignment_id": "3f2b8c1e-6a4d-4e7b-9c0a-1d2e3f4a5b6c",
+                    "submission_ids": ALL_UNGRADED,
+                },
+                request_only=True,
+            ),
+        ],
+    )
     def post(self, request):
         body = EstimateRequestSerializer(data=request.data)
         if not body.is_valid():
