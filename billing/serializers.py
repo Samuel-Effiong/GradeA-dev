@@ -2562,6 +2562,13 @@ class PurchaseLicenseOverageSerializer(serializers.Serializer):
         ),
     )
     cancel_url = serializers.URLField(required=False, allow_null=True)
+    credit_request_id = serializers.UUIDField(
+        required=False,
+        help_text=(
+            "Optional. A teacher's waiting credit request that this purchase "
+            "answers. Give all the blocks to that teacher."
+        ),
+    )
 
     def validate_allocations(self, value):
         # Keys are normalized to the canonical lowercase-hyphenated UUID
