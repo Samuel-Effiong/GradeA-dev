@@ -88,6 +88,13 @@ APPROVED_TEXTS = {
     "error_no_license": "You need to be on a school license to ask for credits.",
     "error_answered": "This request has already been answered.",
     "error_withdraw": "You can only withdraw a request while it is waiting.",
+    # Purchase-overage answering a request (owner, 2026-11-28).
+    "error_purchase_allocation": (
+        "To answer a credit request, give all the blocks to the teacher who asked."
+    ),
+    "error_requests_off": (
+        "Credit requests are turned off, so this purchase can't answer one."
+    ),
     "note_checkout_closed": (
         "The payment page closed before payment. The request is waiting again."
     ),
