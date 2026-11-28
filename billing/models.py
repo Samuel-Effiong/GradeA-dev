@@ -2827,6 +2827,13 @@ class CreditRequest(models.Model):
         LicenseSubscription, on_delete=models.CASCADE, related_name="credit_requests"
     )
     requested_blocks = models.PositiveIntegerField()
+    # Set with PENDING -> APPROVED, cleared on every way back to waiting
+    # (owner, 2026-11-28): the admin may give more or fewer than asked.
+    approved_blocks = models.PositiveIntegerField(
+        null=True,
+        blank=True,
+        help_text="Blocks the admin approved. Empty until the request is approved.",
+    )
     message = models.CharField(max_length=500, blank=True, default="")
     status = models.CharField(
         max_length=20,
