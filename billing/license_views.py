@@ -38,7 +38,7 @@ from classrooms.models import School
 from classrooms.permissions import IsNotStudent, IsSuperAdmin
 from users.models import CustomUser, UserTypes
 
-from . import license_stripe_mutation
+from . import credit_requests, license_stripe_mutation
 from .imports import stripe
 from .license_service import LicenseRequestError, LicenseSubscriptionService
 from .models import (  # SubscriptionPlan,
@@ -777,7 +777,13 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
             "license-overage-offline-requests endpoints.\n"
             "- **Super admin**: grants the blocks immediately with NO "
             "Stripe charge — an administrative grant on behalf of the "
-            "school, regardless of `payment_method`.\n\n"
+            "school, regardless of `payment_method`.\n"
+            "- **Answering a credit request**: send `credit_request_id` with "
+            "`allocations` naming only the teacher who asked. The request is "
+            "approved now and shows Credits added once the credits are granted "
+            "(at once for a super admin, after payment for Stripe, after "
+            "approval for an offline request). If the purchase fails, the "
+            "request goes back to waiting.\n\n"
             "All paths share the same request shape: `total_blocks` + "
             "`allocations` (user UUID -> block count), which must sum "
             "exactly to `total_blocks`. Each block grants "
@@ -800,15 +806,30 @@ class LicenseSubscriptionViewSet(viewsets.ModelViewSet):
         d = serializer.validated_data
 
         try:
-            result = LicenseSubscriptionService.initiate_overage_purchase(
-                license_sub,
-                requesting_user=request.user,
-                total_blocks=d["total_blocks"],
-                allocations=d["allocations"],
-                success_url=d.get("success_url"),
-                cancel_url=d.get("cancel_url"),
-                payment_method=d.get("payment_method", "stripe"),
-            )
+            if d.get("credit_request_id"):
+                # Answers a teacher's credit request (owner, 2026-11-28): the
+                # same path as credit-requests/{id}/approve.
+                result = credit_requests.answer_from_purchase(
+                    d["credit_request_id"],
+                    request.user,
+                    license_id=license_sub.pk,
+                    allocations=d["allocations"],
+                    payment_method=d.get("payment_method", "stripe"),
+                    success_url=d.get("success_url"),
+                    cancel_url=d.get("cancel_url"),
+                )
+            else:
+                result = LicenseSubscriptionService.initiate_overage_purchase(
+                    license_sub,
+                    requesting_user=request.user,
+                    total_blocks=d["total_blocks"],
+                    allocations=d["allocations"],
+                    success_url=d.get("success_url"),
+                    cancel_url=d.get("cancel_url"),
+                    payment_method=d.get("payment_method", "stripe"),
+                )
+        except credit_requests.CreditRequestError as exc:
+            return Response({"detail": str(exc)}, status=exc.status_code)
         except ValueError as exc:
             return Response(
                 {

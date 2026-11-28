@@ -95,6 +95,13 @@ CREDIT_REQUEST_TEXTS = {
     "error_no_license": "You need to be on a school license to ask for credits.",
     "error_answered": "This request has already been answered.",
     "error_withdraw": "You can only withdraw a request while it is waiting.",
+    # Purchase-overage answering a request (owner, 2026-11-28).
+    "error_purchase_allocation": (
+        "To answer a credit request, give all the blocks to the teacher who asked."
+    ),
+    "error_requests_off": (
+        "Credit requests are turned off, so this purchase can't answer one."
+    ),
     # W11-W13, notes shown to admins.
     "note_checkout_closed": (
         "The payment page closed before payment. The request is waiting again."
@@ -417,6 +424,36 @@ def approve_request(
     elif result.get("action") == "offline_request_pending" and result.get("request_id"):
         linked.update(offline_request_id=result["request_id"])
     return result
+
+
+def answer_from_purchase(
+    request_id,
+    actor,
+    *,
+    license_id,
+    allocations,
+    payment_method="stripe",
+    success_url=None,
+    cancel_url=None,
+):
+    """Purchase-overage answering a credit request (owner, 2026-11-28): the
+    request must be on this license and the purchase must give all its
+    blocks to the teacher who asked; then it is approve_request, unchanged."""
+    if not enabled():
+        raise CreditRequestError(text("error_requests_off"), 400)
+    row = _for_answer(request_id, actor)
+    if row.license_subscription_id != license_id:
+        raise CreditRequestError("Not found.", 404)
+    if list(allocations) != [str(row.teacher_id)]:
+        raise CreditRequestError(text("error_purchase_allocation"), 400)
+    return approve_request(
+        row.pk,
+        actor,
+        blocks=allocations[str(row.teacher_id)],
+        payment_method=payment_method,
+        success_url=success_url,
+        cancel_url=cancel_url,
+    )
 
 
 # --------------------------------------------------------------------------
